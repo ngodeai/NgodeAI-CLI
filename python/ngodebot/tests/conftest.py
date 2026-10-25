@@ -11,7 +11,7 @@ from ngodebot.dashboard import reset_index_cache, static_dir
 from ngodebot.db import Database, close_database
 
 # Minimum HTML the dashboard handler needs to render: `<title>` plus a script
-# block carrying the `__ROBOMP_CONFIG__` sentinel. The real Vite-built bundle
+# block carrying the `__NGODEBOT_CONFIG__` sentinel. The real Vite-built bundle
 # adds JS/CSS asset links; tests only care about the rendering contract.
 _PLACEHOLDER_INDEX_HTML = (
     "<!doctype html>\n"
@@ -19,7 +19,7 @@ _PLACEHOLDER_INDEX_HTML = (
     '  <head><meta charset="utf-8"><title>ngodebot</title></head>\n'
     "  <body>\n"
     '    <div id="app"></div>\n'
-    '    <script id="ngodebot-config" type="application/json">__ROBOMP_CONFIG__</script>\n'
+    '    <script id="ngodebot-config" type="application/json">__NGODEBOT_CONFIG__</script>\n'
     "  </body>\n"
     "</html>\n"
 )

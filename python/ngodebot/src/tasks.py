@@ -77,7 +77,7 @@ def _comment_from_payload(payload: Mapping[str, Any]) -> CommentInfo:
 
 def _directive_from_payload(payload: Mapping[str, Any]) -> DirectiveInfo | None:
     """Extract the maintainer directive the webhook handler stashed, if any."""
-    raw = payload.get("_robomp_directive")
+    raw = payload.get("_ngodebot_directive")
     if not isinstance(raw, Mapping):
         return None
     body = raw.get("body")
@@ -938,9 +938,9 @@ async def handle_pr_conversation(
         db.upsert_issue(key=issue_row.key, repo=issue_row.repo, number=issue_row.number, state="reproducing")
         issue_row = db.get_issue(issue_row.key) or issue_row
     # Bare @mention with no request body — the route stashes an empty
-    # _robomp_directive; _directive_from_payload rejects it but the key
+    # _ngodebot_directive; _directive_from_payload rejects it but the key
     # being present tells us a mention happened. Reply cheaply without ngodeai.
-    if directive is None and payload.get("_robomp_directive") is not None:
+    if directive is None and payload.get("_ngodebot_directive") is not None:
         comment = _comment_from_payload(payload)
         log.info(
             "bare mention, prompting for request", extra={"repo": repo_full, "pr": pr_number, "author": comment.author}

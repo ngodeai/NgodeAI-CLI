@@ -332,7 +332,7 @@ def test_guarded_push_branch_rev_parse_runs_via_repo_command_and_passes_slot_uid
             return subprocess.CompletedProcess(
                 command,
                 0,
-                "abc123\trobomp-bot@example.invalid\trobomp-bot\n",
+                "abc123\tngodebot-bot@example.invalid\tngodebot-bot\n",
                 "",
             )
         return subprocess.CompletedProcess(command, 0, "", "")
@@ -2025,7 +2025,7 @@ def test_impl_gate_allows_later_authorized_event_to_reach_repo_commands(
         repo=bindings.issue.repo,
         issue_key=bindings.issue_key,
         payload={
-            "_robomp_directive": {
+            "_ngodebot_directive": {
                 "body": "go ahead",
                 "author": "can1357",
                 "pragmas": [],
@@ -2062,7 +2062,7 @@ def test_impl_gate_ignores_skipped_authorized_event(
         repo=bindings.issue.repo,
         issue_key=bindings.issue_key,
         payload={
-            "_robomp_directive": {
+            "_ngodebot_directive": {
                 "body": "go ahead",
                 "author": "can1357",
                 "pragmas": [],

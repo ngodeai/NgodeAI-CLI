@@ -140,7 +140,7 @@ def test_index_serves_dashboard_html(settings: Settings) -> None:
     assert 'id="ngodebot-config"' in resp.text
     # The sentinel must have been substituted — neither the literal sentinel
     # nor an empty script body is acceptable.
-    assert "__ROBOMP_CONFIG__" not in resp.text
+    assert "__NGODEBOT_CONFIG__" not in resp.text
     assert '"replayEnabled":' in resp.text
 
 
@@ -1678,7 +1678,7 @@ def test_webhook_directive_on_unknown_issue_is_queued_with_metadata(env) -> None
     close_database()
     assert row is not None
     assert row.state == "queued"
-    directive = row.payload.get("_robomp_directive")
+    directive = row.payload.get("_ngodebot_directive")
     assert directive == {"body": "please refactor X", "author": "can1357", "pragmas": [], "authorizes_impl": True}
 
 
@@ -1715,7 +1715,7 @@ def test_webhook_directive_authorizes_deployed_app_login_without_author_associat
         row = get_database(cfg.sqlite_path).get_event("dir-app-login")
     close_database()
     assert row is not None
-    directive = row.payload.get("_robomp_directive")
+    directive = row.payload.get("_ngodebot_directive")
     assert directive == {"body": "go ahead", "author": "can1357", "pragmas": [], "authorizes_impl": True}
 
 
@@ -1748,7 +1748,7 @@ def test_webhook_maintainer_bypasses_rate_limit(
     close_database()
     assert states == ["queued"] * 4, states
     assert directive_event is not None
-    assert directive_event.payload.get("_robomp_directive") == {
+    assert directive_event.payload.get("_ngodebot_directive") == {
         "body": "do X",
         "author": "can1357",
         "pragmas": [],
@@ -2091,7 +2091,7 @@ async def test_handle_pr_conversation_skips_review_workspace_rows(
         },
         "comment": {"user": {"login": "can1357"}, "body": "@ngodebot-bot please re-review", "id": 12},
         "repository": {"full_name": "octo/widget"},
-        "_robomp_directive": {"body": "please re-review", "author": "can1357"},
+        "_ngodebot_directive": {"body": "please re-review", "author": "can1357"},
     }
     await tasks.handle_pr_conversation(
         settings=settings,
@@ -2274,7 +2274,7 @@ async def test_handle_comment_directive_bootstraps_untriaged_issue(
         "issue": {"number": 88, "user": {"login": "alice"}, "title": "boom"},
         "comment": {"user": {"login": "can1357"}, "body": "do it", "id": 1, "created_at": "2026-05-14T20:00:00Z"},
         "repository": {"full_name": "octo/widget"},
-        "_robomp_directive": {"body": "please refactor X", "author": "can1357"},
+        "_ngodebot_directive": {"body": "please refactor X", "author": "can1357"},
     }
     await tasks.handle_comment(
         settings=settings,
@@ -2344,7 +2344,7 @@ async def test_handle_comment_directive_reopens_finalized_issue(
         "issue": {"number": 88, "user": {"login": "alice"}, "title": "boom"},
         "comment": {"user": {"login": "can1357"}, "body": "redo", "id": 2, "created_at": "2026-05-14T21:00:00Z"},
         "repository": {"full_name": "octo/widget"},
-        "_robomp_directive": {"body": "redo the fix", "author": "can1357"},
+        "_ngodebot_directive": {"body": "redo the fix", "author": "can1357"},
     }
     await tasks.handle_comment(
         settings=settings,
@@ -2573,7 +2573,7 @@ async def test_directive_handler_attaches_thread_from_github(
             "created_at": "2026-05-03T20:00:00Z",
         },
         "repository": {"full_name": "octo/widget"},
-        "_robomp_directive": {"body": "do X", "author": "can1357"},
+        "_ngodebot_directive": {"body": "do X", "author": "can1357"},
     }
     # Pre-seed an issue row so we exercise the "existing, non-finalized" path
     # (otherwise we'd hit the bootstrap branch which is covered elsewhere).

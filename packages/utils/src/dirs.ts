@@ -32,10 +32,10 @@ export const APP_URL: string = "https://ngodeai.net/";
 export const CONFIG_DIR_NAME: string = ".ngodeai";
 
 /**
- * Legacy config directory names, newest first. `.omp` and `.pi` are the two
- * pre-rebrand roots; they are migrated into {@link CONFIG_DIR_NAME} on first
- * run by {@link migrateLegacyConfigRoot}, so this list only ever drives that
- * one-way migration — never steady-state path resolution.
+ * Pre-rebrand config roots, newest first. Both are migrated into
+ * {@link CONFIG_DIR_NAME} on first run by {@link migrateLegacyConfigRoot}, so
+ * this list only ever drives that one-way move — never steady-state path
+ * resolution.
  */
 export const LEGACY_CONFIG_DIR_NAMES = [".omp", ".pi"] as const;
 
@@ -343,8 +343,8 @@ export function getSafeProjectCwd(): string {
  * Get the config directory name relative to home (e.g. ".ngodeai").
  *
  * Resolution order: `NGODEAI_CONFIG_DIR`, then the legacy `PI_CONFIG_DIR`, then
- * {@link CONFIG_DIR_NAME}. A pre-rebrand root (`~/.omp`, `~/.pi`) is *moved*
- * into {@link CONFIG_DIR_NAME} on first read by
+ * {@link CONFIG_DIR_NAME}. A pre-rebrand root is *moved* into
+ * {@link CONFIG_DIR_NAME} on first read by
  * {@link migrateLegacyConfigRoot}; steady state never resolves to a legacy
  * name, so no new file is ever written under an old brand.
  */
@@ -355,7 +355,7 @@ export function getConfigDirName(): string {
 }
 
 /**
- * Move a pre-rebrand config root (`~/.omp`, then `~/.pi`) into `~/.ngodeai`.
+ * Move a pre-rebrand config root into `~/.ngodeai`.
  *
  * Renames when the canonical root does not exist yet — atomic on the same
  * filesystem, so a 1 GB session store costs one `rename(2)`. When both roots
@@ -605,7 +605,7 @@ function resolveActiveAgentDirOverride(): string | undefined {
 		: resolvePreProfileAgentDir(undefined, readAgentDirEnv(), readPiProfileFromEnvSafe());
 }
 
-// A pre-rebrand `~/.omp` / `~/.pi` must move before the first DirResolver is
+// A pre-rebrand config root must move before the first DirResolver is
 // built: every path below is derived from `os.homedir()` + config dir name, so
 // migrating afterwards would leave this process pointing at the old tree.
 migrateLegacyConfigRoot();

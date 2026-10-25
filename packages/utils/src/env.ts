@@ -262,9 +262,9 @@ export function getDotenvEnvValues(
 /**
  * Canonical env prefix. `NGODEAI_FOO` is the only documented spelling.
  *
- * `OMP_*` is gone for good: the rebrand treats it as a foreign name, so no
- * alias is published. `PI_*` survives as the single legacy prefix because
- * third-party plugins and older shells still export it.
+ * The pre-rebrand prefix is gone for good: no alias is published for it.
+ * `PI_*` survives as the single legacy prefix because third-party plugins and
+ * older shells still export it.
  */
 const CANONICAL_ENV_PREFIX = "NGODEAI_";
 

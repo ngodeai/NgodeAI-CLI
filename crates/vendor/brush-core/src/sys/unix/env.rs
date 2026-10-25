@@ -41,7 +41,7 @@ mod tests {
 			"a non-UTF-8 value must be skipped"
 		);
 		assert!(
-			!entries.iter().any(|(key, _)| key.contains("OMP_TEST_BAD_KEY")),
+			!entries.iter().any(|(key, _)| key.contains("NGODEAI_TEST_BAD_KEY")),
 			"a non-UTF-8 key must be skipped"
 		);
 		assert!(
