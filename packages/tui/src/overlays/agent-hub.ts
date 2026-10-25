@@ -84,7 +84,15 @@ import { sanitizeDisplaySingleLine } from "./extensions/display-text";
 import { AgentTranscriptViewer, type AgentTranscriptSource } from "./agent-transcript-viewer";
 import type { AgentRoleDisplay } from "./agent-hub-renderer";
 import { fuzzyMatch } from "../fuzzy";
-import { bottomBorder, divider, dividerSplit, PanelRows, row, topBorder, topBorderSplit } from "../chrome/overlay-box";
+import {
+	brandBottom,
+	brandDivider,
+	brandDividerSplit,
+	brandRow,
+	brandTop,
+	brandTopSplit,
+	PanelRows,
+} from "../chrome/overlay-box";
 import { SplitPane } from "../components/layout/split-pane";
 import { Stack } from "../components/layout/stack";
 import { node, span, stableKey, text } from "../native/describe";
@@ -422,9 +430,9 @@ export class AgentHubOverlayComponent<TRecord extends AgentRecordLike = AgentRec
 		rightMinWidth: DETAIL_MIN_WIDTH,
 		splitAt: SPLIT_MIN_WIDTH,
 		narrowPane: "left",
-		prefix: () => `${theme.fg("border", theme.boxRound.vertical)} `,
-		divider: () => ` ${theme.fg("border", theme.boxRound.vertical)} `,
-		suffix: () => ` ${theme.fg("border", theme.boxRound.vertical)}`,
+		prefix: () => `${theme.fg("border", theme.boxBrand.vertical)} `,
+		divider: () => ` ${theme.fg("border", theme.boxBrand.vertical)} `,
+		suffix: () => ` ${theme.fg("border", theme.boxBrand.vertical)}`,
 	});
 	readonly #frameTop = new PanelRows();
 	readonly #frameDivider = new PanelRows();
@@ -1749,11 +1757,11 @@ export class AgentHubOverlayComponent<TRecord extends AgentRecordLike = AgentRec
 		}
 		while (body.length < contentRows) body.push("");
 
-		const lines = [topBorder(width, "Agent Hub")];
-		for (const line of body.slice(0, contentRows)) lines.push(row(line, width));
-		lines.push(divider(width));
+		const lines = [brandTop(width, "Agent Hub")];
+		for (const line of body.slice(0, contentRows)) lines.push(brandRow(line, width));
+		lines.push(brandDivider(width));
 		lines.push(
-			row(
+			brandRow(
 				theme.fg(
 					"dim",
 					`1:agents  ${formatKeyHints(["j", "k"])}:select  ${formatKeyHint("enter")}:transcript  ${formatKeyHint("space")}:follow  ${formatKeyHint("f")}:filter  ${formatKeyHint("s")}:scope  /:search  ${formatKeyHint("escape")}:close`,
@@ -1761,7 +1769,7 @@ export class AgentHubOverlayComponent<TRecord extends AgentRecordLike = AgentRec
 				width,
 			),
 		);
-		lines.push(bottomBorder(width));
+		lines.push(brandBottom(width));
 		return lines;
 	}
 
@@ -1795,17 +1803,20 @@ export class AgentHubOverlayComponent<TRecord extends AgentRecordLike = AgentRec
 		const innerWidth = Math.max(1, width - 4);
 		let topLine: string;
 		if (isSplit) {
-			topLine = topBorderSplit(width, "Agent Hub", geometry.left?.width ?? 0);
+			topLine = brandTopSplit(width, "Agent Hub", geometry.left?.width ?? 0);
 		} else if (this.#narrowDetailsOpen && selected) {
-			topLine = topBorder(width, `Agent Hub · ${selected.id}`);
+			topLine = brandTop(width, `Agent Hub · ${selected.id}`);
 		} else {
-			topLine = topBorder(width, "Agent Hub");
+			topLine = brandTop(width, "Agent Hub");
 		}
-		const dividerLine = isSplit && geometry.left ? dividerSplit(width, geometry.left.width) : divider(width);
+		const dividerLine =
+			isSplit && geometry.left ? brandDividerSplit(width, geometry.left.width) : brandDivider(width);
 		this.#frameTop.setLines([topLine]);
 		this.#frameDivider.setLines([dividerLine]);
-		this.#frameFooter.setLines([row(this.#footer(isSplit ? false : this.#narrowDetailsOpen, innerWidth), width)]);
-		this.#frameBottom.setLines([bottomBorder(width)]);
+		this.#frameFooter.setLines([
+			brandRow(this.#footer(isSplit ? false : this.#narrowDetailsOpen, innerWidth), width),
+		]);
+		this.#frameBottom.setLines([brandBottom(width)]);
 		this.#frame.setHeight(contentRows + 4);
 		const lines = [...this.#frame.render(width)];
 		const bodyRow = this.#frame.childRect(1)?.row ?? 1;

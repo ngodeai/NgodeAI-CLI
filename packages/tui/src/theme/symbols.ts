@@ -45,6 +45,13 @@ export type SymbolKey =
 	| "boxRound.bottomRight"
 	| "boxRound.horizontal"
 	| "boxRound.vertical"
+	// Box Drawing - Brand card (square dots at the corners)
+	| "boxBrand.topLeft"
+	| "boxBrand.topRight"
+	| "boxBrand.bottomLeft"
+	| "boxBrand.bottomRight"
+	| "boxBrand.horizontal"
+	| "boxBrand.vertical"
 	// Box Drawing - Dotted (selection outlines)
 	| "boxDotted.horizontal"
 	| "boxDotted.vertical"
@@ -426,6 +433,15 @@ const UNICODE_SYMBOLS: SymbolMap = {
 	"boxRound.bottomRight": "╯",
 	"boxRound.horizontal": "─",
 	"boxRound.vertical": "│",
+	// Box (brand card): square dots at the corners with hairline rules between.
+	// The same frame the welcome banner and setup wizard draw, so every surface
+	// shares one silhouette.
+	"boxBrand.topLeft": "▪",
+	"boxBrand.topRight": "▪",
+	"boxBrand.bottomLeft": "▪",
+	"boxBrand.bottomRight": "▪",
+	"boxBrand.horizontal": "─",
+	"boxBrand.vertical": "│",
 	// Box (dotted)
 	"boxDotted.horizontal": "┄",
 	"boxDotted.vertical": "┆",
@@ -758,6 +774,12 @@ const NERD_SYMBOLS: SymbolMap = {
 	"boxRound.horizontal": "─",
 	// pick: │ | alt: ┃ ║ ▏
 	"boxRound.vertical": "│",
+	"boxBrand.topLeft": "▪",
+	"boxBrand.topRight": "▪",
+	"boxBrand.bottomLeft": "▪",
+	"boxBrand.bottomRight": "▪",
+	"boxBrand.horizontal": "─",
+	"boxBrand.vertical": "│",
 	// Box Drawing - Dotted (same as unicode)
 	// pick: ┄ | alt: ╌ ┈ ⋯
 	"boxDotted.horizontal": "┄",
@@ -1210,6 +1232,12 @@ const ASCII_SYMBOLS: SymbolMap = {
 	"boxRound.bottomRight": "+",
 	"boxRound.horizontal": "-",
 	"boxRound.vertical": "|",
+	"boxBrand.topLeft": "+",
+	"boxBrand.topRight": "+",
+	"boxBrand.bottomLeft": "+",
+	"boxBrand.bottomRight": "+",
+	"boxBrand.horizontal": "-",
+	"boxBrand.vertical": "|",
 	// Box Drawing - Dotted (ASCII fallback)
 	"boxDotted.horizontal": "-",
 	"boxDotted.vertical": ":",

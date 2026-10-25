@@ -550,6 +550,18 @@ export class Theme {
 		};
 	}
 
+	/** Brand card frame: square dots at the corners, hairline rules between. */
+	get boxBrand() {
+		return {
+			topLeft: this.#symbols["boxBrand.topLeft"],
+			topRight: this.#symbols["boxBrand.topRight"],
+			bottomLeft: this.#symbols["boxBrand.bottomLeft"],
+			bottomRight: this.#symbols["boxBrand.bottomRight"],
+			horizontal: this.#symbols["boxBrand.horizontal"],
+			vertical: this.#symbols["boxBrand.vertical"],
+		};
+	}
+
 	get boxRound() {
 		return {
 			topLeft: this.#symbols["boxRound.topLeft"],

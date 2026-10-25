@@ -342,3 +342,100 @@ export class OverlayPanel implements Component {
 		return result;
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Brand card
+// ---------------------------------------------------------------------------
+//
+// The square-dot frame the welcome banner, setup wizard, and status sidebar
+// already draw. Overlays that opt in get the same silhouette instead of the
+// rounded box, so the whole app reads as one product.
+
+/** Top rule of the brand card, with an optional title inset into the rule. */
+export function brandTop(width: number, title: string): string {
+	const box = theme.boxBrand;
+	const inner = Math.max(0, width - 2);
+	const edge = (glyph: string) => theme.fg("accent", glyph);
+	if (!title) return edge(box.topLeft) + paint(box.horizontal.repeat(inner)) + edge(box.topRight);
+	const shown = truncateToWidth(` ${title} `, Math.max(0, inner - 2));
+	const fillWidth = Math.max(0, inner - 1 - visibleWidth(shown));
+	return (
+		edge(box.topLeft) +
+		paint(box.horizontal) +
+		theme.bold(theme.fg("accent", shown)) +
+		paint(box.horizontal.repeat(fillWidth)) +
+		edge(box.topRight)
+	);
+}
+
+/** Bottom rule of the brand card. */
+export function brandBottom(width: number): string {
+	const box = theme.boxBrand;
+	return (
+		theme.fg("accent", box.bottomLeft) +
+		paint(box.horizontal.repeat(Math.max(0, width - 2))) +
+		theme.fg("accent", box.bottomRight)
+	);
+}
+
+/**
+ * Brand-card row: a vertical rule, one column of inset, `content` padded to
+ * the interior, one more column, and the closing rule.
+ */
+export function brandRow(content: string, width: number): string {
+	const box = theme.boxBrand;
+	const interior = Math.max(0, width - 4);
+	return `${paint(box.vertical)} ${interior > 0 ? padToWidth(content, interior) : ""} ${paint(box.vertical)}`;
+}
+
+/**
+ * Section rule inside the brand card: tees at both ends with a hairline
+ * between, so a split surface reads as two panes of one frame.
+ */
+export function brandDivider(width: number): string {
+	const box = theme.boxBrand;
+	// Side rules and a plain hairline between them — no tees. The brand card's
+	// corners are dots, so a `├──┤` junction reads as a different frame style.
+	// Dots at both ends instead of side rules: the horizontal section break reads
+	// as part of the same dotted-corner card, not a box drawn inside it.
+	return theme.fg("accent", "▪") + paint(box.horizontal.repeat(Math.max(0, width - 2))) + theme.fg("accent", "▪");
+}
+
+/** Brand-card top rule carrying the title, split by a `┬` over the pane divider. */
+export function brandTopSplit(width: number, title: string, leftWidth: number): string {
+	const box = theme.boxBrand;
+	const dividerCol = splitDividerCol(leftWidth);
+	const leftLen = Math.max(0, dividerCol - 1);
+	const rightLen = Math.max(0, width - 2 - dividerCol);
+	const shown = truncateToWidth(` ${title} `, Math.max(0, leftLen - 1));
+	const fillWidth = Math.max(0, leftLen - 1 - visibleWidth(shown));
+	const left =
+		theme.fg("accent", box.topLeft) +
+		paint(box.horizontal) +
+		theme.bold(theme.fg("accent", shown)) +
+		paint(box.horizontal.repeat(fillWidth));
+	return left + paint(box.vertical) + paint(box.horizontal.repeat(rightLen)) + theme.fg("accent", box.topRight);
+}
+
+/** Section rule closing the left pane with a `┴` over the divider. */
+export function brandDividerSplit(width: number, leftWidth: number): string {
+	const box = theme.boxBrand;
+	const dividerCol = splitDividerCol(leftWidth);
+	const leftLen = Math.max(0, dividerCol - 1);
+	const rightLen = Math.max(0, width - 2 - dividerCol);
+	return (
+		theme.fg("accent", "▪") +
+		paint(box.horizontal.repeat(leftLen)) +
+		paint(box.vertical) +
+		paint(box.horizontal.repeat(rightLen)) +
+		theme.fg("accent", "▪")
+	);
+}
+
+/** Two-column brand-card row: `│ left │ right │`, each inset by one column. */
+export function brandSplitRow(left: string, right: string, width: number, leftWidth: number): string {
+	const box = theme.boxBrand;
+	const rightWidth = splitBodyWidth(width, leftWidth);
+	const bar = paint(box.vertical);
+	return `${bar} ${leftWidth > 0 ? padToWidth(left, leftWidth) : ""} ${bar} ${rightWidth > 0 ? padToWidth(right, rightWidth) : ""} ${bar}`;
+}
