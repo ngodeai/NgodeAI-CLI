@@ -1,0 +1,2 @@
+# actionlint only knows GitHub-hosted labels. CI runs on GitHub-hosted
+# runners only, so there are no self-hosted labels to register here.

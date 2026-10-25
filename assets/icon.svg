@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" width="120" height="90" role="img" aria-label="NgodeAI">
+  <!-- NgodeAI mark: the block "N" from the brand logo, in brand red #FB0001.
+       The circuit connectors on the left of the full lockup are omitted here:
+       at favicon size they collapse into noise and the N stays legible. -->
+  <path d="M18 12h16l30 38V12h16v66H64L34 40v38H18z" fill="#FB0001"/>
+</svg>
