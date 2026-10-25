@@ -52,14 +52,62 @@ describe("StatusSidebar", () => {
 	 * The sidebar shares the screen with the transcript, so a row one cell too
 	 * wide wraps in the terminal and shears the whole frame.
 	 */
-	it("never emits a row wider than the pane", () => {
+	it("frames every row to exactly the pane width", () => {
 		for (const width of [SIDEBAR_MIN_WIDTH, 26, 32, SIDEBAR_MAX_WIDTH]) {
 			const sidebar = new StatusSidebar();
 			sidebar.setState(fullState);
-			for (const row of plain(sidebar.render(width))) {
-				expect(visibleWidth(row)).toBeLessThanOrEqual(width);
+			const rows = plain(sidebar.render(width));
+			expect(rows.length).toBeGreaterThan(2);
+			for (const row of rows) expect(visibleWidth(row)).toBe(width);
+			// Square-dot rules top and bottom, vertical rules on every content row.
+			expect(rows[0]?.startsWith("▪")).toBe(true);
+			expect(rows[0]?.endsWith("▪")).toBe(true);
+			expect(rows.at(-1)?.startsWith("▪")).toBe(true);
+			for (const row of rows.slice(1, -1)) {
+				expect(row.startsWith("│")).toBe(true);
+				expect(row.endsWith("│")).toBe(true);
 			}
 		}
+	});
+
+	it("renders the session, agents, and usage sections", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState({
+			...fullState,
+			usage: {
+				inputTokens: 12_400,
+				outputTokens: 3_100,
+				tokensPerSecond: 48,
+				cost: 0.42,
+				elapsedMs: 754_000,
+				cacheHitRate: 0.63,
+			},
+			agents: { running: 2, total: 5 },
+		});
+		const text = plain(sidebar.render(36)).join("\n");
+
+		expect(text).toContain("SESSION");
+		expect(text).toContain("12k in · 3k out");
+		expect(text).toContain("48 t/s");
+		expect(text).toContain("$0.42");
+		expect(text).toContain("cache 63%");
+		expect(text).toContain("AGENTS");
+		expect(text).toContain("2/5 running");
+	});
+
+	/** An idle agent tree hides its section rather than showing "0 running". */
+	it("omits the agents section when nothing is running", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState({ ...fullState, agents: { running: 0 } });
+		expect(plain(sidebar.render(32)).join("\n")).not.toContain("AGENTS");
+	});
+
+	/** The frame is part of the layout, so an empty pane still draws it. */
+	it("draws the frame even with no state", () => {
+		const sidebar = new StatusSidebar();
+		const rows = plain(sidebar.render(24));
+		expect(rows.length).toBe(2);
+		expect(rows[0]?.startsWith("▪")).toBe(true);
 	});
 
 	/** A task label longer than the pane wraps under its own glyph, not as a new item. */
@@ -75,8 +123,10 @@ describe("StatusSidebar", () => {
 		});
 		const rows = plain(sidebar.render(SIDEBAR_MIN_WIDTH));
 		// Skip the TASKS heading; everything after it is the task block.
+		const inner = (row: string) => row.replace(/^\u2502 /, "").replace(/ +\u2502$/, "");
 		const taskRows = rows
 			.slice(rows.findIndex(row => row.includes("TASKS")) + 1)
+			.map(inner)
 			.filter(row => row.trim().length > 0);
 		expect(taskRows.length).toBeGreaterThan(1);
 		// The first row carries the glyph; continuation rows are indented to the

@@ -4447,6 +4447,9 @@ export class InteractiveMode implements InteractiveModeContext {
 		const contextUsage = this.#getPlanApprovalContextUsage();
 		const branch = this.#currentBranch();
 		const model = this.session.model;
+		const usage = this.session.sessionManager?.getUsageStatistics();
+		const subagents = this.statusLine.subagentCount;
+
 		this.composer.setSidebar({
 			tasks: phases.map(phase => ({
 				name: phase.name,
@@ -4457,7 +4460,24 @@ export class InteractiveMode implements InteractiveModeContext {
 				})),
 			})),
 			...(contextUsage
-				? { context: { usedTokens: contextUsage.tokens, maxTokens: contextUsage.contextWindow } }
+				? {
+						context: {
+							usedTokens: contextUsage.tokens,
+							maxTokens: contextUsage.contextWindow,
+							percent: contextUsage.percent,
+						},
+					}
+				: {}),
+			...(usage
+				? {
+						usage: {
+							inputTokens: usage.input,
+							outputTokens: usage.output,
+							cost: usage.cost,
+							elapsedMs: this.statusLine.getActiveMs(),
+							...(this.#cacheHitRate(usage) !== undefined ? { cacheHitRate: this.#cacheHitRate(usage) } : {}),
+						},
+					}
 				: {}),
 			...(branch ? { git: { branch } } : {}),
 			...(model
@@ -4465,10 +4485,25 @@ export class InteractiveMode implements InteractiveModeContext {
 						model: {
 							selector: `${model.provider}/${model.id}`,
 							displayName: model.name,
+							subscription: this.session.modelRegistry?.isUsingOAuth(model) ?? false,
 						},
 					}
 				: {}),
+			...(subagents > 0 ? { agents: { running: subagents } } : {}),
 		});
+	}
+
+	/**
+	 * Cache hit rate for the session, or `undefined` when no cache activity has
+	 * been recorded.
+	 *
+	 * Cache reads, cache writes, and uncached input together are the prompt
+	 * volume; the rate is the share served from cache. Providers that report a
+	 * miss as plain input (DeepSeek) still yield a sensible hit/(hit+miss).
+	 */
+	#cacheHitRate(usage: { input: number; cacheRead: number; cacheWrite: number }): number | undefined {
+		const total = usage.input + usage.cacheRead + usage.cacheWrite;
+		return total > 0 && usage.cacheRead > 0 ? usage.cacheRead / total : undefined;
 	}
 
 	#renderTodoList(): void {
