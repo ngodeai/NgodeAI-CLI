@@ -189,6 +189,51 @@ describe("StatusSidebar", () => {
 		expect(plain(sidebar.render(32)).join("\n")).not.toContain("AGENTS");
 	});
 
+	/**
+	 * A long plan must not push the lower sections out of the pane. The plan is
+	 * the one unbounded section, so it is the one that yields.
+	 */
+	it("keeps every lower section visible when the plan is long", () => {
+		const longPlan = Array.from({ length: 6 }, (_, phase) => ({
+			name: `phase ${phase + 1}`,
+			tasks: Array.from({ length: 4 }, (_, task) => ({
+				content: `Task ${task + 1} in phase ${phase + 1} with a long description that wraps around`,
+				status: "pending" as const,
+			})),
+		}));
+		for (const height of [22, 30, 40]) {
+			const sidebar = new StatusSidebar();
+			sidebar.setState({
+				tasks: longPlan,
+				context: { usedTokens: 22_000, maxTokens: 1_000_000, percent: 2 },
+				usage: { inputTokens: 91_000, outputTokens: 3_000, cost: 0.0021, elapsedMs: 44_000 },
+				git: { branch: "main" },
+				model: { selector: "ngodeai/deepseek", displayName: "DeepSeek V4.1" },
+				agents: { running: 0, total: 0, list: [] },
+			});
+			sidebar.setHeight(height);
+			const rows = plain(sidebar.render(38));
+			const text = rows.join("\n");
+
+			expect(rows.length).toBe(height);
+			for (const section of ["TASKS", "CONTEXT", "SESSION", "GIT", "MODEL", "AGENTS"]) {
+				expect(text).toContain(section);
+			}
+			// The cut is announced, not silent.
+			expect(text).toContain("more");
+		}
+	});
+
+	/** A short plan is never trimmed. */
+	it("does not trim a plan that fits", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState(fullState);
+		sidebar.setHeight(40);
+		const text = plain(sidebar.render(38)).join("\n");
+		expect(text).not.toContain("more");
+		expect(text).toContain("Scaffold the component");
+	});
+
 	/** The frame is part of the layout, so an empty pane still draws it. */
 	it("draws the frame even with no state", () => {
 		const sidebar = new StatusSidebar();

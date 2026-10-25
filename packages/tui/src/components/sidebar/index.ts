@@ -114,9 +114,13 @@ export interface SidebarState {
 }
 
 /** Narrowest pane worth drawing; below this the sidebar yields to the transcript. */
-export const SIDEBAR_MIN_WIDTH = 22;
-/** Widest the pane grows, so a very wide terminal stays transcript-dominant. */
-export const SIDEBAR_MAX_WIDTH = 36;
+export const SIDEBAR_MIN_WIDTH = 24;
+/**
+ * Widest the pane grows. Task labels wrap to two or three lines at 30 columns,
+ * so the ceiling is generous enough for a wide terminal to show a whole task
+ * per line without the transcript losing its majority.
+ */
+export const SIDEBAR_MAX_WIDTH = 48;
 /** Terminal width below which the sidebar collapses entirely. */
 export const SIDEBAR_SPLIT_AT = 100;
 
@@ -493,9 +497,39 @@ export class StatusSidebar implements Component {
 		const rows: string[] = [];
 		const { tasks, context, usage, git, model, agents } = this.#state;
 
+		// The plan is unbounded — a five-phase run produces thirty rows — while
+		// everything below it is a fixed handful. Left alone, a long plan pushed
+		// CONTEXT/SESSION/GIT/MODEL/AGENTS off the bottom of the pane and the user
+		// lost the status they opened the sidebar for. Reserve the space the lower
+		// sections need, then give the plan what is left.
+		const lowerBudget =
+			(context && context.maxTokens > 0 ? heading("Context", false).length + 2 : 0) +
+			(usage ? heading("Session", false).length + 3 : 0) +
+			(git ? heading("Git", false).length + 2 : 0) +
+			(model ? heading("Model", false).length + 2 : 0) +
+			(agents ? heading("Agents", false).length + agentRows(agents, contentWidth).length : 0);
+		const interior = this.#height === undefined ? undefined : Math.max(0, this.#height - 2);
+		// The plan yields first: every lower section is a fixed handful of rows and
+		// is what the sidebar exists to surface, while the plan can always be read
+		// in the transcript. Only when even a one-row plan will not fit do the
+		// lower sections get squeezed, and MIN_TASK_ROWS is the floor there.
+		const taskBudget =
+			interior === undefined ? undefined : Math.max(1, interior - lowerBudget - heading("Tasks", true).length);
+
 		if (tasks && tasks.length > 0) {
 			rows.push(...heading("Tasks", true));
-			rows.push(...taskSection(tasks, contentWidth));
+			const taskRowsAll = taskSection(tasks, contentWidth);
+			if (taskBudget !== undefined && taskRowsAll.length > taskBudget) {
+				// Trim from the bottom and say so, rather than silently dropping the
+				// tail: a plan that looks complete but is not is worse than one that
+				// admits it was cut.
+				const shown = taskRowsAll.slice(0, Math.max(0, taskBudget - 1));
+				const hidden = taskRowsAll.length - shown.length;
+				rows.push(...shown);
+				rows.push(truncateToWidth(theme.fg("dim", `… ${hidden} more`), contentWidth));
+			} else {
+				rows.push(...taskRowsAll);
+			}
 		}
 		if (context && context.maxTokens > 0) {
 			rows.push(...heading("Context", rows.length === 0));

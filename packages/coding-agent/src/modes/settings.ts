@@ -150,12 +150,12 @@ export const cfgSidebarEnabled = register({
 export const cfgSidebarWidth = register({
 	id: "sidebar.width",
 	type: "number",
-	default: 30,
+	default: 38,
 	ui: {
 		tab: "appearance",
 		group: "Sidebar",
 		label: "Sidebar Width",
-		description: "Columns reserved for the panel (22-36)",
+		description: "Columns reserved for the panel (24-48)",
 	},
 });
 

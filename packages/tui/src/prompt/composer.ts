@@ -285,7 +285,7 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	 * composer that never opts in renders exactly as before.
 	 */
 	#sidebar: StatusSidebar | undefined;
-	#sidebarWidth = 30;
+	#sidebarWidth = 38;
 	#sidebarEnabled = true;
 	#sidebarVisible = false;
 	// Retirement bills below-transcript chrome at this floor, not its current
