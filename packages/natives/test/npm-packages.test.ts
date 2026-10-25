@@ -21,11 +21,11 @@ describe("generated native npm leaf packages", () => {
 		expect(manifest.cpu).toEqual(["x64"]);
 		expect(addonFiles).toContain(manifest.main.slice("./".length));
 		expect(manifest.files).toEqual(["*.node", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.txt"]);
-		expect(manifest.author).toBe("Stencil Labs, Inc.");
+		expect(manifest.author).toEqual({ name: "NgodeAI", url: "https://ngodeai.net" });
 		expect(manifest.license).toBe("MIT");
 		expect(manifest.repository).toEqual({
 			type: "git",
-			url: "git+https://github.com/can1357/ngodeai.git",
+			url: "git+https://github.com/ngodeai/NgodeAI-CLI.git",
 			directory: "packages/natives",
 		});
 		expect("exports" in manifest).toBe(false);

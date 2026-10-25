@@ -1,6 +1,6 @@
 {
   "name": "@ngodeai/coding-agent",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Coding agent CLI with read, bash, edit, write tools and session management",
   "keywords": [
     "agent",

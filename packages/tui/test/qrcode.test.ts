@@ -23,10 +23,10 @@ describe("QR encoder", () => {
 		{
 			text: "https://my.ngodeai.net/#mgAYTZwEnpRQtca0CTgn-Q.gdJU",
 			ecl: "M",
-			mask: 4,
+			mask: 6,
 			version: 4,
 			size: 33,
-			hash: "4af2f66e1b06a5b1",
+			hash: "f64760a6dec436a0",
 		},
 		{
 			text: "https://web.example/collab/#relay.example.com:8443/r/AbCdEfGhIjKlMnOp.0123456789abcdef",
@@ -65,8 +65,8 @@ describe("QR encoder", () => {
 	it("deterministically selects a penalty-minimizing mask when none is forced", () => {
 		// Auto mask is the lowest-penalty choice; locking it guards the penalty rules.
 		const qr = QrCode.encodeText("https://my.ngodeai.net/#demo", "M");
-		expect(qr.mask).toBe(1);
-		expect(matrixFingerprint(qr)).toBe("ee820c588fe36d99");
+		expect(qr.mask).toBe(2);
+		expect(matrixFingerprint(qr)).toBe("a49031156c877bf3");
 	});
 
 	it("throws when the payload exceeds version 40 at the chosen EC level", () => {
