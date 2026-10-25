@@ -48,7 +48,7 @@ describe("renderOutputBlock", () => {
 			theme,
 		).map(line => stripVTControlCharacters(line));
 
-		expect(lines.at(-1)).toBe("╰─── Wall 0.16s ─────────────╯");
+		expect(lines.at(-1)).toBe("▪─── Wall 0.16s ─────────────▪");
 		expect(lines.some(line => line.startsWith("│") && line.includes("Wall"))).toBe(false);
 	});
 
@@ -60,7 +60,7 @@ describe("renderOutputBlock", () => {
 			theme,
 		).map(line => stripVTControlCharacters(line));
 
-		expect(lines.at(-1)).toBe(`╰${"─".repeat(38)}╯`);
+		expect(lines.at(-1)).toBe(`▪${"─".repeat(38)}▪`);
 		const body = lines.filter(line => line.startsWith("│")).join(" ");
 		expect(body).toContain("Artifact: a123");
 		expect(body).toContain("Exit: 7");

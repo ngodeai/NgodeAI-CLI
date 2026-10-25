@@ -76,8 +76,14 @@ export function outputBlockContentWidth(
 /** Render a bordered output block with optional header and sections. */
 export function renderOutputBlock(options: OutputBlockOptions, theme: Theme): string[] {
 	const { header, headerMeta, state, sections = [], width, applyBg = true } = options;
-	const h = theme.boxRound.horizontal;
-	const v = theme.boxRound.vertical;
+	// The brand frame: square dots at the corners with a hairline rule between,
+	// the same silhouette the composer, the sidebar and the setup wizard draw.
+	// Tool results are the largest surface in the transcript, so leaving them on
+	// the rounded box made the app read as two products: boxes everywhere you
+	// look, dots only in the chrome.
+	const box = theme.boxBrand;
+	const h = box.horizontal;
+	const v = box.vertical;
 	const cap = h.repeat(3);
 	const lineWidth = Math.max(0, width);
 	// Border colors: running/pending use accent, success uses dim (gray), error/warning keep their colors
@@ -117,8 +123,8 @@ export function renderOutputBlock(options: OutputBlockOptions, theme: Theme): st
 	const rows: BlockRow[] = [];
 	rows.push({
 		kind: "bar",
-		leftChar: theme.boxRound.topLeft,
-		rightChar: theme.boxRound.topRight,
+		leftChar: box.topLeft,
+		rightChar: box.topRight,
 		label: header,
 		meta: headerMeta,
 	});
@@ -129,18 +135,21 @@ export function renderOutputBlock(options: OutputBlockOptions, theme: Theme): st
 		// A labeled section always draws its titled separator bar. A label-less
 		// section can still request a plain divider via `separator`, but only
 		// between sections — leading with one would just double the header bar.
+		// Section breaks carry dots at both ends, not tees: the card's corners are
+		// dots, so a `├──┤` junction would read as a second frame drawn inside the
+		// first. This matches the brand card's own dividers.
 		if (section.label) {
 			rows.push({
 				kind: "bar",
-				leftChar: theme.boxRound.teeRight,
-				rightChar: theme.boxRound.teeLeft,
+				leftChar: box.topLeft,
+				rightChar: box.topRight,
 				label: section.label,
 			});
 		} else if (section.separator && sectionIndex > 0) {
 			rows.push({
 				kind: "bar",
-				leftChar: theme.boxRound.teeRight,
-				rightChar: theme.boxRound.teeLeft,
+				leftChar: box.topLeft,
+				rightChar: box.topRight,
 			});
 		}
 		const allLines = section.lines.flatMap(l => l.split("\n"));
@@ -166,7 +175,7 @@ export function renderOutputBlock(options: OutputBlockOptions, theme: Theme): st
 	const footerFits =
 		footerMeta === undefined ||
 		visibleWidth(` ${footerMeta} `) <=
-			lineWidth - visibleWidth(`${theme.boxRound.bottomLeft}${cap}`) - visibleWidth(theme.boxRound.bottomRight);
+			lineWidth - visibleWidth(`${box.bottomLeft}${cap}`) - visibleWidth(box.bottomRight);
 	if (footerMeta !== undefined && !footerFits) {
 		for (const wrappedLine of wrapTextWithAnsi(footerMeta, contentWidth)) {
 			const innerPadding = padding(Math.max(0, contentWidth - visibleWidth(wrappedLine)));
@@ -175,8 +184,8 @@ export function renderOutputBlock(options: OutputBlockOptions, theme: Theme): st
 	}
 	rows.push({
 		kind: "bottom",
-		leftChar: theme.boxRound.bottomLeft,
-		rightChar: theme.boxRound.bottomRight,
+		leftChar: box.bottomLeft,
+		rightChar: box.bottomRight,
 		meta: footerFits ? footerMeta : undefined,
 	});
 

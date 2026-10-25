@@ -175,8 +175,11 @@ export class FramedMessageComponent<M extends FramedMessage> extends Container {
 		this.removeChild(this.#box);
 		for (const child of this.#box.children) child.dispose?.();
 		this.#box.clear();
+		// Hook and extension messages are tool output too: same dot-cornered card
+		// as every other result, so a transcript full of custom messages does not
+		// reintroduce the rounded box the rest of the app retired.
 		this.#box.setBorder({
-			chars: theme.boxRound,
+			chars: theme.boxBrand,
 			color: text => theme.fg(this.#options.borderColor ?? "borderMuted", text),
 		});
 

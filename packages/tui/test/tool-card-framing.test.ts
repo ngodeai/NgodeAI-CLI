@@ -25,15 +25,18 @@ function paint(component: { render(width: number): readonly string[] }, width = 
 }
 
 /**
- * The frame's four marks. `boxRound` is what `renderOutputBlock` draws, and the
+ * The frame's four marks. `boxBrand` is what `renderOutputBlock` draws — square
+ * dots, matching the composer, the sidebar and the setup screens — and the
  * corners are the cheapest proof that a card owns its border.
  */
 function expectFramed(rows: readonly string[], width = 80): void {
 	expect(rows.length).toBeGreaterThanOrEqual(2);
-	expect(rows[0]!.startsWith("╭")).toBe(true);
-	expect(rows[0]!.endsWith("╮")).toBe(true);
-	expect(rows.at(-1)!.startsWith("╰")).toBe(true);
-	expect(rows.at(-1)!.endsWith("╯")).toBe(true);
+	expect(rows[0]!.startsWith("▪")).toBe(true);
+	expect(rows[0]!.endsWith("▪")).toBe(true);
+	expect(rows.at(-1)!.startsWith("▪")).toBe(true);
+	expect(rows.at(-1)!.endsWith("▪")).toBe(true);
+	// No rounded-box glyphs leak through.
+	expect(rows.join("\n")).not.toMatch(/[╭╮╰╯]/);
 	for (const row of rows) expect(Bun.stringWidth(row)).toBe(width);
 }
 

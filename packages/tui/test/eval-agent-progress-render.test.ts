@@ -54,9 +54,19 @@ describe("eval renderer: agent() progress below the cell box", () => {
 		return Bun.stripANSI(component.render(120).join("\n")).split("\n");
 	}
 
-	/** Index of the box's closing border (bottom-right corner glyph). */
+	/**
+	 * Index of the box's closing border.
+	 *
+	 * The card's section rules share the dot corners, so the closing border is
+	 * the *last* row that ends in the bottom-right glyph — the first one is a
+	 * section break, and everything below that is still inside the card.
+	 */
 	function boxBottomIndex(lines: readonly string[]): number {
-		return lines.findIndex(line => line.includes(theme.boxRound.bottomRight));
+		// Rows arrive with SGR wrappers, so compare on the plain text.
+		for (let index = lines.length - 1; index >= 0; index--) {
+			if (Bun.stripANSI(lines[index]!).trimEnd().endsWith(theme.boxBrand.bottomRight)) return index;
+		}
+		return -1;
 	}
 
 	it("draws a running subagent below the box with its current tool and intent", () => {
