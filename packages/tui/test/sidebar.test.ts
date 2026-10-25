@@ -92,7 +92,82 @@ describe("StatusSidebar", () => {
 		expect(text).toContain("$0.42");
 		expect(text).toContain("cache 63%");
 		expect(text).toContain("AGENTS");
-		expect(text).toContain("2/5 running");
+		expect(text).toContain("2 running · 5 total");
+	});
+
+	/** The roster lists each agent with its state, model, and spend. */
+	it("renders the agent roster, not just a count", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState({
+			...fullState,
+			agents: {
+				running: 1,
+				total: 2,
+				list: [
+					{
+						id: "a",
+						name: "SmokeScout",
+						status: "running",
+						kind: "reviewer",
+						model: "ngodeai/deepseek-v4.1-flash-1017",
+						durationMs: 35_700,
+						tokens: 136_000,
+						cost: 0.003,
+					},
+					{
+						id: "b",
+						name: "SmokeTask",
+						status: "idle",
+						kind: "task",
+						durationMs: 4_100,
+						tokens: 10_000,
+						cost: 0.0002,
+					},
+				],
+			},
+		});
+		const text = plain(sidebar.render(34)).join("\n");
+
+		expect(text).toContain("AGENTS");
+		expect(text).toContain("1 running · 2 total");
+		expect(text).toContain("SmokeScout");
+		expect(text).toContain("reviewer");
+		expect(text).toContain("SmokeTask");
+		// Sub-cent spend keeps its significant digits instead of collapsing to
+		// "<$0.01", which made a cheap agent and a nearly-free one identical.
+		expect(text).toContain("$0.003");
+		expect(text).toContain("$0.0002");
+		expect(text).toContain("36s");
+		expect(text).toContain("136k tok");
+	});
+
+	/** Running agents sort ahead of finished ones: they are what the user can act on. */
+	it("keeps the roster inside the pane at every width", () => {
+		for (const width of [SIDEBAR_MIN_WIDTH, 30, SIDEBAR_MAX_WIDTH]) {
+			const sidebar = new StatusSidebar();
+			sidebar.setState({
+				...fullState,
+				agents: {
+					running: 1,
+					total: 1,
+					list: [
+						{
+							id: "a",
+							name: "AVeryLongAgentNameThatNeedsWrapping",
+							status: "running",
+							kind: "reviewer",
+							model: "ngodeai/deepseek-v4.1-flash-1017-with-a-long-tail",
+							durationMs: 3_600_000,
+							tokens: 1_500_000,
+							cost: 12.3456,
+						},
+					],
+				},
+			});
+			for (const row of plain(sidebar.render(width))) {
+				expect(visibleWidth(row)).toBe(width);
+			}
+		}
 	});
 
 	/** An idle agent tree hides its section rather than showing "0 running". */

@@ -45,6 +45,7 @@ import {
 } from "@ngodeai/tui";
 import type { TerminalAppearanceRequestToken } from "@ngodeai/tui/terminal";
 import type { DescribeContext, NativeChild, NativeNode, NativeUiEvent } from "@ngodeai/tui/native/node";
+import type { SidebarAgent } from "@ngodeai/tui/components/sidebar/index";
 import { col, compact, kbd, keyed, node, row, span, text } from "@ngodeai/tui/native/describe";
 import {
 	describeJobWidgetMiniSpark,
@@ -664,6 +665,9 @@ export interface InteractiveModeOptions {
 export const TODO_COMPACT_TERMINAL_ROWS_THRESHOLD = 18;
 
 /** Holds mutable HUD and editor-adjacent chrome outside transcript history. */
+/** Agents the sidebar lists; beyond this the roster is summarised by its count. */
+const SIDEBAR_AGENT_CAP = 4;
+
 class AnchoredLiveContainer extends Container {}
 
 /** An empty HUD slot: the terminal owns spacing, so nothing is described. */
@@ -3962,6 +3966,10 @@ export class InteractiveMode implements InteractiveModeContext {
 		const agentIds = getRunningSubagentBadgeAgentIds(registry);
 		this.#runningSubagentCount = agentIds.length;
 		this.statusLine.setRunningSubagents(agentIds);
+		// The sidebar mirrors the same registry the Agent Hub renders, so it has
+		// to refresh wherever the badge does — otherwise an agent can be running
+		// with the badge lit and the sidebar still showing the previous roster.
+		this.#syncSidebar();
 		if (this.collabGuest) {
 			this.statusLine.setSubagentTreeCost(0);
 		} else {
@@ -4449,6 +4457,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		const model = this.session.model;
 		const usage = this.session.sessionManager?.getUsageStatistics();
 		const subagents = this.statusLine.subagentCount;
+		const roster = this.#sidebarAgentRoster();
 
 		this.composer.setSidebar({
 			tasks: phases.map(phase => ({
@@ -4489,8 +4498,40 @@ export class InteractiveMode implements InteractiveModeContext {
 						},
 					}
 				: {}),
-			...(subagents > 0 ? { agents: { running: subagents } } : {}),
+			...(subagents > 0 || roster.length > 0
+				? { agents: { running: subagents, total: roster.length, list: roster } }
+				: {}),
 		});
+	}
+
+	/**
+	 * The Agent Hub's roster, shaped for the sidebar.
+	 *
+	 * Reads the same registry the hub overlay renders, so the two can never
+	 * disagree about what is running. Running agents sort first (they are the
+	 * ones the user can act on), then by most recent activity.
+	 */
+	#sidebarAgentRoster(): SidebarAgent[] {
+		const registry = getRunningSubagentBadgeRegistry(this.collabGuest, AgentRegistry.global());
+		const records = registry.list().filter(ref => ref.kind === "sub");
+		const rank = (status: string) => (status === "running" ? 0 : status === "idle" ? 1 : 2);
+		return records
+			.sort((left, right) => rank(left.status) - rank(right.status) || right.lastActivity - left.lastActivity)
+			.slice(0, SIDEBAR_AGENT_CAP)
+			.map(ref => {
+				const metrics = ref.history?.metrics;
+				const model = ref.session?.servingModel?.selector ?? ref.history?.resolvedModel;
+				return {
+					id: ref.id,
+					name: ref.displayName,
+					status: ref.status,
+					...(ref.history?.agent ? { kind: ref.history.agent } : {}),
+					...(model ? { model } : {}),
+					...(metrics?.durationMs !== undefined ? { durationMs: metrics.durationMs } : {}),
+					...(metrics?.tokens !== undefined ? { tokens: metrics.tokens } : {}),
+					...(metrics?.cost !== undefined ? { cost: metrics.cost } : {}),
+				};
+			});
 	}
 
 	/**

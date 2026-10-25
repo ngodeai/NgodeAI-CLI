@@ -79,10 +79,28 @@ export interface SidebarModel {
 	readonly subscription?: boolean;
 }
 
-/** Background subagents, summarised rather than listed. */
+/** One background agent, as the Agent Hub knows it. */
+export interface SidebarAgent {
+	readonly id: string;
+	readonly name: string;
+	/** `running` is the only status that gets an active glyph; the rest are history. */
+	readonly status: "running" | "idle" | "parked" | "aborted";
+	/** Agent type badge (`reviewer`, `explore`, …). */
+	readonly kind?: string;
+	/** Model selector, truncated to the pane. */
+	readonly model?: string;
+	/** Wall-clock milliseconds the agent has been alive. */
+	readonly durationMs?: number;
+	readonly tokens?: number;
+	readonly cost?: number;
+}
+
+/** Background agents for the sidebar: the roster the Agent Hub shows. */
 export interface SidebarAgents {
 	readonly running: number;
 	readonly total?: number;
+	/** The roster itself, newest activity first. Omitted renders the count only. */
+	readonly list?: readonly SidebarAgent[];
 }
 
 /** Everything the sidebar renders, assembled by the host each frame it changes. */
@@ -165,6 +183,20 @@ function wrapStyled(styled: string, width: number): string[] {
 	let current = "";
 	for (const word of words) {
 		if (current.length === 0) {
+			// A single word wider than the pane has no space to break on. Split
+			// it by cells rather than letting it overflow — an unbroken identifier
+			// like an agent name is exactly the case that hits this.
+			if (visibleWidth(word) > width) {
+				let rest = word;
+				while (visibleWidth(rest) > width) {
+					let take = rest.length;
+					while (take > 1 && visibleWidth(rest.slice(0, take)) > width) take--;
+					rows.push(rest.slice(0, take));
+					rest = rest.slice(take);
+				}
+				current = rest;
+				continue;
+			}
 			current = word;
 			continue;
 		}
@@ -271,10 +303,18 @@ function formatDuration(ms: number): string {
 	return `${seconds}s`;
 }
 
-/** `$0.42`, `<$0.01` for a non-zero sub-cent spend. */
+/**
+ * `$0.42` at or above a cent, `$0.0030` below it.
+ *
+ * A subagent can cost a fraction of a cent; collapsing every such figure to
+ * `<$0.01` makes a cheap agent and a nearly-free one look identical.
+ */
 function formatCost(cost: number): string {
 	if (!Number.isFinite(cost) || cost <= 0) return "$0";
-	if (cost < 0.01) return "<$0.01";
+	if (cost < 0.01) {
+		const text = cost.toFixed(4);
+		return `$${text.replace(/0+$/, "").replace(/\.$/, "")}`;
+	}
 	return `$${cost.toFixed(2)}`;
 }
 
@@ -331,14 +371,60 @@ function modelRows(model: SidebarModel, width: number): string[] {
 	return rows;
 }
 
-/** Running subagent count, or nothing when the tree is idle. */
+/**
+ * The agent roster: one row per agent with its state glyph, then indented
+ * detail rows for the model and the cost/time it has burned.
+ *
+ * A count alone ("1 running") tells you nothing you can act on. The hub already
+ * tracks name, status, model, duration, tokens and cost per agent, so the
+ * sidebar mirrors that instead of hiding it behind a modal.
+ */
 function agentRows(agents: SidebarAgents, width: number): string[] {
-	if (agents.running <= 0) return [];
-	const label =
-		agents.total !== undefined && agents.total !== agents.running
-			? `${agents.running}/${agents.total} running`
-			: `${agents.running} running`;
-	return [truncateToWidth(`${theme.fg("accent", "▸")} ${theme.fg("muted", label)}`, width)];
+	if (agents.running <= 0 && (agents.list?.length ?? 0) === 0) return [];
+	const rows: string[] = [];
+
+	// Count line: `1 running · 2 total` when there is history behind it.
+	if (agents.running > 0) {
+		const label =
+			agents.total !== undefined && agents.total !== agents.running
+				? `${agents.running} running · ${agents.total} total`
+				: `${agents.running} running`;
+		rows.push(truncateToWidth(theme.fg("muted", label), width));
+	}
+
+	for (const agent of agents.list ?? []) {
+		const glyph =
+			agent.status === "running"
+				? theme.fg("accent", "▸")
+				: agent.status === "aborted"
+					? theme.fg("error", "✗")
+					: agent.status === "parked"
+						? theme.fg("warning", "⏸")
+						: theme.fg("success", "✓");
+		const nameColor = agent.status === "running" ? "accent" : "muted";
+		const kind = agent.kind ? theme.fg("dim", ` ${agent.kind}`) : "";
+		// Name wraps rather than truncates: an agent's identity is the one thing
+		// worth reading in full, and the pane is narrow by design.
+		const indent = visibleWidth(glyph) + 1;
+		const nameRows = wrapStyled(theme.fg(nameColor, agent.name) + kind, Math.max(1, width - indent));
+		rows.push(`${glyph} ${nameRows[0] ?? ""}`);
+		for (const extra of nameRows.slice(1)) rows.push(`${" ".repeat(indent)}${extra}`);
+
+		// Detail rows: model, then the cost/time pair when both exist.
+		const detailIndent = " ".repeat(indent);
+		if (agent.model) {
+			rows.push(truncateToWidth(detailIndent + theme.fg("dim", agent.model), width));
+		}
+		const facts: string[] = [];
+		if (agent.cost !== undefined && agent.cost > 0) facts.push(theme.fg("statusLineCost", formatCost(agent.cost)));
+		if (agent.durationMs !== undefined) facts.push(theme.fg("dim", formatDuration(agent.durationMs)));
+		if (agent.tokens !== undefined && agent.tokens > 0)
+			facts.push(theme.fg("dim", `${formatTokens(agent.tokens)} tok`));
+		if (facts.length > 0) {
+			rows.push(truncateToWidth(detailIndent + facts.join(theme.fg("dim", " · ")), width));
+		}
+	}
+	return rows;
 }
 
 /** Map the sidebar's task vocabulary onto the checklist node's. */
