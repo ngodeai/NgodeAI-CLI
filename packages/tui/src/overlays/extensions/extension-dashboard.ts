@@ -856,7 +856,7 @@ class TwoColumnBody implements Component {
 			left: this.#leftPane,
 			right: this.#renderInspectorPane,
 			leftSize: { ratio: 0.5 },
-			divider: () => theme.fg("dim", ` ${theme.boxRound.vertical} `),
+			divider: () => theme.fg("dim", ` ${theme.boxBrand.vertical} `),
 			height: maxHeight,
 		});
 	}

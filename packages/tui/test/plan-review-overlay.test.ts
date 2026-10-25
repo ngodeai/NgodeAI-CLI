@@ -57,10 +57,11 @@ describe("PlanReviewOverlay", () => {
 		expect(out).toContain("Plan mode - next step");
 		for (const option of APPROVAL_OPTIONS) expect(out).toContain(option);
 		expect(out).toContain("esc cancel");
-		// Outlined like the /copy overlay.
-		expect(out).toContain(theme.boxRound.topLeft);
+		// Outlined like every other surface: dot corners, not the rounded box.
+		expect(out).toContain(theme.boxBrand.topLeft);
 		expect(out).toContain("│");
-		expect(out).toContain(theme.boxRound.bottomLeft);
+		expect(out).toContain(theme.boxBrand.bottomLeft);
+		expect(out).not.toContain("╭");
 	});
 
 	it("confirms the highlighted option on Enter", () => {
@@ -352,9 +353,12 @@ describe("PlanReviewOverlay", () => {
 			{ onPick: vi.fn(), onCancel: vi.fn() },
 		);
 		const out = render(overlay);
-		// Two-column split chrome (┬ joins the title rule over the divider) and the
-		// bare section list — no "Contents" label.
-		expect(out).toContain("┬");
+		// Two-column split chrome. The brand card has no `┬` junction: the column
+		// rule passes straight through the title rule, so the divider column is a
+		// `│` on every row including the top border.
+		expect(out).not.toContain("┬");
+		const topRule = out.split("\n").find(line => line.includes("Plan Review")) ?? "";
+		expect(topRule).toContain("│");
 		expect(out).not.toContain("Contents");
 		expect(out).toContain("Overview");
 		// Tab into the ToC region surfaces its focus-specific help.

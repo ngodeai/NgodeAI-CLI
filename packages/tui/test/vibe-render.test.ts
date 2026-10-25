@@ -159,13 +159,16 @@ describe("vibe tool renderers", () => {
 		const lines = renderLines(component);
 		const text = lines.join("\n");
 
-		// One framed screen per worker, stacked.
-		expect(lines.filter(line => line.includes("╭─")).length).toBe(2);
-		expect(lines.filter(line => line.startsWith("╰─")).length).toBe(2);
+		// Two stacked screens, each framed with the brand's dot corners: every
+		// screen contributes one rule stub at the top and one at the bottom, so
+		// four stubs total. (A stub can carry a header or a footer, so counting
+		// by content would be ambiguous — the total is the stable invariant.)
+		const stubs = lines.filter(line => /^▪─( |$)/.test(line));
+		expect(stubs.length, lines.join("\n")).toBe(4);
 		// Live screen: header, typed turn message, trace, current tool, streamed tail.
 		expect(text).toContain("Anna");
 		// Badge glyphs are theme-driven (⟦fast⟧ on dark); assert the flavor label itself.
-		expect(text).toMatch(/fast.\s*Anna/u);
+		expect(text, text).toMatch(/fast.\s*Anna/u);
 		expect(text).toContain("> Build the widget");
 		expect(text).toContain("read(src/foo.ts)");
 		expect(text).toContain("bash(bun test)");

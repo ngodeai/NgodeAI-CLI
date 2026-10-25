@@ -267,7 +267,7 @@ export function renderResult(
 
 		// Hover code hangs under its rail; expanded rows hang under their tree
 		// connector or guide rails so Ctrl+O reveals full text instead of clipping.
-		const rail = ` ${theme.fg("mdCodeBlockBorder", theme.boxRound.vertical)} `;
+		const rail = ` ${theme.fg("mdCodeBlockBorder", theme.boxBrand.vertical)} `;
 		const contentLines = codeBlockMatch
 			? bodyLines.flatMap(line =>
 					line.startsWith(rail) ? wrapPrefixedLine(rail, rail, line.slice(rail.length), contentWidth) : [line],
@@ -312,10 +312,10 @@ function renderHover(
 	const langLabel = lang ? theme.fg("mdCodeBlockBorder", ` ${lang}`) : "";
 
 	if (expanded) {
-		const h = theme.boxRound.horizontal;
-		const v = theme.boxRound.vertical;
-		const top = `${theme.boxRound.topLeft}${h.repeat(3)}`;
-		const bottom = `${theme.boxRound.bottomLeft}${h.repeat(3)}`;
+		const h = theme.boxBrand.horizontal;
+		const v = theme.boxBrand.vertical;
+		const top = `${theme.boxBrand.topLeft}${h.repeat(3)}`;
+		const bottom = `${theme.boxBrand.bottomLeft}${h.repeat(3)}`;
 		let output = `${icon}${langLabel}`;
 		if (beforeCode) {
 			for (const line of beforeCode.split("\n")) {
@@ -343,9 +343,9 @@ function renderHover(
 		const preview = truncateToWidth(beforeCode, TRUNCATE_LENGTHS.TITLE);
 		output += `\n ${theme.fg("dim", theme.tree.branch)} ${theme.fg("muted", preview)}`;
 	}
-	const h = theme.boxRound.horizontal;
-	const v = theme.boxRound.vertical;
-	const bottom = `${theme.boxRound.bottomLeft}${h.repeat(3)}`;
+	const h = theme.boxBrand.horizontal;
+	const v = theme.boxBrand.vertical;
+	const bottom = `${theme.boxBrand.bottomLeft}${h.repeat(3)}`;
 	output += `\n ${theme.fg("mdCodeBlockBorder", v)} ${firstCodeLine}`;
 
 	if (codeLines.length > 1) {

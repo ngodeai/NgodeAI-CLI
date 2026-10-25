@@ -146,10 +146,13 @@ describe("task renderer: streaming call preview", () => {
 		const lines = out.split("\n");
 
 		expect(out).toContain("Shared brief.");
-		// Interior divider bars start with the tee glyph; only the header (top)
-		// and bottom border may exist.
-		const tee = theme.boxRound.teeRight;
-		expect(lines.filter(line => line.trimStart().startsWith(tee))).toHaveLength(0);
+		// Interior divider bars used to start with a tee glyph. The brand frame has
+		// no junctions, so a divider is a dot-ended rule — indistinguishable from
+		// the top border by its first glyph. Count them instead: with no agent rows
+		// the card is exactly top rule + body + closing rule, and nothing between.
+		const rules = lines.filter(line => line.trimStart().startsWith(theme.boxBrand.topLeft));
+		expect(rules).toHaveLength(2);
+		expect(lines.at(-1)!.trimEnd().endsWith(theme.boxBrand.bottomRight)).toBe(true);
 	});
 
 	// Once the tool produces a result, the container suppresses the call entirely

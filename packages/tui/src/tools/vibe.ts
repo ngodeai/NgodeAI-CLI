@@ -171,7 +171,7 @@ function frameText(text: string, max: number): string {
  * ```
  */
 function miniFrame(uiTheme: Theme, header: string, body: string[], footer?: string): string[] {
-	const box = uiTheme.boxRound;
+	const box = uiTheme.boxBrand;
 	const rail = (glyph: string) => uiTheme.fg("dim", glyph);
 	const lines = [`${rail(`${box.topLeft}${box.horizontal}`)} ${header}`];
 	for (const row of body) {

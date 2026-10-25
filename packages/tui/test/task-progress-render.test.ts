@@ -309,7 +309,7 @@ describe("task progress rendering", () => {
 				const rows = component.render(width);
 				for (const row of rows) expect(visibleWidth(row)).toBeLessThanOrEqual(width);
 				const plainRows = rows.map(row => Bun.stripANSI(row));
-				const firstStatusRow = plainRows.find(row => row.startsWith(theme.boxRound.vertical));
+				const firstStatusRow = plainRows.find(row => row.startsWith(theme.boxBrand.vertical));
 				expect(firstStatusRow).toBeDefined();
 				expect(firstStatusRow).toContain(metadata.id);
 				expect(firstStatusRow).toContain(`${theme.format.bracketLeft}scout${theme.format.bracketRight}`);
@@ -404,7 +404,7 @@ describe("task progress rendering", () => {
 					const statusRow = rows.find(row => row.includes("LongWorker"))!;
 					expect(statusRow).toContain("LongWorker");
 					expect(statusRow).toContain(`${theme.format.bracketLeft}failed${theme.format.bracketRight}`);
-					const text = rows.join("").replaceAll(theme.boxRound.vertical, "").replace(/\s+/g, "");
+					const text = rows.join("").replaceAll(theme.boxBrand.vertical, "").replace(/\s+/g, "");
 					expect(text).toContain(description.replace(/\s+/g, ""));
 				}
 			}

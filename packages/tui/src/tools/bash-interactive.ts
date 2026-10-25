@@ -343,16 +343,16 @@ export class BashInteractiveOverlayComponent implements Component {
 				: truncateToWidth(this.#uiTheme.fg("dim", "session finished"), innerWidth);
 		const visibleLines = this.#readViewport(innerWidth, maxContentRows);
 		const content = visibleLines.length > 0 ? visibleLines : [padding(innerWidth)];
-		const borderHorizontal = this.#uiTheme.fg("border", this.#uiTheme.boxRound.horizontal.repeat(innerWidth));
-		const borderVertical = this.#uiTheme.fg("border", this.#uiTheme.boxRound.vertical);
+		const borderHorizontal = this.#uiTheme.fg("border", this.#uiTheme.boxBrand.horizontal.repeat(innerWidth));
+		const borderVertical = this.#uiTheme.fg("border", this.#uiTheme.boxBrand.vertical);
 		const boxLine = (line: string) =>
 			`${borderVertical}${line}${padding(Math.max(0, innerWidth - visibleWidth(line)))}${borderVertical}`;
 		return [
-			`${this.#uiTheme.fg("border", this.#uiTheme.boxRound.topLeft)}${borderHorizontal}${this.#uiTheme.fg("border", this.#uiTheme.boxRound.topRight)}`,
+			`${this.#uiTheme.fg("border", this.#uiTheme.boxBrand.topLeft)}${borderHorizontal}${this.#uiTheme.fg("border", this.#uiTheme.boxBrand.topRight)}`,
 			boxLine(header),
 			...content.map(boxLine),
 			boxLine(footer),
-			`${this.#uiTheme.fg("border", this.#uiTheme.boxRound.bottomLeft)}${borderHorizontal}${this.#uiTheme.fg("border", this.#uiTheme.boxRound.bottomRight)}`,
+			`${this.#uiTheme.fg("border", this.#uiTheme.boxBrand.bottomLeft)}${borderHorizontal}${this.#uiTheme.fg("border", this.#uiTheme.boxBrand.bottomRight)}`,
 		];
 	}
 

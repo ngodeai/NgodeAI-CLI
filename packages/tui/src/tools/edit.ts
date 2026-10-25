@@ -344,8 +344,8 @@ function formatEditDescription(
 }
 
 function editHeaderLabelBudget(width: number, uiTheme: Theme): number {
-	const leftGlyphs = `${uiTheme.boxRound.topLeft}${uiTheme.boxRound.horizontal.repeat(3)}`;
-	return Math.max(0, width - visibleWidth(leftGlyphs) - visibleWidth(uiTheme.boxRound.topRight) - 2);
+	const leftGlyphs = `${uiTheme.boxBrand.topLeft}${uiTheme.boxBrand.horizontal.repeat(3)}`;
+	return Math.max(0, width - visibleWidth(leftGlyphs) - visibleWidth(uiTheme.boxBrand.topRight) - 2);
 }
 
 function renderEditHeader(

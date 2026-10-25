@@ -176,9 +176,9 @@ export class HubFrame {
 			},
 			right: renderBody,
 			rightMinWidth: this.#bodyMinWidth,
-			prefix: () => `${theme.fg("border", theme.boxRound.vertical)} `,
-			divider: () => ` ${theme.fg("border", theme.boxRound.vertical)} `,
-			suffix: () => ` ${theme.fg("border", theme.boxRound.vertical)}`,
+			prefix: () => `${theme.fg("border", theme.boxBrand.vertical)} `,
+			divider: () => ` ${theme.fg("border", theme.boxBrand.vertical)} `,
+			suffix: () => ` ${theme.fg("border", theme.boxBrand.vertical)}`,
 		});
 		this.#stack = new Stack({
 			children: [

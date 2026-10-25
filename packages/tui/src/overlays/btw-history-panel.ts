@@ -148,9 +148,9 @@ export class BtwHistoryPanel implements Component, Focusable {
 	#listCache: readonly string[] = [];
 	#detailCache: readonly string[] = [];
 	#bodyHeightLast = 1;
-	readonly #framePrefix = () => `${theme.fg("border", theme.boxRound.vertical)} `;
-	readonly #frameDivider = () => ` ${theme.fg("border", theme.boxRound.vertical)} `;
-	readonly #frameSuffix = () => ` ${theme.fg("border", theme.boxRound.vertical)}`;
+	readonly #framePrefix = () => `${theme.fg("border", theme.boxBrand.vertical)} `;
+	readonly #frameDivider = () => ` ${theme.fg("border", theme.boxBrand.vertical)} `;
+	readonly #frameSuffix = () => ` ${theme.fg("border", theme.boxBrand.vertical)}`;
 	#listPaneLines = (_width: number, height: number | undefined): readonly string[] => {
 		const rows = Math.max(0, Math.floor(height ?? this.#bodyHeightLast));
 		return padLinesToHeight(this.#listCache, rows).slice(0, rows);
@@ -804,7 +804,7 @@ export class BtwHistoryPanel implements Component, Focusable {
 				for (let index = 0; index < turns.length; index++) {
 					const cached = this.#renderTurn(turns[index]!, this.#turns[index], inner);
 					this.#turns[index] = cached;
-					if (index > 0) lines.push("", theme.fg("dim", theme.boxRound.horizontal.repeat(inner)), "");
+					if (index > 0) lines.push("", theme.fg("dim", theme.boxBrand.horizontal.repeat(inner)), "");
 					lines.push(...cached.lines);
 				}
 				this.#turns.length = turns.length;

@@ -2,9 +2,17 @@
  * Shared box-drawing chrome for overlays — string helpers for fullscreen
  * surfaces (the `/copy` picker, the plan-review overlay, …) and the
  * {@link OverlayPanel} container for inline overlays hosted in the editor slot
- * or an anchored container. Everything paints with `theme.boxRound` glyphs
- * (rounded corners, sharp tee/cross junctions) and the `border`/`accent` theme
- * colors so all outlined overlays read identically.
+ * or an anchored container.
+ *
+ * Everything paints with `theme.boxBrand`: square dots at the corners with a
+ * hairline rule between, the same silhouette as the composer, the sidebar, the
+ * tool cards and the setup wizard. The corners are the point — an overlay that
+ * opened with `╭` sat in a different visual language from the input line it
+ * opened over.
+ *
+ * The brand card has no tee or cross junctions, so the split-layout helpers
+ * drop them: a divider between two panes is a plain dot-ended rule with the
+ * vertical column rule crossing it, rather than `├──┬──┤`.
  */
 import type { DescribeContext, NativeChild, NativeNode } from "../native/node";
 import { node } from "../native/describe";
@@ -18,34 +26,42 @@ function paint(s: string, color: ThemeColor = "border"): string {
 	return theme.fg(color, s);
 }
 
-/** Top border with an optional title inset into the rule. `color` recolors border and title (default border/accent). */
+/**
+ * Top border with an optional title inset into the rule. `color` recolors
+ * border and title (default border/accent).
+ *
+ * The title sits behind a three-cell cap (`▪─── Title ───▪`) to match the
+ * welcome banner and the tool cards; one cell read as a cramped label glued
+ * to the corner.
+ */
 export function topBorder(width: number, title: string, color?: ThemeColor): string {
-	const box = theme.boxRound;
+	const box = theme.boxBrand;
 	const inner = Math.max(0, width - 2);
+	const cap = box.horizontal.repeat(3);
 	if (!title) return paint(box.topLeft + box.horizontal.repeat(inner) + box.topRight, color);
-	const shown = truncateToWidth(` ${title} `, Math.max(0, inner - 2));
-	const fillWidth = Math.max(0, inner - 1 - visibleWidth(shown));
+	const shown = truncateToWidth(` ${title} `, Math.max(0, inner - 4));
+	const fillWidth = Math.max(0, inner - 3 - visibleWidth(shown));
 	return (
-		paint(box.topLeft + box.horizontal, color) +
+		paint(box.topLeft + cap, color) +
 		theme.bold(theme.fg(color ?? "accent", shown)) +
 		paint(box.horizontal.repeat(fillWidth) + box.topRight, color)
 	);
 }
 
-/** A horizontal rule with left/right tees, splitting overlay sections. */
+/** A horizontal rule with dot ends, splitting overlay sections. */
 export function divider(width: number): string {
-	const box = theme.boxRound;
-	return paint(box.teeRight + box.horizontal.repeat(Math.max(0, width - 2)) + box.teeLeft);
+	const box = theme.boxBrand;
+	return paint(box.topLeft + box.horizontal.repeat(Math.max(0, width - 2)) + box.topRight);
 }
 
 export function bottomBorder(width: number, color?: ThemeColor): string {
-	const box = theme.boxRound;
+	const box = theme.boxBrand;
 	return paint(box.bottomLeft + box.horizontal.repeat(Math.max(0, width - 2)) + box.bottomRight, color);
 }
 
 /** Wrap pre-styled content in vertical borders with single-column insets. */
 export function row(content: string, width: number, color?: ThemeColor): string {
-	const box = theme.boxRound;
+	const box = theme.boxBrand;
 	return `${paint(box.vertical, color)} ${width > 4 ? padToWidth(content, width - 4) : ""} ${paint(box.vertical, color)}`;
 }
 
@@ -65,9 +81,15 @@ export function splitBodyWidth(width: number, sidebarWidth: number): number {
 	return Math.max(0, width - sidebarWidth - 7);
 }
 
-/** Top border carrying the title, split by a `┬` over the column divider. */
+/**
+ * Top border carrying the title, with the column rule crossing it.
+ *
+ * The brand card has no `┬`: a junction glyph between dot corners would read
+ * as a second frame. The column's own `│` simply passes through the rule,
+ * which is how the sidebar and the composer already meet their rules.
+ */
 export function topBorderSplit(width: number, title: string, sidebarWidth: number): string {
-	const box = theme.boxRound;
+	const box = theme.boxBrand;
 	const dividerCol = splitDividerCol(sidebarWidth);
 	const leftLen = Math.max(0, dividerCol - 1);
 	const rightLen = Math.max(0, width - 2 - dividerCol);
@@ -75,30 +97,30 @@ export function topBorderSplit(width: number, title: string, sidebarWidth: numbe
 	if (!title) {
 		left = paint(box.topLeft + box.horizontal.repeat(leftLen));
 	} else {
-		const shown = truncateToWidth(` ${title} `, Math.max(0, leftLen - 1));
-		const fillWidth = Math.max(0, leftLen - 1 - visibleWidth(shown));
-		left =
-			paint(box.topLeft + box.horizontal) +
-			theme.bold(theme.fg("accent", shown)) +
-			paint(box.horizontal.repeat(fillWidth));
+		// Same three-cell cap as the plain top border, so a split surface and a
+		// single-pane one read as the same card.
+		const cap = box.horizontal.repeat(3);
+		const shown = truncateToWidth(` ${title} `, Math.max(0, leftLen - 4));
+		const fillWidth = Math.max(0, leftLen - 3 - visibleWidth(shown));
+		left = paint(box.topLeft + cap) + theme.bold(theme.fg("accent", shown)) + paint(box.horizontal.repeat(fillWidth));
 	}
-	return left + paint(box.teeDown + box.horizontal.repeat(rightLen) + box.topRight);
+	return left + paint(box.vertical) + paint(box.horizontal.repeat(rightLen) + box.topRight);
 }
 
-/** Section rule that closes the sidebar column with a `┴` over the divider. */
+/** Section rule that closes the sidebar column, with the column rule crossing it. */
 export function dividerSplit(width: number, sidebarWidth: number): string {
-	const box = theme.boxRound;
+	const box = theme.boxBrand;
 	const dividerCol = splitDividerCol(sidebarWidth);
 	const leftLen = Math.max(0, dividerCol - 1);
 	const rightLen = Math.max(0, width - 2 - dividerCol);
 	return paint(
-		box.teeRight + box.horizontal.repeat(leftLen) + box.teeUp + box.horizontal.repeat(rightLen) + box.teeLeft,
+		box.topLeft + box.horizontal.repeat(leftLen) + box.vertical + box.horizontal.repeat(rightLen) + box.topRight,
 	);
 }
 
 /** A two-column content row: `│ sidebar │ body │`, each inset by one column. */
 export function splitRow(sidebar: string, body: string, width: number, sidebarWidth: number): string {
-	const box = theme.boxRound;
+	const box = theme.boxBrand;
 	const bodyWidth = splitBodyWidth(width, sidebarWidth);
 	const bar = paint(box.vertical);
 	return `${bar} ${sidebarWidth > 0 ? padToWidth(sidebar, sidebarWidth) : ""} ${bar} ${bodyWidth > 0 ? padToWidth(body, bodyWidth) : ""} ${bar}`;

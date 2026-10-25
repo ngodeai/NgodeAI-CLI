@@ -397,9 +397,9 @@ export class AdvisorConfigOverlayComponent implements Component {
 		left: this.#renderActivePane,
 		right: this.#renderPreviewPane,
 		leftSize: { ratio: 0.34, min: 22, max: 42 },
-		prefix: () => `${theme.fg("border", theme.boxRound.vertical)} `,
-		divider: () => ` ${theme.fg("border", theme.boxRound.vertical)} `,
-		suffix: () => ` ${theme.fg("border", theme.boxRound.vertical)}`,
+		prefix: () => `${theme.fg("border", theme.boxBrand.vertical)} `,
+		divider: () => ` ${theme.fg("border", theme.boxBrand.vertical)} `,
+		suffix: () => ` ${theme.fg("border", theme.boxBrand.vertical)}`,
 	});
 	readonly #frameTop = new PanelRows();
 	readonly #frameDivider = new PanelRows();

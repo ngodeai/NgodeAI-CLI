@@ -197,7 +197,14 @@ describe("ModelHub", () => {
 			const { hub } = createHub({ models: [makeModel("github-copilot-enterprise", "phone-model")] });
 			const lines = hub.render(36).map(line => stripVTControlCharacters(line));
 
-			expect(lines[0]).toStartWith("╭─ Models ───────────┬");
+			// Brand frame: dot corners, and the column rule passes through the title
+			// rule instead of a `┬` junction. The sidebar width flexes with the
+			// provider name, so assert the shape rather than the exact fill.
+			expect(lines[0]).toStartWith("▪─── Models ─");
+			expect(lines[0]).toContain("│");
+			expect(lines[0]).toEndWith("▪");
+			expect(lines[0]).not.toContain("┬");
+			expect(lines[0]).not.toContain("╭");
 			// Body row (not the sidebar's "● github-…" entry) keeps the provider-qualified name.
 			expect(lines.some(line => /│ {2,}github-/.test(line))).toBe(true);
 		});
