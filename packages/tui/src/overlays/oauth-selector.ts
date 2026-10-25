@@ -13,6 +13,7 @@ import {
 } from "../index";
 import { theme } from "../theme/theme";
 import { matchesSelectCancel, matchesSelectDown, matchesSelectUp } from "../keybinding-matchers";
+import { editorKey } from "../chrome/keybinding-hints";
 import { OverlayPanel } from "../chrome/overlay-box";
 import { Input } from "../components/input";
 import { MenuSelection } from "../components/menu-selection";
@@ -426,17 +427,30 @@ export class OAuthSelectorComponent extends OverlayPanel {
 		else this.#handleSearchInput(keyData);
 	}
 
-	/** Confirm the selected provider (Enter or mouse click). */
+	/**
+	 * Confirm the selected provider (Enter or mouse click).
+	 *
+	 * In login mode a provider that already holds a credential is skipped: the
+	 * row says "logged in", so re-entering its login flow contradicts the list
+	 * and, for api-key providers, re-prompts for a key the user just pasted.
+	 * Logout mode still selects them — that is how a credential is removed.
+	 */
 	#confirmSelection(): void {
 		const selectedProvider = this.#menu.selectedItem;
-		if (selectedProvider?.available) {
-			this.#statusMessage = undefined;
-			this.stopValidation();
-			this.#onSelectCallback(selectedProvider.id);
-		} else if (selectedProvider) {
+		if (!selectedProvider) return;
+		if (!selectedProvider.available) {
 			this.#statusMessage = "Provider unavailable in this environment.";
 			this.#updateList();
+			return;
 		}
+		if (this.#mode === "login" && this.#hasSelectableAuth(selectedProvider.id)) {
+			this.#statusMessage = `${selectedProvider.name} is already signed in — press ${editorKey("tui.select.cancel")} when you're done.`;
+			this.#updateList();
+			return;
+		}
+		this.#statusMessage = undefined;
+		this.stopValidation();
+		this.#onSelectCallback(selectedProvider.id);
 	}
 
 	/** Credential status of a provider row: `value` (state) and `detail` (origin) spans. */

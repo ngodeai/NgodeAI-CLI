@@ -50,6 +50,36 @@ describe("OAuthSelectorComponent", () => {
 		expect(selected).toEqual([target.id]);
 	});
 
+	it("does not re-enter login for a provider that is already signed in", () => {
+		const providers = getOAuthProviders();
+		const target = providers.find(provider => provider.available);
+		expect(target).toBeDefined();
+		if (!target) return;
+
+		const selected: string[] = [];
+		const component = new OAuthSelectorComponent(
+			"login",
+			{
+				credentials: { has: (_providerId: string) => false },
+				keys: {
+					source: (providerId: string) =>
+						providerId === target.id ? { kind: "api_key", concrete: true } : undefined,
+				},
+			} as unknown as AuthStorage,
+			providerId => selected.push(providerId),
+			() => {},
+		);
+
+		component.handleInput("\n");
+		expect(selected).toEqual([]);
+
+		const rendered = component
+			.render(80)
+			.map(line => Bun.stripANSI(line))
+			.join("\n");
+		expect(rendered).toContain("already signed in");
+	});
+
 	it("does not offer env-only providers as logout targets", () => {
 		const selected: string[] = [];
 		const component = new OAuthSelectorComponent(
