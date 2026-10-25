@@ -40,7 +40,7 @@ const FRAME = {
 } as const;
 
 /** Tagline under the wordmark; one line, always muted. */
-const TAGLINE = "one key, every model";
+const TAGLINE = "Powerful Coding Models without Masking";
 
 /** Skip affordance; built at render time so it follows the live symbol preset. */
 function skipHint(): string {
@@ -81,9 +81,13 @@ export function renderSetupSplash(width: number, height: number, elapsedMs: numb
 	const markHeight = mark.length;
 	const cardWidth = Math.min(w - 4, markWidth + 8);
 	const innerWidth = Math.max(0, cardWidth - 2);
-	const cardHeight = markHeight + 8;
+	// Two rows of padding, the mark, the tagline, two more rows of padding,
+	// plus the two border rows.
+	const cardHeight = markHeight + 7;
 	const cardLeft = Math.floor((w - cardWidth) / 2);
-	const cardTop = Math.max(1, Math.floor((h - cardHeight) / 2));
+	// Clamp into the viewport: a centred card taller than the terminal would
+	// otherwise lose its bottom border and skip hint off-screen.
+	const cardTop = Math.max(0, Math.min(h - cardHeight, Math.floor((h - cardHeight) / 2)));
 
 	const lines: string[] = [];
 	for (let y = 0; y < h; y++) {

@@ -431,8 +431,19 @@ export class WelcomeComponent implements Component {
 		const logo = this.#currentLogoFrame();
 		const version = theme.fg("dim", `v${this.version}`);
 		const lockupWidth = LOGO_WIDTH + LOCKUP_GAP + Math.max(WORDMARK_WIDTH, visibleWidth(version));
-		const art = room >= lockupWidth ? lockup(logo, version) : room >= LOGO_WIDTH ? logo : [];
-		const tip = termWidth >= TIP_MIN_COLUMNS ? this.#renderTip(room).map(line => line.trim()) : [];
+		// Three tiers, widest first: caption beside the mark, caption stacked
+		// under it, then the mark alone. The tagline is longer than the mark, so
+		// without the stacked tier a mid-width terminal dropped the brand line
+		// entirely rather than reflowing it.
+		const art =
+			room >= lockupWidth
+				? lockup(logo, version)
+				: room >= Math.max(LOGO_WIDTH, WORDMARK_WIDTH)
+					? stackedLockup(logo, version)
+					: room >= LOGO_WIDTH
+						? logo
+						: [];
+		const tip = termWidth >= TIP_MIN_COLUMNS ? this.#renderTip(room - 2).map(line => line.trim()) : [];
 		const inner = tip.length > 0 ? [...art, "", ...tip] : art;
 		return frameCard(inner, termWidth);
 	}
@@ -464,17 +475,21 @@ export class WelcomeComponent implements Component {
 /**
  * Block-grid wordmark shared by the welcome, setup, and splash surfaces.
  *
- * Spells **NgodeAI** in full rather than a single-letter monogram: the pre-
- * rebrand build showed one letter, and the brand has to be readable without a
- * caption beside it. Five rows tall, 37 columns wide, drawn in a solid block
- * alphabet with one column of tracking between letters.
+ * Spells **NgodeAI** with its real casing: capital N and AI, lowercase gode.
+ * The grid is seven rows so the lowercase letters sit on a four-row x-height
+ * band under a five-row cap height, and `g` keeps a two-row descender that
+ * hangs below the baseline instead of being flattened into the bowl. Drawing
+ * every letter the same height (as the first pass did) turned the name into a
+ * row of capitals, which read as `NGODEAI` rather than the brand.
  */
 export const NGODE_LOGO = [
-	"█▄  █ █████ █████ ████  █████ █████ █",
-	"██  █ █   █ █   █ █   █ █     █   █ █",
-	"█ █ █ █████ █   █ █   █ ████  █████ █",
-	"█  ██     █ █   █ █   █ █     █   █ █",
-	"█   █ ████  █████ ████  █████ █   █ █",
+	"█   █                 █        ███  ███",
+	"██  █  ███   ███   ████  ███  █   █  █ ",
+	"█ █ █ █   █ █   █ █   █ █     █████  █ ",
+	"█  ██ █   █ █   █ █   █ ████  █   █  █ ",
+	"█   █  ████  ███   ████  ███  █   █ ███",
+	"          █                            ",
+	"       ███                             ",
 ];
 
 /** Columns of {@link NGODE_LOGO}. */
@@ -485,7 +500,7 @@ const LOGO_WIDTH = Math.max(...NGODE_LOGO.map(row => row.length));
  * this carries only the version and a one-line tagline rather than repeating
  * the wordmark.
  */
-const WORDMARK = ["", "one key, every model"];
+const WORDMARK = ["", "Powerful Coding Models without Masking"];
 
 /** Columns of {@link WORDMARK}. */
 const WORDMARK_WIDTH = Math.max(...WORDMARK.map(row => row.length));
@@ -502,15 +517,35 @@ const TIP_MIN_COLUMNS = 50;
 /** Logo frame `logo` with the wordmark beside it and `version` (styled) under the wordmark. */
 function lockup(logo: readonly string[], version: string): string[] {
 	const mark = WORDMARK.map(row => (row ? theme.fg("muted", row) : ""));
-	// The tagline sits beside the mark's second row, the version under it, so the
-	// lockup reads as wordmark + positioning line + version.
-	const beside = [mark[0] ?? "", mark[1] ?? "", version];
-	const rows = logo.map((row, index) => `${row}${padding(LOCKUP_GAP)}${beside[index] ?? ""}`);
+	// Center the caption block against the mark rather than pinning it to the
+	// top: the wordmark is seven rows tall (cap height plus `g`'s descender), so
+	// a fixed first-row placement left the tagline floating above the letters.
+	const beside = [...mark, version];
+	const top = Math.max(0, Math.floor((logo.length - beside.length) / 2));
+	const rows = logo.map((row, index) => `${row}${padding(LOCKUP_GAP)}${beside[index - top] ?? ""}`);
 	// Pad every row to the block's widest so the lockup is a rectangle. Without
 	// this the two caption rows are wider than the mark rows, and any caller
 	// that centers rows individually shears the glyphs apart.
 	const widest = rows.reduce((max, row) => Math.max(max, visibleWidth(row)), 0);
 	return rows.map(row => row + padding(Math.max(0, widest - visibleWidth(row))));
+}
+
+/**
+ * Mark with the tagline and version centered beneath it, for terminals too
+ * narrow to hold the caption beside the glyphs.
+ */
+function stackedLockup(logo: readonly string[], version: string): string[] {
+	const rows = [...logo];
+	for (const caption of WORDMARK) {
+		if (caption) rows.push(theme.fg("muted", caption));
+	}
+	rows.push(version);
+	const widest = rows.reduce((max, row) => Math.max(max, visibleWidth(row)), 0);
+	return rows.map(row => {
+		const w = visibleWidth(row);
+		const left = Math.max(0, Math.floor((widest - w) / 2));
+		return padding(left) + row + padding(Math.max(0, widest - left - w));
+	});
 }
 
 /**
