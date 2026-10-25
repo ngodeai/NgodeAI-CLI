@@ -51,19 +51,19 @@ So: `PI_*` appearing as an *internal code read or a documented alias* = INTENTIO
 | --- | --- | --- | --- |
 | Code (TS/Rust/Go/Python, non-test) | 137 | 532 | 4 (1 bug + 3 user-visible) |
 | Config (root `package.json`, `Dockerfile*`) | 3 | 8 | 8 |
-| Docs (`docs/**/*.md`, incl. `docs/tools/`, `docs/skills/`) | 63 | 291 | 45 |
-| Install scripts (`scripts/install.sh`, `install.ps1`) | 2 | 6 | 4 |
+| Docs (`docs/**/*.md`, incl. `docs/tools/`, `docs/skills/`) | 63 | 291 | 56 rows |
+| Install scripts (`scripts/install.sh`, `install.ps1`) | 2 | 6 | 5 rows |
 | SDK (`sdk/go`, `sdk/rust`) | 2 | 4 | 0 |
 | Env (documented `PI_*` vars) | 40 doc files | 119 unique vars | (counted in docs) |
 | Root `.md` (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`) | 0 | 0 | 0 |
 | `.github/`, `nix/`, `*.nix`, `*.toml`, `*.kdl` | 0 | 0 | 0 |
 | `python/` (excl. `ngodebot` product name) | 0 | 0 | 0 |
 
-Total MUST FIX rows: **61 path:line citations spanning 105 distinct `path:line` tokens** (expand the multi-token rows in §3c/§3d: 5 in `help-extra.ts`, 3 in `launch-help.ts`, and the ~55 `PI_*` lines in `docs/`).
+Total MUST FIX rows: **73** (80 distinct `path:line` citations — 3 rows bundle several files/lines, e.g. `help-extra.ts:69-73`, `python-repl.md:143,158,…`).
 
-Counted by row as written in §3: **8 (config) + 4 (install) + 4 (code) + 45 (docs) = 61**.
+Breakdown by section: **8 config + 5 install + 4 code + 56 docs = 73 rows**.
 
-The `docs` surface is best handled as **one mechanical substitution**: 63 files, 119 unique `PI_*` vars, 291 lines — plus 3 hand-fixes where the rebrand mangled a sentence.
+Docs dominate because the `PI_*` surface in docs is systematic (63 files, 119 unique vars, 291 lines). It is best handled as **one mechanical substitution**, plus 3 hand-fixes where the rebrand mangled a sentence.
 
 Notes on the code column: of the 137 files, the overwhelming majority are **internal reads of the legacy alias** (e.g. `$env.PI_NO_PTY`, `std::env::var_os("PI_CONFIG_DIR")`) which keep working because `NGODEAI_*` is mirrored onto them. Only the rows listed in §3 are breakage:
 one genuine rebrand-mangling bug, and three places where `PI_*` is what a developer/user actually types.
@@ -218,15 +218,19 @@ Note on `crates/ngode-natives/src/crash_handler.rs:291,320` and `oauth_callback/
 
 ## 6. Top 10 clusters by file count
 
+Verified file counts (`PI_*` tokens, excluding `legacy-pi-*`, tests, `dist/`):
+
 | # | Cluster (folder / area) | Files |
 | --- | --- | --- |
-| 1 | `docs/*.md` (flat handbook) | 40 |
-| 2 | `packages/coding-agent/src/**` (core agent) | 41 |
-| 3 | `crates/**` (Rust engine) | 16 |
-| 4 | `packages/tui/src/**` | 16 |
-| 5 | `packages/ai/src/**` | 15 |
-| 6 | `packages/utils/src/**` | 9 |
+| 1 | `packages/coding-agent/src/**` (core agent) | 68 |
+| 2 | `docs/**` (handbook + `docs/tools/` + `docs/skills/`) | 63 |
+| 3 | `packages/ai/src/**` | 22 |
+| 4 | `crates/**` (Rust engine) | 11 |
+| 5 | `packages/tui/src/**` | 10 |
+| 6 | `packages/utils/src/**` | 8 |
 | 7 | `scripts/**` (install + CI helpers) | 7 |
-| 8 | `packages/catalog/src/**` | 4 |
-| 9 | `packages/coding-agent/scripts/**` | 4 |
-| 10 | `sdk/**` (Go + Rust RPC) | 2 |
+| 8 | `packages/coding-agent/scripts/**` | 5 |
+| 9 | `packages/agent/src/**` | 4 |
+| 10 | `packages/catalog/src/**` | 4 |
+
+(`sdk/**`, `python/**`, `.github/**`, `nix/**` contained 0 non-test `PI_*` files; `sdk` has only 2 smoke-test files — see §4.)

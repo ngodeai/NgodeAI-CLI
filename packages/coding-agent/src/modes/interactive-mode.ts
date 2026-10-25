@@ -358,7 +358,6 @@ import {
 	askTimeoutMs,
 	cfgAutocompleteMaxVisible,
 	cfgComposerPredictions,
-	cfgComposerShape,
 	cfgSidebarEnabled,
 	cfgSidebarWidth,
 	cfgComposerTokenRate,
@@ -445,7 +444,6 @@ const cfgLiveUiSettings = combine({
 	"spelling.typoDetection": cfgSpellingTypoDetection,
 	"spelling.autocomplete": cfgSpellingAutocomplete,
 	"spelling.autocorrect": cfgSpellingAutocorrect,
-	"composer.shape": cfgComposerShape,
 	"tui.vimMode": cfgTuiVimMode,
 	"tui.vimModeDisplay": cfgTuiVimModeDisplay,
 	"display.pinnedAgents": cfgDisplayPinnedAgents,
@@ -666,6 +664,9 @@ export const TODO_COMPACT_TERMINAL_ROWS_THRESHOLD = 18;
 
 /** Holds mutable HUD and editor-adjacent chrome outside transcript history. */
 /** Agents the sidebar lists; beyond this the roster is summarised by its count. */
+/** The one composer shape this build ships. */
+const DEFAULT_COMPOSER_SHAPE = "claude";
+
 const SIDEBAR_AGENT_CAP = 4;
 
 class AnchoredLiveContainer extends Container {}
@@ -1416,13 +1417,15 @@ export class InteractiveMode implements InteractiveModeContext {
 	#workingMessageAccentCacheKey?: WorkingMessageAccentCacheKey;
 	#workingMessageAccentCacheValue?: WorkingMessageAccent;
 	#workingMessageAccentCacheHasValue = false;
-	/** Band composer: the status band hides `session_name`, so the title docks
-	 * onto the working row instead — right-aligned, dim, italic. */
+	/**
+	 * Trailer shown on the working row.
+	 *
+	 * Only the band composer ever needed one: it hid `session_name` from the
+	 * status band and docked the title on the working row instead. The shipped
+	 * composer keeps the name in the status line, so there is nothing to dock.
+	 */
 	#workingTitleTrailer(): string | undefined {
-		if (cfgComposerShape.get(settings) !== "band") return undefined;
-		const name = this.sessionManager.getSessionName();
-		if (!name) return undefined;
-		return `\x1b[2;3m${sanitizeStatusText(name)}\x1b[23;22m`;
+		return undefined;
 	}
 	/** Live gen tok/s for the working row: the viewed session's own meter, so a
 	 * focused subagent shows its own reading and the main session's survives
@@ -1892,7 +1895,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#initialComposerModel = session.model;
 		const preferences = {
 			quiet: cfgStartupQuiet.get(settings),
-			composerShape: cfgComposerShape.get(settings),
+			composerShape: DEFAULT_COMPOSER_SHAPE,
 			...this.#liveComposerPreferences(),
 		};
 		const wasStarted = composer?.started ?? false;
@@ -3682,7 +3685,6 @@ export class InteractiveMode implements InteractiveModeContext {
 			// setPreferences re-themes the editor, which resets its mode-tinted border.
 			this.updateEditorBorderColor();
 		}
-		if (any("composer.shape")) this.syncComposerShape();
 		if (any("tui.vimMode", "tui.vimModeDisplay")) this.#applyVimModeSetting();
 		if (any("display.pinnedAgents")) this.applyPinnedAgentsSetting();
 		if (any("display.subagentLivePreview")) {
@@ -3842,7 +3844,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		});
 	}
 	syncComposerShape(): void {
-		const shape = cfgComposerShape.get(settings);
+		const shape = DEFAULT_COMPOSER_SHAPE;
 		const style = getComposerStyle(shape);
 		this.composer.setPreferences({ composerShape: shape });
 		this.statusLine.attachToEditor(this.editor, style);

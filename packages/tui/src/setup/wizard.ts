@@ -1,11 +1,9 @@
 import { CURRENT_SETUP_VERSION } from "./setup-version";
 import type { SetupHost } from "./scenes/types";
-import { composerSetupScene } from "./scenes/composer";
 import { glyphSetupScene } from "./scenes/glyph";
 import { modelSetupScene } from "./scenes/model";
 import { ngodeaiSignInScene } from "./scenes/ngodeai-signin";
 import { providersSetupScene } from "./scenes/sign-in";
-import { themeSetupScene } from "./scenes/theme";
 import type { SetupScene } from "./scenes/types";
 import { SetupWizardComponent } from "./wizard-overlay";
 
@@ -22,8 +20,9 @@ export const ALL_SCENES = [
 	providersSetupScene,
 	modelSetupScene,
 	glyphSetupScene,
-	composerSetupScene,
-	themeSetupScene,
+	// No composer-shape or theme scenes: this build ships one prompt layout
+	// (Claude Code) and one theme (dark-terminal). Asking the user to choose
+	// between options that no longer exist is worse than not asking at all.
 ] as const satisfies readonly SetupScene[];
 
 /** Environment and invocation gates for onboarding scene selection. */

@@ -13,7 +13,6 @@ import { assistantMsg, createTestSession, userMsg } from "./utilities";
 
 import {
 	cfgAutocompleteMaxVisible,
-	cfgComposerShape,
 	cfgShowHardwareCursor,
 	cfgSpellingAutocomplete,
 	cfgSpellingAutocorrect,
@@ -59,7 +58,7 @@ describe("issue #9597 — cold-launch welcome duplication", () => {
 		settings = await Settings.init({ inMemory: true });
 		config = {
 			quiet: cfgStartupQuiet.get(settings),
-			composerShape: cfgComposerShape.get(settings) ?? "box",
+			composerShape: "claude",
 			showHardwareCursor: cfgShowHardwareCursor.get(settings),
 			maxInlineImages: cfgTuiMaxInlineImages.get(settings),
 			resizeScrollback: cfgTuiResizeScrollback.get(settings),

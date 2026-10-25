@@ -12,7 +12,6 @@ import {
 	STATUS_LINE_SEPARATOR_VALUES,
 } from "@ngodeai/tui/status-line/schema";
 import { setChatTranscriptDisplayPreferences } from "@ngodeai/tui/chat/display-preferences";
-import { setEditorGapComposerShape } from "@ngodeai/tui/prompt/editor-top-gap";
 import { setEmojiAutocompleteEnabled } from "@ngodeai/tui/prompt/prompt-action-autocomplete";
 import { WORD_COMPLETION_METHODS } from "@ngodeai/tui/prompt/word-completion";
 import { applyHyperlinkSetting } from "@ngodeai/tui/render/hyperlink";
@@ -59,7 +58,7 @@ export const cfgGitEnabled = register({
 export const cfgThemeDark = register({
 	id: "theme.dark",
 	type: "string",
-	default: "titanium",
+	default: "dark-terminal",
 	ui: {
 		tab: "appearance",
 		group: "Theme",
@@ -121,20 +120,6 @@ export const cfgColorBlindMode = register({
 effect(cfgColorBlindMode, setColorBlindMode);
 
 // Composer
-export const cfgComposerShape = register({
-	id: "composer.shape",
-	type: "string",
-	default: "band",
-	ui: {
-		tab: "appearance",
-		group: "Composer",
-		label: "Composer Shape",
-		description: "Visual layout of the input editor and status line",
-		options: "runtime",
-	},
-});
-effect(cfgComposerShape, setEditorGapComposerShape);
-
 export const cfgSidebarEnabled = register({
 	id: "sidebar.enabled",
 	type: "boolean",

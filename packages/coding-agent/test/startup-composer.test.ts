@@ -32,7 +32,6 @@ import { createTestSession } from "./utilities";
 
 import {
 	cfgAutocompleteMaxVisible,
-	cfgComposerShape,
 	cfgMarketplaceAutoUpdate,
 	cfgShowHardwareCursor,
 	cfgSpellingAutocomplete,
@@ -292,7 +291,7 @@ describe("Composer prepaint", () => {
 		settings = await Settings.init({ inMemory: true });
 		config = {
 			quiet: cfgStartupQuiet.get(settings),
-			composerShape: cfgComposerShape.get(settings) ?? "box",
+			composerShape: "claude",
 			showHardwareCursor: cfgShowHardwareCursor.get(settings),
 			maxInlineImages: cfgTuiMaxInlineImages.get(settings),
 			resizeScrollback: cfgTuiResizeScrollback.get(settings),
@@ -405,7 +404,6 @@ describe("Composer prepaint", () => {
 
 		try {
 			await initTheme(false, "ascii");
-			cfgComposerShape.set(settings, "box");
 			vi.spyOn(KeybindingsManager, "create").mockReturnValue(KeybindingsManager.inMemory({ "app.clear": "ctrl+x" }));
 			mode = new InteractiveMode(
 				testSession.session,
@@ -429,8 +427,10 @@ describe("Composer prepaint", () => {
 			expect(mode.editor.getExpandedText()).toBe(expectedDraft);
 			expect(mode.editor.getCursor()).toEqual(expectedCursor);
 			expect(terminal.starts).toBe(1);
+			// The adopted editor carries the shipped composer's frame: a dot-ended
+			// rule, not the rounded box the prepaint default used to draw.
 			const adoptedEditor = Bun.stripANSI(mode.editor.render(40).join("\n"));
-			expect(adoptedEditor.startsWith("+")).toBe(true);
+			expect(adoptedEditor.startsWith("▪")).toBe(true);
 			expect(adoptedEditor).not.toContain("╭");
 
 			terminal.sendInput("\x03");
@@ -728,11 +728,12 @@ describe("Composer prepaint", () => {
 			.map(r => Bun.stripANSI(r))
 			.join("\n");
 		expect(output).not.toContain("Starting NGODEAI");
-		expect(output).toContain("╰");
+		// The shipped composer closes its frame with a dot-ended rule.
+		expect(output).toContain("▪");
 		const initialEditorRow = terminal
 			.getViewport()
 			.map(row => Bun.stripANSI(row))
-			.findLastIndex(row => row.startsWith("╰"));
+			.findLastIndex(row => row.startsWith("▪"));
 		composer.updateWelcome({ version: "10.0.0-authoritative" });
 		await terminal.waitForRender(() =>
 			terminal.getViewport().some(row => Bun.stripANSI(row).includes("v10.0.0-authoritative")),
@@ -740,7 +741,7 @@ describe("Composer prepaint", () => {
 		const updatedEditorRow = terminal
 			.getViewport()
 			.map(row => Bun.stripANSI(row))
-			.findLastIndex(row => row.startsWith("╰"));
+			.findLastIndex(row => row.startsWith("▪"));
 		expect(updatedEditorRow).toBe(initialEditorRow);
 		composer.stop();
 	});

@@ -15,14 +15,7 @@ import { copyToClipboard } from "../utils/clipboard";
 import { createModelBrowserSource } from "./model-browser-source";
 import type { InteractiveModeContext } from "./types";
 
-import {
-	cfgColorBlindMode,
-	cfgComposerShape,
-	cfgSetupVersion,
-	cfgSymbolPreset,
-	cfgThemeDark,
-	cfgThemeLight,
-} from "./settings";
+import { cfgColorBlindMode, cfgSetupVersion, cfgSymbolPreset, cfgThemeDark, cfgThemeLight } from "./settings";
 import { cfgDisabledProviders, cfgModelRoleStorage } from "../config/model-settings";
 
 export { ALL_SCENES, CURRENT_SETUP_VERSION };
@@ -37,8 +30,10 @@ export function createSetupHost(ctx: InteractiveModeContext): SetupHost {
 		get statusLine() {
 			return ctx.statusLine;
 		},
+		// This build ships one composer shape; the host still exposes the getter
+		// because the setup scenes read it, but it never varies.
 		get composerShape() {
-			return cfgComposerShape.get(ctx.settings);
+			return "claude";
 		},
 		get symbolPreset() {
 			return cfgSymbolPreset.get(ctx.settings);
@@ -70,9 +65,8 @@ export function createSetupHost(ctx: InteractiveModeContext): SetupHost {
 			await ctx.session.modelRegistry.refreshProvider(getOAuthCredentialProvider(provider), "online");
 			await ctx.refreshScopedModelsAfterLogin?.();
 		},
-		saveComposerShape: async shape => {
-			cfgComposerShape.set(ctx.settings, shape);
-			await ctx.settings.flush();
+		saveComposerShape: async () => {
+			// No-op: the composer shape is not a preference in this build.
 		},
 		saveSymbolPreset: preset => {
 			cfgSymbolPreset.set(ctx.settings, preset);

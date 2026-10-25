@@ -52,7 +52,6 @@ import {
 } from "../vim";
 import { scrollbarThumbRange } from "./scroll-viewport";
 import {
-	borderlessComposerStyle,
 	type ComposerChromeContext,
 	type ComposerStyle,
 	type EditorBorderStyle,
@@ -60,6 +59,26 @@ import {
 	getComposerStyle,
 	isFilledComposerStyle,
 } from "./composer";
+
+/**
+ * Chrome-less style used when a host hides the border (hook editors, inline
+ * prompts). Not a selectable shape: it is the absence of the frame, so it stays
+ * out of the composer registry and out of settings.
+ */
+const BORDERLESS_STYLE: ComposerStyle = {
+	id: "borderless",
+	sideBorders: false,
+	verticalChrome: 0,
+	statusAttachment: "none",
+	bottomBar: "none",
+	bottomBarGap: false,
+	defaultPromptGutter: undefined,
+	defaultPaddingX: () => 0,
+	sideChromeWidth: () => 0,
+	renderTop: () => undefined,
+	renderRow: ctx => [ctx.gutter + ctx.text + ctx.pad],
+	renderBottom: () => undefined,
+};
 
 export type { EditorBorderStyle, EditorTopBorder };
 
@@ -787,6 +806,12 @@ export class Editor implements Component, Focusable {
 	#topBorderContent?: EditorTopBorder;
 	#topBorderProvider?: (availableWidth: number) => EditorTopBorder | undefined;
 	#borderVisible = true;
+	/**
+	 * Style used until the host picks one. The application sets `claude`
+	 * explicitly; the library default stays `box` because a bare Editor (hook
+	 * prompts, inline fields) has no status line to attach and reads better with
+	 * a closed frame.
+	 */
 	#borderStyle: EditorBorderStyle = "box";
 	constructor(theme: EditorTheme) {
 		this.#theme = theme;
@@ -1130,9 +1155,9 @@ export class Editor implements Component, Focusable {
 		this.#nativeGeneration++;
 	}
 
-	/** Active chrome style; a hidden border collapses every shape to borderless. */
+	/** Active chrome style; a hidden border drops all chrome rows. */
 	#effectiveStyle(): ComposerStyle {
-		return this.#borderVisible ? getComposerStyle(this.#borderStyle) : borderlessComposerStyle;
+		return this.#borderVisible ? getComposerStyle(this.#borderStyle) : BORDERLESS_STYLE;
 	}
 
 	#getEffectivePromptGutter(): string | undefined {

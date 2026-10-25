@@ -437,8 +437,10 @@ describe("setup wizard theme previews", () => {
 	it("restores the selected glyph preset after previewing ANSI-safe mode", async () => {
 		await initTheme(false, "nerd", false, "titanium", "light");
 		const settings = Settings.isolated({ symbolPreset: "nerd", colorBlindMode: false });
-		const setupScene = ALL_SCENES.find(scene => scene.id === "theme");
-		expect(setupScene).toBeDefined();
+		// The theme scene is no longer part of onboarding (this build ships one
+		// theme), but the component still exists and its preview/restore contract
+		// is worth guarding.
+		const setupScene = themeSetupScene;
 
 		const host = bindSceneHost({
 			ctx: {

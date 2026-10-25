@@ -2838,6 +2838,11 @@ describe("Editor component", () => {
 	});
 
 	describe("composer border styles", () => {
+		/**
+		 * This build ships one shape. The `box` style stays registered as the
+		 * library default for bare editors, but it is not selectable, so the
+		 * tests cover exactly those two.
+		 */
 		const unicodeTheme: EditorTheme = {
 			...defaultEditorTheme,
 			borderColor: (t: string) => t,
@@ -2884,118 +2889,37 @@ describe("Editor component", () => {
 			},
 		};
 
-		it("renders claude style with top and bottom horizontal rules and prompt gutter", () => {
+		it("renders the shipped claude style with dot-ended rules and a prompt gutter", () => {
 			const editor = new Editor(unicodeTheme);
 			editor.setBorderStyle("claude");
 			editor.setText("hello");
-			const lines = editor.render(20);
+			const lines = editor.render(20).map(l => stripVTControlCharacters(l));
 			expect(lines.length).toBe(3); // top rule, content, bottom rule
-			expect(lines[0]).toBe("─".repeat(20));
+			// Square dots close both rules: the brand card, not a bare line.
+			expect(lines[0]!.startsWith("▪")).toBe(true);
+			expect(lines[0]!.endsWith("▪")).toBe(true);
 			expect(lines[1]).toContain("❯ hello");
-			expect(lines[2]).toBe("─".repeat(20));
+			expect(lines[2]!.startsWith("▪")).toBe(true);
+			expect(lines[2]!.endsWith("▪")).toBe(true);
+			for (const line of lines) expect(visibleWidth(line)).toBe(20);
 		});
 
-		it("renders pi style with full-width rules, padded content, and no prompt gutter", () => {
+		it("renders the box style for a bare editor", () => {
 			const editor = new Editor(unicodeTheme);
-			editor.setBorderStyle("pi");
+			editor.setBorderStyle("box");
 			editor.setText("hello");
-			const lines = editor.render(20);
-			expect(lines.length).toBe(3); // top rule, content, bottom rule
-			expect(lines[0]).toBe("─".repeat(20));
-			expect(lines[1]).toStartWith(" hello");
-			expect(lines[1]).not.toContain(">");
-			expect(lines[2]).toBe("─".repeat(20));
+			const lines = editor.render(20).map(l => stripVTControlCharacters(l));
+			expect(lines[0]!.startsWith("╭")).toBe(true);
+			expect(lines.at(-1)!.startsWith("╰")).toBe(true);
 		});
 
-		it("renders borderless style without box borders", () => {
+		it("falls back to claude for a shape this build no longer ships", () => {
 			const editor = new Editor(unicodeTheme);
-			editor.setBorderStyle("borderless");
-			editor.setText("hello");
-			const lines = editor.render(20);
-			expect(lines.length).toBe(1); // content only
-			expect(lines[0]).toContain("❯ hello");
-		});
-
-		it("renders default box style with compact bottom border", () => {
-			const editor = new Editor(unicodeTheme);
-			editor.setText("hello");
-			const lines = editor.render(20);
-			expect(lines.length).toBe(2); // top border, bottom border with content
-			expect(lines[0]).toContain("╭");
-			expect(lines[1]).toContain("╰─ hello");
-		});
-
-		it("renders rule style as a top-rule dock without closing chrome", () => {
-			const editor = new Editor(unicodeTheme);
-			editor.setBorderStyle("rule");
-			editor.setText("hello");
-			const lines = editor.render(20);
-			expect(lines).toHaveLength(2);
-			expect(lines[0]).toBe("─".repeat(20));
-			expect(lines[1]).toStartWith("❯ hello");
-		});
-
-		it("renders field style as one filled row with accent caps", () => {
-			const editor = new Editor({
-				...unicodeTheme,
-				accentColor: text => `\x1b[35m${text}\x1b[39m`,
-				surfaceColor: text => `\x1b[44m${text}\x1b[49m`,
-			});
+			// A settings file written before the trim still names an old shape.
 			editor.setBorderStyle("field");
 			editor.setText("hello");
-			const [line] = editor.render(20);
-			expect(stripVTControlCharacters(line)).toStartWith("▐ hello");
-			expect(stripVTControlCharacters(line)).toEndWith("▌");
-			expect(visibleWidth(line)).toBe(20);
-			expect(line).toContain("\x1b[44m");
-		});
-
-		it("renders rail style as a full-width surface with one accent edge", () => {
-			const editor = new Editor({
-				...unicodeTheme,
-				accentColor: text => `\x1b[35m${text}\x1b[39m`,
-				surfaceColor: text => `\x1b[44m${text}\x1b[49m`,
-			});
-			editor.setBorderStyle("rail");
-			editor.setText("hello");
-			const [line] = editor.render(20);
-			expect(stripVTControlCharacters(line)).toStartWith("▎ hello");
-			expect(stripVTControlCharacters(line)).not.toContain("▌");
-			expect(visibleWidth(line)).toBe(20);
-			expect(line).toContain("\x1b[44m");
-		});
-
-		it("preserves filled extension foregrounds when legacy styles omit filledSurface", () => {
-			const style: ComposerStyle = {
-				id: "legacy-filled-extension",
-				sideBorders: false,
-				verticalChrome: 0,
-				statusAttachment: "none",
-				bottomBar: "none",
-				bottomBarGap: false,
-				defaultPromptGutter: undefined,
-				defaultPaddingX: () => 0,
-				sideChromeWidth: () => 0,
-				renderTop: () => undefined,
-				renderRow: context => [context.surfaceColor(context.text + context.pad)],
-				renderBottom: () => undefined,
-			};
-			const unregister = registerComposerStyle(style);
-			try {
-				const editor = new Editor({
-					...unicodeTheme,
-					textColor: text => `\x1b[31m${text}\x1b[39m`,
-					surfaceColor: text => `\x1b[44m\x1b[37m${text}\x1b[39m\x1b[49m`,
-				});
-				editor.setBorderStyle(style.id);
-				editor.setText("hello");
-
-				const [line] = editor.render(20);
-				expect(line).toContain("\x1b[44m\x1b[37mhello");
-				expect(line).not.toContain("\x1b[44m\x1b[37m\x1b[31m");
-			} finally {
-				unregister();
-			}
+			const lines = editor.render(20).map(l => stripVTControlCharacters(l));
+			expect(lines[0]!.startsWith("▪")).toBe(true);
 		});
 	});
 });
