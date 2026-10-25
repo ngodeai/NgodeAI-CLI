@@ -743,13 +743,29 @@ function isFreeModel(model: Model): boolean {
 	return (!cost || (cost.input === 0 && cost.output === 0)) && (credits === undefined || credits === 0);
 }
 
-/** One per-million price leg: `3`, `0.25`, `12.5`; `?` when unknown. */
+/**
+ * One per-million price leg: `3`, `0.25`, `12.5`, `0.008293`; `?` when unknown.
+ *
+ * Precision scales with magnitude instead of being pinned at two decimals. A
+ * gateway rate of `$0.008293/M` rendered as `$0.01` is off by 20%, and the old
+ * rule was worse than that: values under a cent printed in full while values
+ * just above it rounded to two places, so one rate card read
+ * `$0.008293/$0.02` — two different precisions in a single pair.
+ */
 function formatCostLeg(n: number): string {
 	if (!Number.isFinite(n) || n < 0) return "?";
-	if (n > 0 && n < 0.01) {
-		return n.toLocaleString("en-US", { useGrouping: false, maximumFractionDigits: 20 });
-	}
-	const s = n >= 100 ? String(Math.round(n)) : n >= 10 ? n.toFixed(1) : n.toFixed(2);
+	// Enough significant digits to keep a sub-cent rate recognisable, capped so
+	// a long float tail cannot blow out the column.
+	const s =
+		n >= 100
+			? String(Math.round(n))
+			: n >= 10
+				? n.toFixed(1)
+				: n >= 1
+					? n.toFixed(2)
+					: n >= 0.01
+						? n.toFixed(3)
+						: n.toFixed(6);
 	return s.includes(".") ? s.replace(/\.?0+$/, "") : s;
 }
 

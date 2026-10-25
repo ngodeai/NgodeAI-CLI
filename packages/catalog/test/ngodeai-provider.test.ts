@@ -15,6 +15,14 @@ function gatewayRow(overrides: Record<string, unknown> = {}) {
 		max_output_tokens: 65536,
 		supports_vision: true,
 		pricing: { input: 150, output: 300, cache_read: 30, cache_write: 188, currency: "IDR" },
+		pricing_usd: {
+			input: 0.008293,
+			output: 0.016586,
+			cache_read: 0.001659,
+			cache_write: 0.010394,
+			unit: "per_1m_tokens",
+			currency: "USD",
+		},
 		...overrides,
 	};
 }
@@ -77,31 +85,71 @@ describe("NgodeAI provider", () => {
 		});
 	});
 
-	/**
-	 * Rates arrive in rupiah. The cost model is USD per million tokens, so a
-	 * priced IDR row cannot be expressed: it must read "pricing unknown", never
-	 * "free" — which is what a zeroed cost silently becomes.
-	 */
-	test("reports priced IDR rows as pricing unknown, not free", async () => {
+	/** `pricing_usd` is the rate card the cost model can actually express. */
+	test("maps the USD rate card", async () => {
 		const { fetch } = fetchOnce([gatewayRow()]);
 		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
 		const [model] = (await options.fetchDynamicModels?.()) ?? [];
 
+		expect(model.cost).toEqual({
+			input: 0.008293,
+			output: 0.016586,
+			cacheRead: 0.001659,
+			cacheWrite: 0.010394,
+		});
+		expect(model.pricingStatus).toBeUndefined();
+	});
+
+	/** A priced IDR card with no USD counterpart is real but unrepresentable. */
+	test("reports a priced row with no USD card as pricing unknown, not free", async () => {
+		const { fetch } = fetchOnce([gatewayRow({ pricing_usd: undefined })]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
 		expect(model.pricingStatus).toBe("unknown");
-		expect(model.cost).toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
 	});
 
 	/** An all-zero rate card is the gateway genuinely saying "free". */
-	test("keeps an unpriced IDR row free", async () => {
+	test("keeps an unpriced row free", async () => {
 		const { fetch } = fetchOnce([
 			gatewayRow({
 				id: "ngodeai/deepseek-v4.1-flash",
 				pricing: { input: 0, output: 0, cache_read: 0, cache_write: 0, currency: "IDR" },
+				pricing_usd: {
+					input: 0,
+					output: 0,
+					cache_read: 0,
+					cache_write: 0,
+					unit: "per_1m_tokens",
+					currency: "USD",
+				},
 			}),
 		]);
 		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
 		const [model] = (await options.fetchDynamicModels?.()) ?? [];
 
 		expect(model.pricingStatus).toBeUndefined();
+		expect(model.cost).toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+	});
+
+	/** A mislabelled unit must not be silently rescaled. */
+	test("ignores a USD card whose unit is not per-million", async () => {
+		const { fetch } = fetchOnce([
+			gatewayRow({
+				pricing_usd: {
+					input: 8.293,
+					output: 16.586,
+					cache_read: 1.659,
+					cache_write: 10.394,
+					unit: "per_1k_tokens",
+					currency: "USD",
+				},
+			}),
+		]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
+		expect(model.pricingStatus).toBe("unknown");
+		expect(model.cost).toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
 	});
 });

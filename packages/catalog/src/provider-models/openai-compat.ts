@@ -1316,33 +1316,45 @@ export function ngodeaiModelManagerOptions(config?: SimpleProviderConfig): Model
 }
 
 /**
- * Rates the gateway quotes in rupiah. The cost model is USD per million tokens,
- * so an IDR row cannot be expressed and must not be passed through: `150` read
- * as dollars is off by four orders of magnitude. Conversion needs a live FX
- * rate this layer has no source for, so the row keeps zero cost and declares
- * `pricingStatus: "unknown"` — the picker then shows "pricing unknown" instead
- * of the "free" label a bare zero would produce.
+ * The gateway publishes two rate cards per model: `pricing` in rupiah and
+ * `pricing_usd` in dollars. Only the latter is usable — the internal cost model
+ * is USD per million tokens, so an IDR figure read as dollars would be off by
+ * four orders of magnitude.
+ *
+ * `pricing_usd` is authoritative when present. Rows without it fall back to
+ * `pricing` only if that card is genuinely free (every leg zero), which is the
+ * gateway saying the route costs nothing; a priced IDR card with no USD
+ * counterpart is unrepresentable and reports "unknown" instead of "free".
  */
-const NGODEAI_PRICING_CURRENCY = "IDR";
+const NGODEAI_USD_UNIT = "per_1m_tokens";
 
-/** Per-million rupiah legs → the USD cost model, or `undefined` when the row is not in IDR. */
-function ngodeaiPricingCost(pricing: unknown): ModelSpec<"openai-completions">["cost"] | undefined {
-	if (!isRecord(pricing)) return undefined;
-	const currency = typeof pricing.currency === "string" ? pricing.currency.toUpperCase() : undefined;
-	if (currency !== NGODEAI_PRICING_CURRENCY) return undefined;
-	const input = toPositiveNumber(pricing.input, 0);
-	const output = toPositiveNumber(pricing.output, 0);
-	// Every leg zero is the gateway saying "this route is free", which is a
-	// real answer and stays expressible.
-	if (input === 0 && output === 0) {
-		return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
-	}
-	return undefined;
+/** Read one `pricing_usd` card, or `undefined` when it is absent or mislabelled. */
+function ngodeaiUsdCost(entry: OpenAICompatibleModelRecord): ModelSpec<"openai-completions">["cost"] | undefined {
+	const usd = entry.pricing_usd;
+	if (!isRecord(usd)) return undefined;
+	const currency = typeof usd.currency === "string" ? usd.currency.toUpperCase() : "USD";
+	if (currency !== "USD") return undefined;
+	// The unit is load-bearing: a future "per_1k_tokens" card must not be read
+	// as per-million, so an unrecognised unit is treated as absent rather than
+	// silently mis-scaled.
+	if (usd.unit !== undefined && usd.unit !== NGODEAI_USD_UNIT) return undefined;
+	return {
+		input: toPositiveNumber(usd.input, 0),
+		output: toPositiveNumber(usd.output, 0),
+		cacheRead: toPositiveNumber(usd.cache_read, 0),
+		cacheWrite: toPositiveNumber(usd.cache_write, 0),
+	};
+}
+
+/** True when a rupiah card quotes any non-zero leg, i.e. the route is not free. */
+function ngodeaiIdrIsPriced(pricing: unknown): boolean {
+	if (!isRecord(pricing)) return false;
+	return toPositiveNumber(pricing.input, 0) + toPositiveNumber(pricing.output, 0) > 0;
 }
 
 /**
  * Gateway rows carry far more than the generic OpenAI shape: display name,
- * context/output limits, vision support, and a pricing block. The generic
+ * context/output limits, vision support, and a USD rate card. The generic
  * mapper drops all of it, which is what made every gateway model look like a
  * free text-only model with no context window.
  */
@@ -1351,19 +1363,19 @@ function mapNgodeaiModel(
 	defaults: ModelSpec<"openai-completions">,
 ): ModelSpec<"openai-completions"> {
 	const displayName = typeof entry.display_name === "string" ? entry.display_name.trim() : "";
-	const cost = ngodeaiPricingCost(entry.pricing);
-	const pricing = isRecord(entry.pricing) ? entry.pricing : undefined;
-	const priced = pricing ? toPositiveNumber(pricing.input, 0) + toPositiveNumber(pricing.output, 0) > 0 : false;
+	const usdCost = ngodeaiUsdCost(entry);
+	const idrPriced = ngodeaiIdrIsPriced(entry.pricing);
 	return {
 		...defaults,
 		name: displayName || toModelName(entry.name, defaults.name),
 		input: entry.supports_vision === true ? ["text", "image"] : ["text"],
 		contextWindow: toPositiveNumber(entry.context_length, null),
 		maxTokens: toPositiveNumber(entry.max_output_tokens, null),
-		cost: cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		// A gateway row that quotes money in a currency we cannot convert is
-		// "unknown", not "free". An unpriced row (all legs zero in IDR) is free.
-		...(cost === undefined && priced ? { pricingStatus: "unknown" as const } : {}),
+		cost: usdCost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		// No USD card and a priced IDR card: the price is real but unrepresentable
+		// here. Declaring "unknown" keeps the picker honest; a bare zero would
+		// render as "free".
+		...(usdCost === undefined && idrPriced ? { pricingStatus: "unknown" as const } : {}),
 	};
 }
 
