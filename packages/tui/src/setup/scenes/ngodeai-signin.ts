@@ -146,6 +146,19 @@ class NgodeaiSignInController implements SetupSceneController {
 				onPrompt: async () => value,
 			});
 			if (this.#disposed) return;
+			// Pull the gateway's real model list before handing off. The api-key
+			// login validates against /v1/models but discards the response, so
+			// without this the next scene opens with only the bundled seed rows —
+			// and if the bundle predates the provider, with nothing at all.
+			this.#status = { text: "Loading models…", color: "muted" };
+			this.#host.requestRender();
+			try {
+				await this.#host.ctx.refreshProvider(PROVIDER_ID);
+			} catch {
+				// A discovery failure must not strand the user on this step: the
+				// key is already saved, and the model scene refreshes again.
+			}
+			if (this.#disposed) return;
 			this.#phase = "done";
 			this.#status = { text: "Key verified and saved. NgodeAI is ready.", color: "success" };
 			this.#host.requestRender();

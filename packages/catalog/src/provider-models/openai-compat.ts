@@ -1287,6 +1287,26 @@ export function groqModelManagerOptions(config?: GroqModelManagerConfig): ModelM
 }
 
 // ---------------------------------------------------------------------------
+// 3b. NgodeAI hosted gateway
+// ---------------------------------------------------------------------------
+
+/** Gateway every NgodeAI key talks to; also the `/v1/models` discovery root. */
+export const NGODEAI_GATEWAY_BASE_URL = "https://llm.ngodeai.net/v1";
+
+/**
+ * The first-party gateway. It speaks plain OpenAI Chat Completions, so it needs
+ * no bespoke protocol work — only the base URL and the api-key requirement.
+ *
+ * Without this factory the provider has no entry in MODEL_MANAGER_FACTORIES,
+ * and PROVIDER_DESCRIPTORS skips providers with no factory. The KDL `discovery`
+ * node alone therefore did nothing: `/v1/models` was never fetched, and the
+ * setup model picker only ever saw whatever the bundled catalog carried.
+ */
+export function ngodeaiModelManagerOptions(config?: SimpleProviderConfig): ModelManagerOptions<"openai-completions"> {
+	return createSimpleOpenAICompletionsOptions("ngodeai", NGODEAI_GATEWAY_BASE_URL, config);
+}
+
+// ---------------------------------------------------------------------------
 // 3. Cerebras
 // ---------------------------------------------------------------------------
 
