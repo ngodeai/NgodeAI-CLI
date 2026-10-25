@@ -63,10 +63,10 @@ const BRAVO: HostFixture = {
 
 const publications: CollabHostPublication[] = [];
 const tmpDirs: string[] = [];
-const CONFIG: CliConfig = { bin: "omp", version: "0.0.0-test", commands: new Map() };
+const CONFIG: CliConfig = { bin: "ngodeai", version: "0.0.0-test", commands: new Map() };
 
 async function makeTmpDir(): Promise<string> {
-	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-collab-cli-"));
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-collab-cli-"));
 	tmpDirs.push(dir);
 	return dir;
 }

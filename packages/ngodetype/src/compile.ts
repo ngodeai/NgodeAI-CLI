@@ -7,14 +7,14 @@
  * Generated code philosophy:
  * - success path is straight-line monomorphic JS with zero allocation; when
  *   the schema has no morphs the input value itself is returned
- * - failure allocates a single `OmpErrors` (`E(path, expected, data)`); path
+ * - failure allocates a single `NgodeErrors` (`E(path, expected, data)`); path
  *   arrays and messages are inline literals, so cost is one small allocation
  * - morphing nodes (defaults, `"+": "delete"`, embedded stepped schemas)
  *   produce a fresh output object; pure subtrees below them stay check-only
  * - morphing union members use separately compiled or hoisted runners; pure
  *   members compile to inline predicates
  */
-import { MISSING, OmpErrors } from "./errors";
+import { MISSING, NgodeErrors } from "./errors";
 import { canRefineUnionFailure, materializeDefault, unionFail, walk } from "./interp";
 import { expectedOf, hasMorph, type IR, type MorphContext, type PropIR, type TupleIR } from "./ir";
 
@@ -76,11 +76,11 @@ class CompiledMorphContext implements MorphContext {
 		this.#data = data;
 	}
 
-	error(expectation: string): OmpErrors {
-		return new OmpErrors(this.#path, expectation, this.#data);
+	error(expectation: string): NgodeErrors {
+		return new NgodeErrors(this.#path, expectation, this.#data);
 	}
 
-	reject(expectation: string): OmpErrors {
+	reject(expectation: string): NgodeErrors {
 		return this.error(expectation);
 	}
 }
@@ -941,7 +941,7 @@ class Builder {
 		const src = `return function(v){${this.#lines.join("")}return ${ret}}`;
 		const make = new Function("R", "AE", "M", "PF", "UF", "MC", "own", "MD", src) as (
 			refs: unknown[],
-			ae: typeof OmpErrors,
+			ae: typeof NgodeErrors,
 			m: typeof MISSING,
 			pf: typeof prefixErrors,
 			uf: typeof unionFail,
@@ -951,7 +951,7 @@ class Builder {
 		) => (value: unknown) => unknown;
 		return make(
 			this.#refs,
-			OmpErrors,
+			NgodeErrors,
 			MISSING,
 			prefixErrors,
 			unionFail,
@@ -1062,14 +1062,14 @@ class Builder {
 		const src = `return function(v){${this.#lines.join("")}return true}`;
 		const make = new Function("R", "AE", "own", src) as (
 			refs: unknown[],
-			ae: typeof OmpErrors,
+			ae: typeof NgodeErrors,
 			ownFn: typeof own,
 		) => (value: unknown) => value is unknown;
-		return make(this.#refs, OmpErrors, own);
+		return make(this.#refs, NgodeErrors, own);
 	}
 }
 
-function prefixErrors(errs: OmpErrors, parts: PropertyKey[]): OmpErrors {
+function prefixErrors(errs: NgodeErrors, parts: PropertyKey[]): NgodeErrors {
 	for (let i = parts.length - 1; i >= 0; i--) errs.prefix(parts[i]);
 	return errs;
 }
@@ -1125,7 +1125,7 @@ export function compileAllows(ir: IR): (value: unknown) => value is unknown {
 	if (validator === undefined) {
 		const built: { value?: (value: unknown) => value is unknown } = {};
 		allowsCache.set(root, ((value: unknown) =>
-			built.value === undefined ? !(walk(root, value) instanceof OmpErrors) : built.value(value)) as (
+			built.value === undefined ? !(walk(root, value) instanceof NgodeErrors) : built.value(value)) as (
 			value: unknown,
 		) => value is unknown);
 		const compiled = new Builder().buildAllows(root);

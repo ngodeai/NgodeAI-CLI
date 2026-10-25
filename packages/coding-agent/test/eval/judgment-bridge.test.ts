@@ -199,7 +199,7 @@ describe("eval judge() bridge", () => {
 	});
 
 	it("passes local and embedded images to vision chat as real image blocks", async () => {
-		const tempDir = TempDir.createSync("@omp-eval-judge-image-");
+		const tempDir = TempDir.createSync("@ngode-eval-judge-image-");
 		const embeddedImage: ImageContent = { ...IMAGE_TWO, detail: "original" };
 		try {
 			await Bun.write(path.join(tempDir.path(), "local.png"), Buffer.from(IMAGE_ONE.data, "base64"));
@@ -246,7 +246,7 @@ describe("eval judge() bridge", () => {
 	});
 
 	it("rejects malformed local images instead of silently dropping them", async () => {
-		const tempDir = TempDir.createSync("@omp-eval-judge-bad-image-");
+		const tempDir = TempDir.createSync("@ngode-eval-judge-bad-image-");
 		try {
 			await Bun.write(path.join(tempDir.path(), "broken.png"), "not an image");
 			const complete = vi.spyOn(ai, "completeSimple").mockResolvedValue(reply("tests: yes"));

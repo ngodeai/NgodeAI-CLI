@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "omp-project-tools",
+      "name": "ngodeai-project-tools",
       "dependencies": {
         "@napi-rs/canvas": "^1.0.8",
         "kitty-vt-wasm": "^0.2.0",

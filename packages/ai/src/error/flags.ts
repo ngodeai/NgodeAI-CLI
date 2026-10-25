@@ -206,7 +206,7 @@ export function isResponsesRequestBodyReadTimeout(message: {
 export const CODEX_NATIVE_LANE_STEER_REJECTED_CODE = "unsupported_native_inflight_message";
 
 /**
- * A Codex turn the native turn lane dropped because omp steered it. The
+ * A Codex turn the native turn lane dropped because ngodeai steered it. The
  * rejection answers our own `response.steer`, not the model's health: the
  * provider stops steering the session, so the same model replays cleanly.
  */
@@ -221,7 +221,7 @@ export function isCodexSteerRejection(message: { api?: Api; errorMessage?: strin
  * Transport-failure wording that marks an error transient. Covers
  * diagnostics forwarded verbatim by gateways/proxies in other runtimes, e.g.
  * undici's "other side closed" and Go's `net.ErrClosed` ("use of closed
- * network connection", #15385). Also covers OMP's own network-failure
+ * network connection", #15385). Also covers NGODEAI's own network-failure
  * sentences from `networkFailureMessage` (offline / unreachable / refused /
  * TLS), which must stay at least as retryable as the bare `Connection error.`
  * text they replaced.

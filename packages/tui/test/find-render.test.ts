@@ -101,15 +101,15 @@ describe("findToolRenderer", () => {
 		expect(native).not.toContain("\\u001b");
 	});
 
-	it("links omp hits to their doc URL instead of joining them onto cwd", async () => {
+	it("links ngodeai hits to their doc URL instead of joining them onto cwd", async () => {
 		applyHyperlinkSetting("always");
 		const uiTheme = (await getThemeByName("dark"))!;
-		const ompDetails: FindToolDetails = {
+		const ngodeDetails: FindToolDetails = {
 			...details,
-			scopePath: "omp://",
+			scopePath: "ngodeai://",
 			hits: [
 				{
-					rel: "omp://tools/read.md",
+					rel: "ngodeai://tools/read.md",
 					contentScore: 0.9,
 					linesSeen: 40,
 					truncated: false,
@@ -119,16 +119,16 @@ describe("findToolRenderer", () => {
 		};
 		const lines = findToolRenderer
 			.renderResult(
-				{ content: [{ type: "text", text: "" }], details: ompDetails },
+				{ content: [{ type: "text", text: "" }], details: ngodeDetails },
 				{ expanded: true, isPartial: false },
 				uiTheme,
 				args,
 			)
 			.render(200);
 		const uris = extractLinkUris(lines.join("\n"));
-		expect(uris).toContain("omp://tools/read.md");
-		expect(uris).toContain("omp://tools/read.md:10");
-		expect(uris.every(uri => !uri.endsWith("/repo/omp://tools/read.md"))).toBe(true);
+		expect(uris).toContain("ngodeai://tools/read.md");
+		expect(uris).toContain("ngodeai://tools/read.md:10");
+		expect(uris.every(uri => !uri.endsWith("/repo/ngodeai://tools/read.md"))).toBe(true);
 	});
 
 	it("shows one range per hit collapsed and all ranges plus failures expanded", async () => {

@@ -557,7 +557,7 @@ function normalizeRichCursorModels(
 	for (const details of models) {
 		const baseId = details.name.trim();
 		if (!baseId || details.supportsAgent === false || details.isChatOnly === true) continue;
-		// OMP always sends Cursor's zero-data-retention header. Advertising a
+		// NGODEAI always sends Cursor's zero-data-retention header. Advertising a
 		// retention-required model would expose a route every invocation rejects.
 		if (details.requiresDataRetention === true) continue;
 

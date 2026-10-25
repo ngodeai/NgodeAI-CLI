@@ -2,7 +2,7 @@
 
 Tool-calling convention originated by NousResearch's **Hermes 2 Pro** (Llama-3-based open models) and carried on by the **Hermes 3** line, plus a long tail of community fine-tunes. The envelope is **ChatML**: every turn is `<|im_start|>{role}\n{body}<|im_end|>\n`. Available tools are advertised in the system turn inside a `<tools>…</tools>` block as OpenAI-style JSON tool objects; the model emits each call as a `<tool_call>\n{json}\n</tool_call>` block whose `arguments` is a **nested JSON object** (not a stringified JSON); tool results are fed back inside a **dedicated `<|im_start|>tool` turn** as `<tool_response>…</tool_response>` wrapping a `{"name": …, "content": …}` object — the result carries the function name, so results are self-describing as to the function called, but remain order-bound because the wire format has no unique call ID. Qwen3 adopted this convention with two tweaks (results folded into `user` turns with bare content, and the `FunctionCall` schema line dropped) — see [qwen3.md](qwen3.md). Hermes 3 adds an optional GOAP `<scratch_pad>` reasoning framework in front of calls; the classic Hermes 2 Pro function-calling spec has **no** dedicated thinking channel, although the NgodeAI scanner also recognizes `<think>…</think>` from R1-style fine-tunes (see the NgodeAI section).
 
-The classic format examples below come from the NousResearch `Hermes-Function-Calling` README. OMP's current implementation is `packages/ai/src/dialect/hermes.ts`; its owned prompt and provider-history behavior differ from the classic template as described below.
+The classic format examples below come from the NousResearch `Hermes-Function-Calling` README. NGODEAI's current implementation is `packages/ai/src/dialect/hermes.ts`; its owned prompt and provider-history behavior differ from the classic template as described below.
 
 ## Special tokens
 
@@ -146,7 +146,7 @@ The default `auto` uses native calls unless `supportsTools === false`, then choo
 
 ### Prompt and catalog
 
-`renderInbandToolPrompt` in `packages/ai/src/dialect/catalog.ts` uses `prompt-template.md`: a `# Tools` header, one compact OpenAI-style tool JSON object per line in `<tools>`, then `hermes.md`'s format guide. Tool schemas are normalized with `toolWireSchema`. The guide requires an object-valued `arguments`, normal JSON string escaping rather than HTML escaping, complete calls before stopping, and no model-authored `<tool_response>`. This is OMP's prompt, not the classic 2 Pro prose/`FunctionCall` schema.
+`renderInbandToolPrompt` in `packages/ai/src/dialect/catalog.ts` uses `prompt-template.md`: a `# Tools` header, one compact OpenAI-style tool JSON object per line in `<tools>`, then `hermes.md`'s format guide. Tool schemas are normalized with `toolWireSchema`. The guide requires an object-valued `arguments`, normal JSON string escaping rather than HTML escaping, complete calls before stopping, and no model-authored `<tool_response>`. This is NGODEAI's prompt, not the classic 2 Pro prose/`FunctionCall` schema.
 
 ### Rendering
 

@@ -24,7 +24,7 @@ Run these paths from the repository root. Start or reload `ngodeai` after CLI in
 - Relative path plugin source using `./` prefix (`"source": "./my-plugin"`)
 - Plugin bundled inside the same directory tree as the marketplace catalog
 - Marketplace description in `metadata.description`
-- `package.json` with `omp.extensions` loads the bundled TypeScript factory after installation
+- `package.json` with `ngodeai.extensions` loads the bundled TypeScript factory after installation
 
 ## Structure
 
@@ -34,8 +34,8 @@ mini-marketplace/
     marketplace.json      ← catalog
   README.md
   my-plugin/
-    package.json          ← omp.extensions manifest
+    package.json          ← ngodeai.extensions manifest
     index.ts              ← extension entry point
 ```
 
-Published and local marketplaces use the same catalog location. NgodeAI loads `.omp-plugin/marketplace.json` first and falls back to `.claude-plugin/marketplace.json` (the Claude Code-compatible path this example ships) inside the marketplace root. Point `/marketplace add` at this folder to load the example.
+Published and local marketplaces use the same catalog location. NgodeAI loads `.ngode-plugin/marketplace.json` first and falls back to `.claude-plugin/marketplace.json` (the Claude Code-compatible path this example ships) inside the marketplace root. Point `/marketplace add` at this folder to load the example.

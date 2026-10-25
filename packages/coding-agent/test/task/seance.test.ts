@@ -82,7 +82,7 @@ afterEach(() => {
 
 describe("seance source resolution", () => {
 	it("resolves paths and stored IDs to read-only source metadata with the active model and default fallback", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-source-");
+		using tempDir = TempDir.createSync("@ngode-seance-source-");
 		const cwd = path.join(tempDir.path(), "project");
 		const sessionDir = path.join(tempDir.path(), "sessions");
 		const file = path.join(sessionDir, "saved.jsonl");
@@ -107,7 +107,7 @@ describe("seance source resolution", () => {
 	});
 
 	it("restores the model from the active branch after late usage and returns no models for a null active leaf", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-active-model-");
+		using tempDir = TempDir.createSync("@ngode-seance-active-model-");
 		const cwd = path.join(tempDir.path(), "project");
 		const sessionDir = path.join(tempDir.path(), "sessions");
 		const file = path.join(sessionDir, "late-usage.jsonl");
@@ -135,7 +135,7 @@ describe("seance source resolution", () => {
 	});
 
 	it("fails closed for missing paths and IDs, ambiguous prefixes, and files without a session header", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-source-invalid-");
+		using tempDir = TempDir.createSync("@ngode-seance-source-invalid-");
 		const cwd = path.join(tempDir.path(), "project");
 		const sessionDir = path.join(tempDir.path(), "sessions");
 		const options = { cwd, sessionDirHint: sessionDir };
@@ -157,7 +157,7 @@ describe("seance source resolution", () => {
 	});
 
 	it("leaves orphaned backups untouched during local source ID lookup", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-read-only-source-");
+		using tempDir = TempDir.createSync("@ngode-seance-read-only-source-");
 		const cwd = path.join(tempDir.path(), "project");
 		const sessionDir = path.join(tempDir.path(), "sessions");
 		const sourceFile = path.join(sessionDir, "source.jsonl");
@@ -176,7 +176,7 @@ describe("seance source resolution", () => {
 	});
 
 	it("rejects ambiguous duplicate IDs among nested artifact histories", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-nested-ambiguity-");
+		using tempDir = TempDir.createSync("@ngode-seance-nested-ambiguity-");
 		const cwd = path.join(tempDir.path(), "project");
 		const artifactsDir = path.join(tempDir.path(), "artifacts");
 		await writeSession(path.join(artifactsDir, "history-one", "worker.jsonl"), "worker-id", cwd);
@@ -188,7 +188,7 @@ describe("seance source resolution", () => {
 	});
 
 	it("prefers a direct artifact child over a nested history with the same ID", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-direct-child-");
+		using tempDir = TempDir.createSync("@ngode-seance-direct-child-");
 		const cwd = path.join(tempDir.path(), "project");
 		const artifactsDir = path.join(tempDir.path(), "artifacts");
 		const directFile = path.join(artifactsDir, "worker.jsonl");
@@ -202,7 +202,7 @@ describe("seance source resolution", () => {
 	});
 
 	it("finds an id stored only in another project only when global lookup is requested", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-global-lookup-");
+		using tempDir = TempDir.createSync("@ngode-seance-global-lookup-");
 		await withAgentDir(path.join(tempDir.path(), "agent"), async () => {
 			const cwd = path.join(tempDir.path(), "project");
 			const otherCwd = path.join(tempDir.path(), "other-project");
@@ -220,7 +220,7 @@ describe("seance source resolution", () => {
 	});
 
 	it("expands a home-relative source path", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-home-path-");
+		using tempDir = TempDir.createSync("@ngode-seance-home-path-");
 		const home = path.join(tempDir.path(), "home");
 		vi.spyOn(os, "homedir").mockReturnValue(home);
 		const file = path.join(home, "saved", "home-source.jsonl");
@@ -234,7 +234,7 @@ describe("seance source resolution", () => {
 	});
 
 	it("does not create a default session bucket or migrate legacy directories on unhinted lookup", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-unhinted-read-only-");
+		using tempDir = TempDir.createSync("@ngode-seance-unhinted-read-only-");
 		await withAgentDir(path.join(tempDir.path(), "agent"), async () => {
 			const cwd = path.join(tempDir.path(), "project");
 			const sessionsRoot = getSessionsDir();
@@ -276,7 +276,7 @@ describe("seance cold restore", () => {
 		try {
 			authStorage.keys.setRuntime("anthropic", "test-key");
 			const modelRegistry = new ModelRegistry(authStorage);
-			using tempDir = TempDir.createSync("@omp-seance-restore-");
+			using tempDir = TempDir.createSync("@ngode-seance-restore-");
 			const cwd = tempDir.path();
 			const init = {
 				systemPrompt: ["restricted seance prompt"],

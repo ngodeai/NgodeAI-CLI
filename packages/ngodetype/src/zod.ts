@@ -1,4 +1,4 @@
-import { type OmpErrors, OmpTypeError } from "./errors";
+import { type NgodeErrors, NgodeTypeError } from "./errors";
 import { type EmbeddableSchema, embed, type IR, IR_BRAND, type PropIR } from "./ir";
 import { type NarrowContext, type Type, type } from "./type";
 
@@ -12,9 +12,9 @@ interface RefineOptions {
 }
 
 interface Decoratable<out Out> extends EmbeddableSchema {
-	(value: unknown): Out | OmpErrors;
+	(value: unknown): Out | NgodeErrors;
 	narrow(predicate: (value: Out, context: NarrowContext) => unknown): Decoratable<Out>;
-	pipe<Next>(transform: (value: Out, context: NarrowContext) => Next): Decoratable<Exclude<Next, OmpErrors>>;
+	pipe<Next>(transform: (value: Out, context: NarrowContext) => Next): Decoratable<Exclude<Next, NgodeErrors>>;
 	or(def: unknown): Decoratable<unknown>;
 	describe(description: string): Decoratable<Out>;
 	default(value: Out | (() => Out)): Decoratable<Out>;
@@ -92,7 +92,7 @@ function restrictBase<Out>(source: Decoratable<Out>, ir: IR): Decoratable<Out> {
 function lengthBound(kind: "min" | "max", schema: Decoratable<unknown>, bound: number): void {
 	if (schema.ir.k !== "string" && schema.ir.k !== "array") return;
 	if (!Number.isSafeInteger(bound) || bound < 0) {
-		throw new OmpTypeError(`${kind} length must be a nonnegative safe integer`);
+		throw new NgodeTypeError(`${kind} length must be a nonnegative safe integer`);
 	}
 }
 
@@ -119,7 +119,7 @@ function isStringKeyIR(ir: IR): boolean {
 function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchema<Out> {
 	const next = (inner: Decoratable<Out>, nextOptional = optional): ZodLikeSchema<Out> => decorate(inner, nextOptional);
 	const withObjectExtras = (extras: "keep" | "reject" | "delete"): ZodLikeSchema<Out> => {
-		if (schema.ir.k !== "object") throw new OmpTypeError("object mode requires an object schema");
+		if (schema.ir.k !== "object") throw new NgodeTypeError("object mode requires an object schema");
 		return next(restrictBase(schema, { ...schema.ir, extras }));
 	};
 	Object.defineProperty(schema, "isOptional", { value: optional, enumerable: false });
@@ -149,7 +149,7 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 				return next(restrictBase(schema, { ...ir, min }));
 			}
 			if (ir.k === "number") {
-				if (Number.isNaN(bound)) throw new OmpTypeError("number min must not be NaN");
+				if (Number.isNaN(bound)) throw new NgodeTypeError("number min must not be NaN");
 				if (ir.min !== undefined && ir.min >= bound) return next(restrictBase(schema, ir));
 				return next(restrictBase(schema, { ...ir, min: bound, xmin: false }));
 			}
@@ -160,13 +160,13 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 				(ir.out.k === "string" || ir.out.k === "array")
 			) {
 				if (!Number.isSafeInteger(bound) || bound < 0)
-					throw new OmpTypeError("min length must be a nonnegative safe integer");
+					throw new NgodeTypeError("min length must be a nonnegative safe integer");
 				const out = { ...ir.out, min: ir.out.min === undefined ? bound : Math.max(ir.out.min, bound) };
 				return next(restrictBase(schema, { ...ir, out }));
 			}
 			if (ir.k === "morph" && (schema.hasSteps || ir.out === undefined)) {
 				if (!Number.isSafeInteger(bound) || bound < 0)
-					throw new OmpTypeError("min length must be a nonnegative safe integer");
+					throw new NgodeTypeError("min length must be a nonnegative safe integer");
 				return next(
 					schema.narrow((value, ctx) => {
 						if (typeof value === "string" || Array.isArray(value)) {
@@ -176,7 +176,7 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 					}),
 				);
 			}
-			throw new OmpTypeError(`cannot apply min to ${ir.k}`);
+			throw new NgodeTypeError(`cannot apply min to ${ir.k}`);
 		},
 		max(bound: number): ZodLikeSchema<Out> {
 			const ir = schema.ir;
@@ -186,7 +186,7 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 				return next(restrictBase(schema, { ...ir, max }));
 			}
 			if (ir.k === "number") {
-				if (Number.isNaN(bound)) throw new OmpTypeError("number max must not be NaN");
+				if (Number.isNaN(bound)) throw new NgodeTypeError("number max must not be NaN");
 				if (ir.max !== undefined && ir.max <= bound) return next(restrictBase(schema, ir));
 				return next(restrictBase(schema, { ...ir, max: bound, xmax: false }));
 			}
@@ -197,13 +197,13 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 				(ir.out.k === "string" || ir.out.k === "array")
 			) {
 				if (!Number.isSafeInteger(bound) || bound < 0)
-					throw new OmpTypeError("max length must be a nonnegative safe integer");
+					throw new NgodeTypeError("max length must be a nonnegative safe integer");
 				const out = { ...ir.out, max: ir.out.max === undefined ? bound : Math.min(ir.out.max, bound) };
 				return next(restrictBase(schema, { ...ir, out }));
 			}
 			if (ir.k === "morph" && (schema.hasSteps || ir.out === undefined)) {
 				if (!Number.isSafeInteger(bound) || bound < 0)
-					throw new OmpTypeError("max length must be a nonnegative safe integer");
+					throw new NgodeTypeError("max length must be a nonnegative safe integer");
 				return next(
 					schema.narrow((value, ctx) => {
 						if (typeof value === "string" || Array.isArray(value)) {
@@ -213,20 +213,20 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 					}),
 				);
 			}
-			throw new OmpTypeError(`cannot apply max to ${ir.k}`);
+			throw new NgodeTypeError(`cannot apply max to ${ir.k}`);
 		},
 		int(): ZodLikeSchema<Out> {
-			if (schema.ir.k !== "number") throw new OmpTypeError(`cannot apply int to ${schema.ir.k}`);
+			if (schema.ir.k !== "number") throw new NgodeTypeError(`cannot apply int to ${schema.ir.k}`);
 			return next(restrictBase(schema, { ...schema.ir, int: true }));
 		},
 		positive(): ZodLikeSchema<Out> {
-			if (schema.ir.k !== "number") throw new OmpTypeError(`cannot apply positive to ${schema.ir.k}`);
+			if (schema.ir.k !== "number") throw new NgodeTypeError(`cannot apply positive to ${schema.ir.k}`);
 			const ir = schema.ir;
 			if (ir.min !== undefined && ir.min > 0) return next(restrictBase(schema, ir));
 			return next(restrictBase(schema, { ...ir, min: 0, xmin: true }));
 		},
 		nonnegative(): ZodLikeSchema<Out> {
-			if (schema.ir.k !== "number") throw new OmpTypeError(`cannot apply nonnegative to ${schema.ir.k}`);
+			if (schema.ir.k !== "number") throw new NgodeTypeError(`cannot apply nonnegative to ${schema.ir.k}`);
 			return this.min(0);
 		},
 		regex(expression: RegExp, message?: string): ZodLikeSchema<Out> {
@@ -234,7 +234,7 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 			const isStringLike =
 				ir.k === "string" ||
 				(ir.k === "morph" && (ir.out?.k === "string" || (ir.out === undefined && ir.input.k === "string")));
-			if (!isStringLike) throw new OmpTypeError(`cannot apply regex to ${ir.k}`);
+			if (!isStringLike) throw new NgodeTypeError(`cannot apply regex to ${ir.k}`);
 			const expectation = message ?? `matching ${expression}`;
 			const narrowed = schema.narrow((value, ctx) => {
 				if (typeof value !== "string") return ctx.mustBe("a string");
@@ -264,7 +264,7 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 					}),
 				);
 			}
-			throw new OmpTypeError(`cannot apply url to ${ir.k}`);
+			throw new NgodeTypeError(`cannot apply url to ${ir.k}`);
 		},
 		optional(): ZodLikeSchema<Out | undefined> & OptionalSchemaMarker {
 			const widened = schema.or(type.raw("undefined")) as Decoratable<Out | undefined>;
@@ -327,7 +327,7 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 					fn: v => {
 						const r = schema(v);
 						if (r instanceof type.errors) return r;
-						if (typeof r !== "string") throw new OmpTypeError("trim requires a string output");
+						if (typeof r !== "string") throw new NgodeTypeError("trim requires a string output");
 						return r.trim();
 					},
 					out: { k: "string" },
@@ -335,7 +335,7 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 				if (schema.hasDefault) trimmed = trimmed.default(schema.defaultValue as Out | (() => Out));
 				return next(trimmed);
 			}
-			throw new OmpTypeError(`cannot apply trim to ${ir.k}`);
+			throw new NgodeTypeError(`cannot apply trim to ${ir.k}`);
 		},
 		transform<Next>(transformer: (value: Out) => Next): ZodLikeSchema<Next> {
 			return decorate(
@@ -365,7 +365,7 @@ function decorate<Out>(schema: Decoratable<Out>, optional = false): ZodLikeSchem
 			return withObjectExtras("delete");
 		},
 		partial(): Out extends object ? ZodLikeSchema<Partial<Out>> : ZodLikeSchema<Out> {
-			if (schema.ir.k !== "object") throw new OmpTypeError(`cannot apply partial to ${schema.ir.k}`);
+			if (schema.ir.k !== "object") throw new NgodeTypeError(`cannot apply partial to ${schema.ir.k}`);
 			const props = schema.ir.props.map(prop => ({ ...prop, opt: true }));
 			return next(restrictBase(schema, { ...schema.ir, props })) as Out extends object
 				? ZodLikeSchema<Partial<Out>>
@@ -415,7 +415,7 @@ export const literal = <const Value>(value: Value): ZodLikeSchema<Value> =>
 const enumSchema = <const Values extends readonly [string, ...string[]]>(
 	values: Values,
 ): ZodLikeSchema<Values[number]> => {
-	if (values.length === 0) throw new OmpTypeError("enum requires at least one value");
+	if (values.length === 0) throw new NgodeTypeError("enum requires at least one value");
 	return decorate(schemaFromIR<Values[number]>(type.enumerated(...values).ir));
 };
 
@@ -441,7 +441,7 @@ export function record<Key extends string, Value>(
 ): ZodLikeSchema<Record<string, Value>> {
 	const keySchema = (valueSchema === undefined ? string() : keyOrValueSchema) as ZodLikeSchema<Key>;
 	const valSchema = (valueSchema === undefined ? keyOrValueSchema : valueSchema) as ZodLikeSchema<Value>;
-	if (!isStringKeyIR(keySchema.ir)) throw new OmpTypeError("record keys must use a string schema");
+	if (!isStringKeyIR(keySchema.ir)) throw new NgodeTypeError("record keys must use a string schema");
 	const base = schemaFromIR<Record<string, Value>>({
 		k: "object",
 		props: [],

@@ -1,4 +1,4 @@
-package omprpc
+package ngodeairpc
 
 import (
 	"bytes"
@@ -22,7 +22,7 @@ const (
 
 // ErrProtocol marks a transport violation (an invalid rpc_chunk sequence);
 // it closes the client.
-var ErrProtocol = errors.New("omprpc: protocol error")
+var ErrProtocol = errors.New("ngodeairpc: protocol error")
 
 func protocolError(message string) error {
 	return fmt.Errorf("%w: %s", ErrProtocol, message)

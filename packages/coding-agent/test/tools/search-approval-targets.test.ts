@@ -46,7 +46,7 @@ describe("search tool approval cache targets", () => {
 	let notesFile: string;
 
 	beforeEach(() => {
-		temp = TempDir.createSync("@omp-search-approval-");
+		temp = TempDir.createSync("@ngode-search-approval-");
 		cwd = temp.path();
 		srcDir = path.join(cwd, "src");
 		otherDir = path.join(cwd, "other");
@@ -168,7 +168,7 @@ describe("search tool approval cache targets", () => {
 	});
 
 	it("covers a later glob with the folder grant recorded from a grep", () => {
-		const agentDir = TempDir.createSync("@omp-search-approval-agent-");
+		const agentDir = TempDir.createSync("@ngode-search-approval-agent-");
 		try {
 			const store = getApprovalGrants(agentDir.path(), "s1");
 			const grep = new GrepTool(createToolSession(cwd));

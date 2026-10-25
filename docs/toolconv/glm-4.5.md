@@ -4,7 +4,7 @@ Native tool-calling convention of Zhipu AI / Z.ai's **GLM-4.5** family (`zai-org
 
 This document was verified against the authoritative `chat_template.jinja` from the HF repo (fetched raw and **rendered locally with Jinja2** — `trim_blocks=True, lstrip_blocks=True`, transformers' `tojson` filter — to produce the byte-exact streams below), `tokenizer_config.json` and `generation_config.json` for the exact token IDs and stop tokens, the model card, and the vLLM (`Glm4MoeModelToolParser`) and SGLang (`Glm4MoeDetector`) parser sources. The HF `resolve`/`blob` web paths redirect to the model-card API; the byte-exact source was obtained via the `resolve/main/...:raw` cache (template commit `cbb2c7cfb52fa128a9660cb1a7a78e017899e115`). The GLM-4.5 and GLM-4.6 `chat_template.jinja` files are identical (same content hash `41478957…`).
 
-The native template/server sections below provide format background. NgodeAI implements its own decoded-text `glm` scanner and renderer in `packages/ai/src/dialect/glm.ts`, not the upstream Jinja template or Python parsers. Its different history, thinking, coercion, and recovery behavior is described under *omp / pi converter behavior*.
+The native template/server sections below provide format background. NgodeAI implements its own decoded-text `glm` scanner and renderer in `packages/ai/src/dialect/glm.ts`, not the upstream Jinja template or Python parsers. Its different history, thinking, coercion, and recovery behavior is described under *ngodeai / pi converter behavior*.
 
 ## Special tokens
 

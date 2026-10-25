@@ -139,13 +139,13 @@ async function connectSession(endpoint: string): Promise<FakeSession> {
 
 describe("resolveStreamUrls", () => {
 	it("uses the identity-derived host endpoint", () => {
-		expect(resolveStreamUrls("https://live.omp.sh")).toEqual({ hostUrl: "wss://live.omp.sh/ws/host" });
+		expect(resolveStreamUrls("https://live.ngodeai.net")).toEqual({ hostUrl: "wss://live.ngodeai.net/ws/host" });
 	});
 });
 
 describe("StreamMuxHost", () => {
 	it("materializes patch, reset, and bounded history state across reconnect replays", async () => {
-		const projectDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-stream-test-"));
+		const projectDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-stream-test-"));
 		projectDirs.push(projectDir);
 		const firstServer = startFakeStreamServer();
 		const port = firstServer.port;

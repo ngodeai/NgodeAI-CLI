@@ -1,4 +1,4 @@
-"""Typed Python client for the omp RPC protocol.
+"""Typed Python client for the ngodeai RPC protocol.
 
 Wire types, decoders, and command methods are generated into `_wire` from the
 RPC wire schema (`bun run gen:rpc`); this module re-exports that surface with

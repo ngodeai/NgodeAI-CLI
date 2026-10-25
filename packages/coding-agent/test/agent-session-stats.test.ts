@@ -99,7 +99,7 @@ describe("AgentSession session stats", () => {
 	it("keeps mixed peak and off-peak charges in session and footer totals after resume", async () => {
 		const target = modelRegistry.find("deepseek", "deepseek-v4-flash");
 		if (!target) throw new Error("Expected bundled DeepSeek Flash");
-		using tempDir = TempDir.createSync("@omp-session-mixed-cost-");
+		using tempDir = TempDir.createSync("@ngode-session-mixed-cost-");
 		const manager = SessionManager.create(tempDir.path(), tempDir.path());
 		manager.appendMessage({ role: "user", content: "First request", timestamp: 1 });
 		for (const [timestamp, inputCost, outputCost] of [
@@ -248,7 +248,7 @@ describe("AgentSession session stats", () => {
 			throw new Error("Expected bundled model with a context window");
 		}
 
-		using tempDir = TempDir.createSync("@omp-session-stats-");
+		using tempDir = TempDir.createSync("@ngode-session-stats-");
 		const sessionFile = `${tempDir.path()}/repro.jsonl`;
 		await Bun.write(
 			sessionFile,

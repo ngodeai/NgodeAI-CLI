@@ -8,7 +8,7 @@ import { getBundledModels } from "@ngodeai/catalog/models";
 import { DEEPINFRA_BASE_URL, deepinfraModelManagerOptions } from "@ngodeai/catalog/provider-models/openai-compat";
 import type { ModelSpec } from "@ngodeai/catalog/types";
 
-const DISCOVERY_URL = "https://api.deepinfra.com/v1/openai/models?filter=with_meta&sort_by=omp";
+const DISCOVERY_URL = "https://api.deepinfra.com/v1/openai/models?filter=with_meta&sort_by=ngodeai";
 
 function catalogFixture(): Response {
 	return Response.json({

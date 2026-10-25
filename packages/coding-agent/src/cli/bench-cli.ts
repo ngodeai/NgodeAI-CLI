@@ -647,7 +647,7 @@ function formatCachePairLine(pair: BenchCachePairReport, index: number, total: n
 interface BenchRequestOptions {
 	apiKey: ApiKeyResolver;
 	sessionId: string;
-	/** Native OMP messages; cache mode splits the stable prefix from the suffix. */
+	/** Native NGODEAI messages; cache mode splits the stable prefix from the suffix. */
 	messages: Context["messages"];
 	maxTokens: number;
 	/** Explicit effort from a `:level` selector suffix; absent = provider default. */
@@ -1190,7 +1190,7 @@ export async function runBenchCommand(command: BenchCommandArgs, deps: BenchDepe
 			if (!preflightKey) {
 				const failure: BenchRunFailure = {
 					ok: false,
-					error: `No credentials for provider "${model.provider}". Run \`omp\` and use /login, or set the provider API key.`,
+					error: `No credentials for provider "${model.provider}". Run \`ngodeai\` and use /login, or set the provider API key.`,
 				};
 				results.push(failure);
 				if (!json) print(formatRunLine(failure, 0, runs, { tagKind }));

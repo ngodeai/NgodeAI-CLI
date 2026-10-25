@@ -25,10 +25,10 @@ export default class Render extends Command {
 	};
 
 	static examples = [
-		"omp render",
-		"omp render 01a0285c --plain",
-		"omp render ~/.ngodeai/agent/sessions/--work-pi--/big.jsonl -q -t --repaint 5",
-		"omp render -w 200 > thread.ansi",
+		"ngodeai render",
+		"ngodeai render 01a0285c --plain",
+		"ngodeai render ~/.ngodeai/agent/sessions/--work-pi--/big.jsonl -q -t --repaint 5",
+		"ngodeai render -w 200 > thread.ansi",
 	];
 
 	async run(): Promise<void> {

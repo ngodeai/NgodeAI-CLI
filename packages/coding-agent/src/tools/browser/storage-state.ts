@@ -72,7 +72,7 @@ export interface ClearCookiesOptions {
 	names?: string[];
 }
 
-/** One origin's Web Storage entries in an omp storage state file. */
+/** One origin's Web Storage entries in an ngodeai storage state file. */
 export interface StorageStateOrigin {
 	/** Serialized origin. */
 	origin: string;
@@ -82,7 +82,7 @@ export interface StorageStateOrigin {
 	sessionStorage?: Array<{ name: string; value: string }>;
 }
 
-/** Playwright-compatible browser state with sessionStorage as an omp extension. */
+/** Playwright-compatible browser state with sessionStorage as an ngodeai extension. */
 export interface BrowserStorageState {
 	/** Serialized browser cookies. */
 	cookies: BrowserCookie[];
@@ -467,7 +467,7 @@ export function storageStatePath(tabName: string, requestedPath: string | undefi
 	const fileName = safeName === "." || safeName === ".." ? "_" : safeName || "main";
 	return requestedPath
 		? resolveToCwd(requestedPath, cwd)
-		: path.join(os.homedir(), ".omp", "browser-state", `${fileName}.json`);
+		: path.join(os.homedir(), ".ngodeai", "browser-state", `${fileName}.json`);
 }
 
 /** Save cookies and current-origin Web Storage to a Playwright-compatible state file. */

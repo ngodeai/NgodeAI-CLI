@@ -324,7 +324,7 @@ const inflightDiscovery = new Map<string, { fn: typeof discoverAgents; promise: 
 function discoverAgentsShared(cwd: string, extensionRoots?: EffectiveExtensionRoots): Promise<DiscoveryResult> {
 	const fn = discoverAgents;
 	const policy = [
-		isProviderEnabled("omp-plugins"),
+		isProviderEnabled("ngode-plugins"),
 		isProviderEnabled("claude-plugins"),
 		isUserSourceEnabled("claude-plugins"),
 		isUserSourceEnabled("claude"),
@@ -550,7 +550,7 @@ async function leaseArtifacts(
 	}
 	const artifactsDir = path.join(
 		os.tmpdir(),
-		`${invocationKind === "eval" ? "omp-eval-agent" : "omp-task"}-${Snowflake.next()}`,
+		`${invocationKind === "eval" ? "ngode-eval-agent" : "ngode-task"}-${Snowflake.next()}`,
 	);
 	await fs.mkdir(artifactsDir, { recursive: true });
 	return { sessionFile: null, artifactsDir, temporary: true, unregister: registerArtifactsDir(artifactsDir) };

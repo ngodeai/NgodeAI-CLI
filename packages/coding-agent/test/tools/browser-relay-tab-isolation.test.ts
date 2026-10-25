@@ -89,7 +89,7 @@ async function launchRelayFixture(
 ): Promise<RelayFixture> {
 	const port = await findFreeCdpPort();
 	const server = startRelayServer({ port, group: false, log });
-	const extensionDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-relay-isolation-"));
+	const extensionDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-relay-isolation-"));
 	const pages = Bun.serve({
 		port: 0,
 		fetch(request) {
@@ -261,7 +261,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("relay tab ownership", () => {
 		}
 	}, 60_000);
 
-	it("opens a default tab in the browser of the tab omp used last, not the first selected one", async () => {
+	it("opens a default tab in the browser of the tab ngodeai used last, not the first selected one", async () => {
 		const secondHello = Promise.withResolvers<void>();
 		let hellos = 0;
 		const fixture = await launchRelayFixture(message => {
@@ -384,11 +384,11 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("owned tab recovery", () => {
 			mode: "attach",
 			browserWSEndpoint: launched.browser.wsEndpoint(),
 			safeDir: getPuppeteerDir(),
-			uploadDir: "/tmp/omp-uploads-test",
+			uploadDir: "/tmp/ngode-uploads-test",
 			page: { kind: "owned", targetId: target._targetId },
 			recover: true,
 		};
-		const downloadDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-recovery-download-"));
+		const downloadDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-recovery-download-"));
 		const blockedDownloadPath = path.join(downloadDir, "not-a-directory");
 		await fs.writeFile(blockedDownloadPath, "existing file");
 		const failed = startWorker({ ...payload, downloadsPath: blockedDownloadPath });

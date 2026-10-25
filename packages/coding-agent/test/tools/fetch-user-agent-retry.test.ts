@@ -89,12 +89,12 @@ describe("read URL refused for one user agent", () => {
 		servers.push(server);
 
 		for (const name of ["User-Agent", "user-agent"]) {
-			const result = await loadPage(`http://127.0.0.1:${server.port}/api`, { headers: { [name]: "omp/test" } });
+			const result = await loadPage(`http://127.0.0.1:${server.port}/api`, { headers: { [name]: "ngodeai/test" } });
 			expect(result.ok).toBe(false);
 			expect(result.status).toBe(403);
 		}
 
-		expect(agents).toEqual(["omp/test", "omp/test"]);
+		expect(agents).toEqual(["ngodeai/test", "ngodeai/test"]);
 	});
 
 	it("still retries a caller's own User-Agent after a transport error", async () => {
@@ -111,12 +111,12 @@ describe("read URL refused for one user agent", () => {
 		servers.push(server);
 
 		const result = await loadPage(`http://127.0.0.1:${server.port}/api`, {
-			headers: { "User-Agent": "omp/test" },
+			headers: { "User-Agent": "ngodeai/test" },
 			timeout: 0.2,
 		});
 
 		expect(result.ok).toBe(true);
 		expect(result.content).toBe("recovered");
-		expect(agents).toEqual(["omp/test", "omp/test"]);
+		expect(agents).toEqual(["ngodeai/test", "ngodeai/test"]);
 	});
 });

@@ -94,7 +94,7 @@ import "./discovery";
 import { LiveImageUrlService } from "./blob-broker/service";
 import { wrapStreamFnWithBlobUrlFallback } from "./blob-broker/stream-fallback";
 import { initializeWithSettings } from "./discovery";
-import { setInvocationConfiguredExtensions, withOmpExtensionRootScope } from "./discovery/omp-extension-roots";
+import { setInvocationConfiguredExtensions, withOmpExtensionRootScope } from "./discovery/ngode-extension-roots";
 import { disposeVmContextsByOwner } from "./eval/js/context-manager";
 import { getEnabledEvalPreludes, type EvalPreludeDefinition } from "./eval/preludes";
 import { disposeAllKernelSessions, disposeKernelSessionsByOwner } from "./eval/py/executor";
@@ -733,7 +733,7 @@ export interface CreateAgentSessionOptions {
 	 */
 	preloadedPreparedExtensions?: readonly PreparedExtension[];
 	/**
-	 * Pre-discovered custom-tool source paths from `.omp/tools/`, `.claude/tools/`,
+	 * Pre-discovered custom-tool source paths from `.ngodeai/tools/`, `.claude/tools/`,
 	 * plugins, etc. When provided, the filesystem-scan inside
 	 * `discoverCustomToolPaths()` is skipped — subagents inherit the parent's
 	 * scan result and call `loadCustomTools()` themselves so each session binds
@@ -763,7 +763,7 @@ export interface CreateAgentSessionOptions {
 	contextFiles?: Array<{ path: string; content: string }>;
 	/** Pre-built workspace tree (skips re-scanning; passed by parents to subagents). */
 	workspaceTree?: WorkspaceTree;
-	/** Prompt templates. Default: discovered from cwd/.omp/prompts/ + agentDir/prompts/ */
+	/** Prompt templates. Default: discovered from cwd/.ngodeai/prompts/ + agentDir/prompts/ */
 	promptTemplates?: PromptTemplate[];
 	/** File-based slash commands. Default: discovered from commands/ directories */
 	slashCommands?: FileSlashCommand[];
@@ -906,7 +906,7 @@ export interface CreateAgentSessionOptions {
 	 */
 	settingsApproval?: boolean;
 	/**
-	 * Replies render in omp's own TUI transcript, which draws Mermaid, ```svg
+	 * Replies render in ngodeai's own TUI transcript, which draws Mermaid, ```svg
 	 * figures and table charts; only then does the system prompt mention them.
 	 * Print, RPC, ACP and subagent sessions read replies as text. Default: false.
 	 */
@@ -1029,7 +1029,7 @@ export {
  *
  * Default: local SQLite store at `<agentDir>/agent.db`.
  *
- * Broker mode: when `OMP_AUTH_BROKER_URL` is set, credentials are pulled from
+ * Broker mode: when `NGODEAI_AUTH_BROKER_URL` is set, credentials are pulled from
  * a remote auth-broker over the wire. Refresh tokens never leave the broker;
  * the client receives access tokens with `refresh = "__remote__"` and calls
  * back into the broker through the {@link AuthStorageOptions.refreshOAuthCredential}
@@ -2715,7 +2715,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 		let customToolPaths: ToolPathWithSource[] = [];
 		const inlineExtensions: ExtensionFactory[] = [];
 		if (!restrictToolNames) {
-			// Discover custom tools from `.omp/tools/`, `.claude/tools/`, plugins, etc.
+			// Discover custom tools from `.ngodeai/tools/`, `.claude/tools/`, plugins, etc.
 			// Subagents reuse the parent's scan via `preloadedCustomToolPaths` to skip
 			// the FS walk, but ALWAYS re-call `loadCustomTools` here so factories bind
 			// to THIS session's `CustomToolAPI` (cwd, exec, pushPendingAction, UI).
@@ -3960,7 +3960,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 			}
 			// Re-discover rules from disk on every session-scoped rebuild, mirroring the
 			// context-file refresh above. The rule buckets are otherwise frozen at
-			// session creation, so a `RULES.md` (or any rule) created or edited while omp
+			// session creation, so a `RULES.md` (or any rule) created or edited while ngodeai
 			// runs never reaches the prompt on /clear or /new until restart (issue #10940).
 			// resetCapabilities() clears the fs cache at those boundaries, so this observes
 			// the current file. TTSR registrations are replaced from the new snapshot while
@@ -5109,7 +5109,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 					for (const extensionPath of unloaded) announcedUnloadedExtensions.add(extensionPath);
 					session.emitNotice(
 						"warning",
-						`Restart omp to load newly enabled extensions: ${unloaded.join(", ")}`,
+						`Restart ngodeai to load newly enabled extensions: ${unloaded.join(", ")}`,
 						"extensions",
 					);
 				}

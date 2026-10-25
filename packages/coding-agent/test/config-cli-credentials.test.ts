@@ -81,7 +81,7 @@ describe("config list output", () => {
 
 	beforeEach(() => {
 		resetSettingsForTest();
-		agentDir = TempDir.createSync("@omp-config-credentials-");
+		agentDir = TempDir.createSync("@ngode-config-credentials-");
 		setAgentDir(agentDir.path());
 	});
 

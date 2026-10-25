@@ -3,8 +3,8 @@ import { IR_BRAND } from "@ngodeai/ngodetype/ir";
 import {
 	type AnySchema,
 	type ObjectOpts,
-	Type as OmpType,
-	type TypeBuilder as OmpTypeBuilder,
+	Type as NgodeType,
+	type TypeBuilder as NgodeTypeBuilder,
 	type TUnsafe,
 } from "@ngodeai/ngodetype/typebox";
 import { upgradeJsonSchemaTo202012, validateJsonSchemaValue } from "@ngodeai/ai/utils/schema";
@@ -150,7 +150,7 @@ const object = ((properties: Record<string, unknown>, opts?: ObjectOpts) => {
 		}
 	}
 	if (!hasRawProperty) {
-		return OmpType.Object(properties as Record<string, AnySchema>, normalizedOpts);
+		return NgodeType.Object(properties as Record<string, AnySchema>, normalizedOpts);
 	}
 
 	const normalizedProperties: Record<string, AnySchema> = {};
@@ -163,17 +163,17 @@ const object = ((properties: Record<string, unknown>, opts?: ObjectOpts) => {
 		// properties. JSON Schema `additionalProperties` validates only undeclared
 		// keys, so preserve the whole document on this legacy raw-property path.
 		const { additionalProperties: _, ...objectOpts } = opts ?? {};
-		const document = OmpType.Object(normalizedProperties, objectOpts).toJsonSchema();
+		const document = NgodeType.Object(normalizedProperties, objectOpts).toJsonSchema();
 		document.additionalProperties = isRuntimeSchema(additionalProperties)
 			? additionalProperties.toJsonSchema()
 			: lowerEmbeddedSchemas(additionalProperties);
 		return unsafe(document);
 	}
-	return OmpType.Object(normalizedProperties, normalizedOpts);
-}) as typeof OmpType.Object;
+	return NgodeType.Object(normalizedProperties, normalizedOpts);
+}) as typeof NgodeType.Object;
 
-export const Type = { ...OmpType, Object: object, Unsafe: unsafe } as unknown as OmpTypeBuilder;
-export type TypeBuilder = OmpTypeBuilder;
+export const Type = { ...NgodeType, Object: object, Unsafe: unsafe } as unknown as NgodeTypeBuilder;
+export type TypeBuilder = NgodeTypeBuilder;
 
-const legacyTypeBox: { Type: OmpTypeBuilder } = { Type };
+const legacyTypeBox: { Type: NgodeTypeBuilder } = { Type };
 export default legacyTypeBox;

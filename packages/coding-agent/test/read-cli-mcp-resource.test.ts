@@ -8,17 +8,17 @@ import { removeWithRetries } from "@ngodeai/utils";
 const CLI_ENTRY = path.join(import.meta.dir, "..", "src", "cli.ts");
 const FIXTURE_PATH = path.join(import.meta.dir, "fixtures", "resources-no-templates-mcp.ts");
 
-describe("omp read MCP resources", () => {
+describe("ngodeai read MCP resources", () => {
 	let root: string;
 	let projectDir: string;
 	let agentDir: string;
 	let probePath: string;
 
 	beforeEach(async () => {
-		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-read-mcp-"));
+		root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-read-mcp-"));
 		projectDir = path.join(root, "project");
 		agentDir = path.join(root, "agent");
-		const localSkillDir = path.join(projectDir, ".omp", "skills", "local-skill");
+		const localSkillDir = path.join(projectDir, ".ngodeai", "skills", "local-skill");
 		await Promise.all([fs.mkdir(localSkillDir, { recursive: true }), fs.mkdir(agentDir)]);
 		await Bun.write(
 			path.join(localSkillDir, "SKILL.md"),

@@ -105,7 +105,7 @@ afterEach(() => {
 
 describe("seance artifact lifecycle", () => {
 	it("publishes the latest warm and cold yield beside sibling results", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-artifact-lifecycle-");
+		using tempDir = TempDir.createSync("@ngode-seance-artifact-lifecycle-");
 		const cwd = path.join(tempDir.path(), "project");
 		const sourceFile = path.join(tempDir.path(), "sessions", "host.jsonl");
 		const artifactsDir = sourceFile.slice(0, -".jsonl".length);
@@ -229,7 +229,7 @@ describe("seance artifact lifecycle", () => {
 	});
 
 	it("preserves an unstructured seance result contract through fresh, warm, and cold turns", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-unstructured-lifecycle-");
+		using tempDir = TempDir.createSync("@ngode-seance-unstructured-lifecycle-");
 		const cwd = path.join(tempDir.path(), "project");
 		const sourceFile = path.join(tempDir.path(), "sessions", "host.jsonl");
 		const artifactsDir = sourceFile.slice(0, -".jsonl".length);
@@ -356,7 +356,7 @@ describe("seance artifact lifecycle", () => {
 	});
 
 	it("allocates past the source's artifact ids and resolves inherited ids to the source, never another session", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-artifact-ids-");
+		using tempDir = TempDir.createSync("@ngode-seance-artifact-ids-");
 		const cwd = path.join(tempDir.path(), "project");
 		await fs.mkdir(cwd, { recursive: true });
 		const sourceFile = path.join(tempDir.path(), "sessions", "host.jsonl");
@@ -412,7 +412,7 @@ describe("seance artifact lifecycle", () => {
 	});
 
 	it("leaves only each seance's transcript and result in a repeatedly consulted host's artifacts", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-repeat-");
+		using tempDir = TempDir.createSync("@ngode-seance-repeat-");
 		const cwd = path.join(tempDir.path(), "project");
 		await fs.mkdir(cwd, { recursive: true });
 		const sourceFile = path.join(tempDir.path(), "sessions", "host.jsonl");

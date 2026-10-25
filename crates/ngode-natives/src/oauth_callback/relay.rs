@@ -60,7 +60,7 @@ mod tests {
 			vec![
 				OsString::from("relay"),
 				OsString::from("callback.url"),
-				OsString::from("omp://callback"),
+				OsString::from("ngodeai://callback"),
 				OsString::from("extra"),
 			],
 		] {

@@ -1,8 +1,8 @@
 # MiniMax owned tool-calling format (`<minimax:tool_call>`)
 
-OMP's `minimax` dialect is the prompt-driven, in-band tool protocol for MiniMax-family models. Calls are ordinary assistant text: one `<minimax:tool_call>` envelope contains one or more `<invoke>` elements. NgodeAI executes the parsed calls and returns a `<function_results>` block in the next user turn. The format carries no tool-call ids, so calls and results are correlated by order.
+NGODEAI's `minimax` dialect is the prompt-driven, in-band tool protocol for MiniMax-family models. Calls are ordinary assistant text: one `<minimax:tool_call>` envelope contains one or more `<invoke>` elements. NgodeAI executes the parsed calls and returns a `<function_results>` block in the next user turn. The format carries no tool-call ids, so calls and results are correlated by order.
 
-This reference describes OMP's implemented converter, not MiniMax's provider-native structured tool API. It is verified against `packages/ai/src/dialect/minimax.ts`, the shared XML scanner in `packages/ai/src/dialect/anthropic.ts`, prompt assembly in `packages/ai/src/dialect/catalog.ts`, and the streaming projection in `packages/ai/src/dialect/owned-stream.ts`.
+This reference describes NGODEAI's implemented converter, not MiniMax's provider-native structured tool API. It is verified against `packages/ai/src/dialect/minimax.ts`, the shared XML scanner in `packages/ai/src/dialect/anthropic.ts`, prompt assembly in `packages/ai/src/dialect/catalog.ts`, and the streaming projection in `packages/ai/src/dialect/owned-stream.ts`.
 
 ## Selection and request conversion
 
@@ -20,7 +20,7 @@ dialect. Unset that environment variable when choosing `native`: the agent
 uses it as a fallback even when `tools.format` resolves to native tools.
 Dialect resolution runs for each provider request.
 
-With an owned dialect and a non-empty tool list, OMP:
+With an owned dialect and a non-empty tool list, NGODEAI:
 
 1. removes the native structured `tools` field and tool choice from the provider request;
 2. appends an in-band tool catalog and the MiniMax format guide to the system prompt;
@@ -169,7 +169,7 @@ Important failure behavior:
 - **Missing parameter name:** that parameter is ignored.
 - **Malformed JSON:** falls back to the original parameter text.
 - **Very large parameter:** the retained parameter value and its argument deltas are capped at 1,000,000 JavaScript string code units; the completed value gets an explicit truncation marker on overflow. The diagnostic `rawBlock` still retains the full invoke, so this is not a cap on total input or raw capture.
-- **Incomplete invoke:** flush resets scanner-local call state and emits no `toolEnd`. However, OMP's stream projector has already materialized a call from `toolStart`; on a normally stopped response it retains that partial call, marks the turn as tool use, and may dispatch it. Already streamed argument text remains uncoerced, and a call with no argument text has `{}`. A provider `length` stop remains `length` rather than becoming runnable tool use.
+- **Incomplete invoke:** flush resets scanner-local call state and emits no `toolEnd`. However, NGODEAI's stream projector has already materialized a call from `toolStart`; on a normally stopped response it retains that partial call, marks the turn as tool use, and may dispatch it. Already streamed argument text remains uncoerced, and a call with no argument text has `{}`. A provider `length` stop remains `length` rather than becoming runnable tool use.
 - **Incomplete wrapper after complete invokes:** already closed invokes remain valid; the wrapper close is not required to emit their `toolEnd` events.
 - **Incomplete thinking:** retained as thinking and logically ended at flush.
 
@@ -199,7 +199,7 @@ I'll check both cities.
 </minimax:tool_call>
 ```
 
-Next user turn produced by OMP:
+Next user turn produced by NGODEAI:
 
 ```text
 <function_results>
@@ -221,7 +221,7 @@ The assistant can then answer normally or emit another complete MiniMax call env
 - **Not real XML.** Do not entity-escape parameter bodies or run them through an XML DOM parser; matching is based on protocol delimiters.
 - **One envelope, many invokes.** Parallelism is sibling calls inside `<minimax:tool_call>`, not JSON `tool_calls` and not one envelope per required batch.
 - **Schema determines strings.** Without the tool schema, even a JavaScript string renderer value is JSON-quoted; supply tool definitions to renderer/scanner APIs for round trips.
-- **No ids on the wire.** OMP-generated ids are internal. Preserve call/result order.
+- **No ids on the wire.** NGODEAI-generated ids are internal. Preserve call/result order.
 - **Errors are first-class records.** Use `<error>/<stderr>`, not a successful `<result>` containing an out-of-band error flag.
 - **Canonical wrapper vs accepted recovery syntax.** The parser accepts bare invokes and `<tool_call>`, but the injected contract requires `<minimax:tool_call>`.
 - **Complete the invoke before stopping.** A natural-language promise to call a tool is not a call; the closing `</invoke>` is what finalizes coercion and the normal lifecycle.

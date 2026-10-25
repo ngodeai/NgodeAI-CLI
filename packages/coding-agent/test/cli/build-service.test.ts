@@ -16,7 +16,7 @@ function answer(overrides: Record<string, unknown> = {}): Record<string, unknown
 	return {
 		build: { id: "20261011-120000-abcdef0", version: "18.8.9", channel: "stable" },
 		file: { name: fileName, platform: "macos", arch: "arm64", kind: "binary", size: 205_765_664, sha256: sha("new") },
-		download: "https://r2.test/ngodeai/18.8.9/omp-darwin-arm64?X-Amz-Signature=x",
+		download: "https://r2.test/ngodeai/18.8.9/ngode-darwin-arm64?X-Amz-Signature=x",
 		patch: {
 			format: "file",
 			from: "20261001-120000-1234567",
@@ -36,7 +36,7 @@ describe("build service answers", () => {
 		expect(parsed).toEqual({
 			version: "18.8.9",
 			file: { name: fileName, size: 205_765_664, sha256: sha("new") },
-			download: "https://r2.test/ngodeai/18.8.9/omp-darwin-arm64?X-Amz-Signature=x",
+			download: "https://r2.test/ngodeai/18.8.9/ngode-darwin-arm64?X-Amz-Signature=x",
 			patch: {
 				fromSha256: sha("old"),
 				fromVersion: "18.8.8",
@@ -57,7 +57,9 @@ describe("build service answers", () => {
 		expect(() => parseBuildAnswer(answer(file({ name: "ngodeai-darwin-x64" })), fileName)).toThrow(
 			"ngodeai-darwin-x64 is not ngodeai-darwin-arm64",
 		);
-		expect(() => parseBuildAnswer(answer({ download: "http://r2.test/ngodeai" }), fileName)).toThrow("no HTTPS download");
+		expect(() => parseBuildAnswer(answer({ download: "http://r2.test/ngodeai" }), fileName)).toThrow(
+			"no HTTPS download",
+		);
 		expect(() => parseBuildAnswer(answer({ build: { version: "latest" } }), fileName)).toThrow("no valid version");
 	});
 

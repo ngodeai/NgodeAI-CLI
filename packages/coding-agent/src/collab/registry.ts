@@ -29,7 +29,7 @@ import * as path from "node:path";
 import { IpcConnection, IpcServer, ipcEndpoint } from "@ngodeai/natives";
 import { getBaseConfigRoot, isEnoent, isFsError } from "@ngodeai/utils";
 
-/** Discovery metadata / IPC protocol version. Mixed omp versions fail safely. */
+/** Discovery metadata / IPC protocol version. Mixed ngodeai versions fail safely. */
 export const COLLAB_REGISTRY_VERSION = 1;
 
 /** Reject request lines beyond this size; a valid request is <300 bytes. */
@@ -87,7 +87,7 @@ export interface CollabHostSnapshot {
 	 * disappearing from discovery means the process died or became unreachable,
 	 * not that the agent finished.
 	 *
-	 * `null` when the host does not report it (an omp older than this field).
+	 * `null` when the host does not report it (an ngodeai older than this field).
 	 * Unknown is not idle: a consumer must not read the absence as a session
 	 * that stopped.
 	 */
@@ -583,7 +583,7 @@ async function pruneEntry(dir: string, name: string, meta: DiscoveryMetadata | n
 		await fs.promises.rm(path.join(dir, name), { force: true });
 		// Only unlink sockets this registry could have created: beside the
 		// metadata, or at the exact relocated endpoint this entry's publication
-		// derives (under the shared `/tmp/omp-<euid>/`, never another socket there).
+		// derives (under the shared `/tmp/ngode-<euid>/`, never another socket there).
 		const ownsEndpoint =
 			meta !== null &&
 			process.platform !== "win32" &&
@@ -615,7 +615,7 @@ async function listEntry(dir: string, name: string, timeoutMs: number): Promise<
 		return null;
 	}
 	if (meta.version !== COLLAB_REGISTRY_VERSION) {
-		// A different omp version owns this entry. Never show it; prune only
+		// A different ngodeai version owns this entry. Never show it; prune only
 		// once the owning process is gone so newer versions keep their state.
 		if (!pidAlive(meta.pid)) await pruneEntry(dir, name, meta);
 		return null;

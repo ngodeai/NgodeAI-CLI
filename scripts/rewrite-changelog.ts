@@ -25,8 +25,8 @@
  *   bun scripts/rewrite-changelog.ts --package coding-agent
  *   bun scripts/rewrite-changelog.ts --model google/gemini-3.5-flash
  *
- * Auth: resolves the provider API key through omp's auth storage
- * (~/.omp/agent/agent.db: stored key, OAuth, or env var fallback).
+ * Auth: resolves the provider API key through ngodeai's auth storage
+ * (~/.ngodeai/agent/agent.db: stored key, OAuth, or env var fallback).
  */
 
 import * as path from "node:path";
@@ -108,7 +108,7 @@ async function openModel(modelSpec: string): Promise<RewriteModel> {
 		const apiKey = await storage.keys.get(provider);
 		if (!apiKey) {
 			throw new Error(
-				`no credentials for provider "${provider}" via ${sourceLabel} (check broker or run \`omp login\`)`,
+				`no credentials for provider "${provider}" via ${sourceLabel} (check broker or run \`ngodeai login\`)`,
 			);
 		}
 		return { model, apiKey, spec: modelSpec };

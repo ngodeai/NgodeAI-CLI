@@ -20,9 +20,9 @@ describe("Windows release binary target", () => {
 		expect(output).toContain(
 			"DRY RUN Bun.build target=bun-windows-x64-baseline outfile=packages/coding-agent/binaries/ngodeai-windows-x64.exe",
 		);
-		expect(output).toContain("Building packages/coding-agent/binaries/omp-windows-arm64.exe...");
+		expect(output).toContain("Building packages/coding-agent/binaries/ngode-windows-arm64.exe...");
 		expect(output).toContain(
-			"DRY RUN Bun.build target=bun-windows-arm64 outfile=packages/coding-agent/binaries/omp-windows-arm64.exe",
+			"DRY RUN Bun.build target=bun-windows-arm64 outfile=packages/coding-agent/binaries/ngode-windows-arm64.exe",
 		);
 		expect(output).toContain("external=fastembed,onnxruntime-node");
 		expect(output).not.toContain("bun-windows-x64-modern");
@@ -57,7 +57,7 @@ describe("Windows release binary target", () => {
 });
 
 it("runs compiled bytecode containing dependency import.meta.resolve calls", async () => {
-	using temp = TempDir.createSync("@omp-bytecode-");
+	using temp = TempDir.createSync("@ngode-bytecode-");
 	const entrypoint = temp.join("entry.ts");
 	const outfile = temp.join(process.platform === "win32" ? "probe.exe" : "probe");
 	await Bun.write(entrypoint, 'console.log(import.meta.resolve("node:fs"));\n');
@@ -74,7 +74,7 @@ it("runs compiled bytecode containing dependency import.meta.resolve calls", asy
 }, 30_000);
 
 it("runs code behind a lazy import() from a split chunk of the compiled binary", async () => {
-	using temp = TempDir.createSync("@omp-split-chunk-");
+	using temp = TempDir.createSync("@ngode-split-chunk-");
 	const entrypoint = temp.join("entry.ts");
 	const outfile = temp.join(process.platform === "win32" ? "probe.exe" : "probe");
 	// The probe's dynamic import() is the chunk boundary under test: with

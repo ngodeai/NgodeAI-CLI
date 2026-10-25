@@ -4,7 +4,7 @@ import { canonicalProjectDir } from "../launch/paths";
 
 /**
  * Resolve the local IPC endpoint `ngodeai stream` listens on for one project
- * directory. Shares the daemon broker's canonical-cwd hashing so every omp
+ * directory. Shares the daemon broker's canonical-cwd hashing so every ngodeai
  * process in the same directory agrees on the endpoint.
  */
 export async function streamSocketEndpoint(projectDir: string): Promise<string> {

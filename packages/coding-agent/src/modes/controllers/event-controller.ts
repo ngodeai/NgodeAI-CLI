@@ -2956,7 +2956,7 @@ export class EventController {
 
 		const sessionName = this.ctx.sessionManager.getSessionName();
 		TERMINAL.sendNotification({
-			title: sessionName || "omp",
+			title: sessionName || "ngodeai",
 			body: "Stopped with error",
 			type: "error",
 			actions: "focus",
@@ -2981,7 +2981,7 @@ export class EventController {
 
 		const sessionName = this.ctx.sessionManager.getSessionName();
 		TERMINAL.sendNotification({
-			title: sessionName || "omp",
+			title: sessionName || "ngodeai",
 			body: "Complete",
 			type: "completion",
 			actions: "focus",

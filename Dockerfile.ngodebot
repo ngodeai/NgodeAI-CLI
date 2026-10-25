@@ -1,0 +1,82 @@
+# syntax=docker/dockerfile:1.7-labs
+###############################################################################
+# ngodebot — GitHub triage+fix bot orchestrator.
+#
+# Extends `ngodeai-base` (from /Dockerfile, default target ngodeai/ngodeai:dev) and adds
+# the ngodebot Python package + a Vite-built SolidJS dashboard bundle. The NgodeAI
+# toolchain (python + bun + rustup launcher + ngode-natives + ngodeai_rpc wheel +
+# /usr/local/bin/ngodeai shim) all comes from NGODEAI_BASE; this file only layers what's
+# ngodebot-specific.
+#
+# Build (from pi root):
+#     bun run pi:image                              # build ngodeai/pi:dev first
+#     docker build -f Dockerfile.ngodebot -t ngodebot:dev .
+#
+# Compose (recommended):
+#     docker compose --project-directory python/ngodebot build
+###############################################################################
+
+ARG NGODEAI_BASE=ngodeai/ngodeai:dev
+ARG BUN_VERSION=1.4.3
+
+############################
+# 1) web-builder — Bun + Vite, builds the SolidJS dashboard bundle.
+############################
+FROM oven/bun:${BUN_VERSION}-slim AS web-builder
+WORKDIR /work
+# Root manifests + the web workspace manifest are enough for `bun install
+# --filter ngodebot-web` to hydrate just the dashboard's node_modules.
+COPY package.json bun.lock ./
+COPY python/ngodebot/web/package.json ./python/ngodebot/web/package.json
+# Root package.json declares patchedDependencies, so the patch file must be
+# present before any root-level `bun install` (even a filtered one).
+COPY patches/*.patch ./patches/
+RUN bun install --filter ngodebot-web
+COPY --exclude=node_modules --exclude=dist python/ngodebot/web/ ./python/ngodebot/web/
+RUN bun --cwd=python/ngodebot/web run build
+
+############################
+# 2) runtime — ngodeai-base + ngodebot src + web bundle + pip install
+############################
+FROM ${NGODEAI_BASE} AS runtime
+
+# ngodebot runs against the host NgodeAI checkout mounted at /work/pi read-only.
+ENV NGODEAI_ROOT=/work/pi
+
+WORKDIR /app
+
+# ngodebot is an MIT product; NgodeAI's dual-license payload remains available from
+# the inherited base image under /usr/share/doc/ngodeai.
+COPY LICENSE THIRD-PARTY-NOTICES.txt /usr/share/doc/ngodebot/
+
+# ngodebot itself. Drop the Vite-built dashboard into the package tree before
+# `pip install` so it lands in the installed wheel (`static/**/*` is declared
+# as package-data in pyproject.toml).
+COPY python/ngodebot/pyproject.toml ./
+COPY python/ngodebot/src/ ./src/
+COPY --from=web-builder /work/python/ngodebot/web/dist/ ./src/static/
+
+RUN pip install --no-cache-dir \
+        "fastapi>=0.112" "uvicorn[standard]>=0.30" "httpx>=0.27" \
+        "pydantic>=2.6" "pydantic-settings>=2.2" "python-dotenv>=1.0" \
+        "click>=8.1" \
+    && pip install --no-cache-dir --no-deps .
+
+# Host agent config is mounted read-only under /srv/agent-home-stage with
+# host-controlled permissions. The entrypoint copies it into root-owned
+# world-readable files under /srv/agent-home; the agent subprocess runs with
+# HOME=/srv/agent-home, so ~/.ngodeai and ~/.agent resolve there without exposing
+# mutable host mounts.
+RUN mkdir -p /srv/agent-home/.agent /srv/agent-home/.ngodeai/agent \
+    && mkdir -p /srv/agent-home-stage/.agent /srv/agent-home-stage/.ngodeai/agent \
+    && printf '[install]\nbackend = "copyfile"\n' > /srv/agent-home/.bunfig.toml
+
+COPY python/ngodebot/entrypoint.sh /usr/local/bin/ngodebot-entrypoint
+RUN chmod +x /usr/local/bin/ngodebot-entrypoint
+
+VOLUME ["/data"]
+EXPOSE 8080
+EXPOSE 8081
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/ngodebot-entrypoint"]
+CMD ["python", "-m", "ngodebot", "serve"]

@@ -1,4 +1,4 @@
-package omprpc
+package ngodeairpc
 
 import (
 	"context"
@@ -161,7 +161,7 @@ func TestUnknownFallbackFieldKeepsEnclosingFrame(t *testing.T) {
 
 func TestScalarOrArrayAcceptsBareScalar(t *testing.T) {
 	for line, want := range map[string][]string{
-		`{"sessionId":"s","systemPrompt":"You are omp."}`: {"You are omp."},
+		`{"sessionId":"s","systemPrompt":"You are ngodeai."}`: {"You are ngodeai."},
 		`{"sessionId":"s","systemPrompt":["a","b"]}`:      {"a", "b"},
 		`{"sessionId":"s"}`:                               {},
 	} {

@@ -1,18 +1,18 @@
 /**
  * Regression test for #2935 and #4845: the plugins/marketplace docs advertise
- * `omp list` / `omp remove` / `omp marketplace <sub>` / `omp uninstall …` etc.
- * as top-level commands, but only `omp install` is registered. Before the fix,
+ * `ngodeai list` / `ngodeai remove` / `ngodeai marketplace <sub>` / `ngodeai uninstall …` etc.
+ * as top-level commands, but only `ngodeai install` is registered. Before the fix,
  * `resolveCliArgv(["list"])` rewrote the bare verb to `["launch", "list"]`, so
- * `omp list` silently started an interactive agent session with "list" as the
+ * `ngodeai list` silently started an interactive agent session with "list" as the
  * initial LLM prompt instead of managing plugins (the real command is
- * `omp plugin list`). #4845 extended the same footgun to the multi-word
- * documented grammar: `omp marketplace add xyz` leaked the whole argv to the
+ * `ngodeai plugin list`). #4845 extended the same footgun to the multi-word
+ * documented grammar: `ngodeai marketplace add xyz` leaked the whole argv to the
  * model as a prompt.
  *
  * These tests pin the chosen bugfix: a documented plugin/marketplace verb that
  * is bare, or that follows the documented grammar (a marketplace sub-action or a
  * `name@marketplace` plugin id), yields a helpful hint pointing at the real
- * `omp plugin <action>` command rather than leaking to the model — while
+ * `ngodeai plugin <action>` command rather than leaking to the model — while
  * genuine prose prompts that merely begin with one of these words still fall
  * through to `launch`.
  *
@@ -23,22 +23,22 @@ import { describe, expect, test } from "bun:test";
 import { isSubcommand, resolveCliArgv } from "../src/cli-commands";
 
 describe("documented-but-unregistered plugin verbs do not leak to launch (#2935)", () => {
-	test("bare `omp list` hints at `omp plugin list` instead of launching with 'list' as the prompt", () => {
+	test("bare `ngodeai list` hints at `ngodeai plugin list` instead of launching with 'list' as the prompt", () => {
 		const result = resolveCliArgv(["list"]);
 		// Must NOT be the old silent-launch behavior.
 		expect(result).not.toEqual({ argv: ["launch", "list"] });
 		expect(result).not.toHaveProperty("argv");
 		// Must point at the real command.
 		expect(result).toHaveProperty("error");
-		expect("error" in result && result.error).toContain("omp plugin list");
+		expect("error" in result && result.error).toContain("ngodeai plugin list");
 	});
 
-	test("bare `omp remove` hints at `omp plugin uninstall` instead of launching with 'remove' as the prompt", () => {
+	test("bare `ngodeai remove` hints at `ngodeai plugin uninstall` instead of launching with 'remove' as the prompt", () => {
 		const result = resolveCliArgv(["remove"]);
 		expect(result).not.toEqual({ argv: ["launch", "remove"] });
 		expect(result).not.toHaveProperty("argv");
 		expect(result).toHaveProperty("error");
-		expect("error" in result && result.error).toContain("omp plugin uninstall");
+		expect("error" in result && result.error).toContain("ngodeai plugin uninstall");
 	});
 
 	test("genuine multi-word prompts beginning with these verbs still route to launch", () => {
@@ -51,22 +51,22 @@ describe("documented-but-unregistered plugin verbs do not leak to launch (#2935)
 		});
 	});
 
-	test("multi-word `omp marketplace add xyz` hints at `omp plugin marketplace` instead of leaking to the prompt (#4845)", () => {
+	test("multi-word `ngodeai marketplace add xyz` hints at `ngodeai plugin marketplace` instead of leaking to the prompt (#4845)", () => {
 		const result = resolveCliArgv(["marketplace", "add", "xyz"]);
 		expect(result).not.toEqual({ argv: ["launch", "marketplace", "add", "xyz"] });
 		expect(result).not.toHaveProperty("argv");
 		expect(result).toHaveProperty("error");
-		expect("error" in result && result.error).toContain("omp plugin marketplace");
+		expect("error" in result && result.error).toContain("ngodeai plugin marketplace");
 	});
 
-	test("bare marketplace-family verbs hint at their `omp plugin` command (#4845)", () => {
+	test("bare marketplace-family verbs hint at their `ngodeai plugin` command (#4845)", () => {
 		for (const [verb, hint] of [
-			["marketplace", "omp plugin marketplace"],
-			["discover", "omp plugin discover"],
-			["upgrade", "omp plugin upgrade"],
-			["uninstall", "omp plugin uninstall"],
-			["enable", "omp plugin enable"],
-			["disable", "omp plugin disable"],
+			["marketplace", "ngodeai plugin marketplace"],
+			["discover", "ngodeai plugin discover"],
+			["upgrade", "ngodeai plugin upgrade"],
+			["uninstall", "ngodeai plugin uninstall"],
+			["enable", "ngodeai plugin enable"],
+			["disable", "ngodeai plugin disable"],
 		] as const) {
 			const result = resolveCliArgv([verb]);
 			expect(result).not.toHaveProperty("argv");
@@ -101,17 +101,17 @@ describe("documented-but-unregistered plugin verbs do not leak to launch (#2935)
 	});
 });
 
-describe("`omp plugins` is a registered alias of `omp plugin`", () => {
+describe("`ngodeai plugins` is a registered alias of `ngodeai plugin`", () => {
 	// The TUI builtin is `/plugins` while the CLI command is `plugin`. Dispatch
 	// resolves `CommandEntry.aliases`, not the command class's `static aliases`,
-	// so dropping the registry entry would make `omp plugins list` stop reaching
+	// so dropping the registry entry would make `ngodeai plugins list` stop reaching
 	// the plugin command again.
-	test("`omp plugins list` routes to the plugin command instead of launch", () => {
+	test("`ngodeai plugins list` routes to the plugin command instead of launch", () => {
 		expect(isSubcommand("plugins")).toBe(true);
 		expect(resolveCliArgv(["plugins", "list"])).toEqual({ argv: ["plugins", "list"] });
 	});
 
-	test("bare `omp plugins` routes to the plugin command, which defaults to list", () => {
+	test("bare `ngodeai plugins` routes to the plugin command, which defaults to list", () => {
 		expect(resolveCliArgv(["plugins"])).toEqual({ argv: ["plugins"] });
 	});
 });

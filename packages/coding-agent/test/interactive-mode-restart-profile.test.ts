@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { TempDir } from "@ngodeai/utils";
 
 it("native restart preserves the active profile and reopens its persisted session", async () => {
-	using tempDir = TempDir.createSync("@omp-restart-profile-");
+	using tempDir = TempDir.createSync("@ngode-restart-profile-");
 	const child = Bun.spawn([process.execPath, path.join(import.meta.dir, "fixtures/restart-profile.ts")], {
 		cwd: tempDir.path(),
 		env: {
@@ -11,11 +11,11 @@ it("native restart preserves the active profile and reopens its persisted sessio
 			// os.homedir() reads USERPROFILE on Windows, HOME elsewhere.
 			HOME: tempDir.path(),
 			USERPROFILE: tempDir.path(),
-			OMP_PROFILE: undefined,
+			NGODEAI_PROFILE: undefined,
 			PI_PROFILE: undefined,
 			PI_CODING_AGENT_DIR: undefined,
 			PI_CODING_AGENT_SESSION_DIR: undefined,
-			PI_CONFIG_DIR: ".omp",
+			PI_CONFIG_DIR: ".ngodeai",
 			XDG_DATA_HOME: undefined,
 			XDG_STATE_HOME: undefined,
 			XDG_CACHE_HOME: undefined,

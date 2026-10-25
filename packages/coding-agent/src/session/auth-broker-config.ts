@@ -1,5 +1,5 @@
 /**
- * Resolve auth-broker connection configuration for the local omp client.
+ * Resolve auth-broker connection configuration for the local ngodeai client.
  *
  * This is a thin coding-agent wrapper around the shared resolver in
  * `@ngodeai/ai/auth-broker/discover` that preserves the process-lifetime
@@ -7,7 +7,7 @@
  * (including `!command` config indirection) from coding-agent's config layer.
  *
  * Precedence (highest first):
- *   1. `OMP_AUTH_BROKER_URL` / `OMP_AUTH_BROKER_TOKEN` env vars.
+ *   1. `NGODEAI_AUTH_BROKER_URL` / `NGODEAI_AUTH_BROKER_TOKEN` env vars.
  *   2. `auth.broker.url` / `auth.broker.token` in `~/.ngodeai/agent/config.yml`
  *      (hidden from the settings UI; `!command` resolution supported).
  *   3. Token file `~/.ngodeai/auth-broker.token` (paired with URL from env or config).
@@ -85,7 +85,7 @@ export async function loadEffectiveAuthAccountPolicyConfig(
 /**
  * Process-lifetime memo for {@link resolveAuthBrokerConfig}. Keyed on the env
  * inputs (plus agent dir, which decides which config.yml is read) so tests
- * that flip `OMP_AUTH_BROKER_*` between cases still observe the change, while
+ * that flip `NGODEAI_AUTH_BROKER_*` between cases still observe the change, while
  * repeated resolution within one CLI invocation (startup, subagent sessions)
  * skips the config.yml read and any `!command` token resolution.
  */
@@ -103,7 +103,7 @@ let cachedConfigPromise: Promise<AuthBrokerClientConfig | null> | null = null;
  * retried. Concurrent callers share one in-flight resolution.
  */
 export function resolveAuthBrokerConfig(): Promise<AuthBrokerClientConfig | null> {
-	const key = `${process.env.OMP_AUTH_BROKER_URL ?? ""}\u0000${process.env.OMP_AUTH_BROKER_TOKEN ?? ""}\u0000${getAgentDir()}`;
+	const key = `${process.env.NGODEAI_AUTH_BROKER_URL ?? ""}\u0000${process.env.NGODEAI_AUTH_BROKER_TOKEN ?? ""}\u0000${getAgentDir()}`;
 	if (cachedConfigPromise && cachedConfigKey === key) return cachedConfigPromise;
 	const promise = resolveAuthBrokerConfigShared({
 		agentDir: getAgentDir(),
@@ -248,9 +248,9 @@ export async function describeAuthBrokerStartupError(error: unknown): Promise<st
 	const target = url ? ` at ${url}` : "";
 	return (
 		`Auth broker${target} is unreachable (${error.message}). ` +
-		"omp is configured to use this broker for credentials and will not fall back to local credentials automatically.\n" +
+		"ngodeai is configured to use this broker for credentials and will not fall back to local credentials automatically.\n" +
 		"Start the broker with `ngodeai auth-broker serve`, or disable it with " +
 		"`ngodeai config reset auth.broker.url` and `ngodeai config reset auth.broker.token` " +
-		"(or unset OMP_AUTH_BROKER_URL / OMP_AUTH_BROKER_TOKEN)."
+		"(or unset NGODEAI_AUTH_BROKER_URL / NGODEAI_AUTH_BROKER_TOKEN)."
 	);
 }

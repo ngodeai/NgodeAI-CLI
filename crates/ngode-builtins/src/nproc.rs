@@ -157,7 +157,7 @@ mod tests {
 	}
 
 	#[test]
-	fn omp_thread_limit_caps_omp_num_threads() {
+	fn ngode_thread_limit_caps_omp_num_threads() {
 		let (code, capture) = run_in(
 			&[("OMP_NUM_THREADS", "64"), ("OMP_THREAD_LIMIT", "2")],
 			&[],

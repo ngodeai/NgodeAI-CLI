@@ -31,8 +31,8 @@ helper, which returns integer dimensions clamped to 20–400 columns and 5–200
 The PTY, emulated screen, and reported size use the same effective dimensions.
 
 `screen`, `send`, `resize`, and `stop` also work for programs without an
-`OMP_TUI_DEBUG` server. Renderer queries (`info`, `tree`, `values`, and `frame`)
-require an omp/pi-tui host.
+`NGODEAI_TUI_DEBUG` server. Renderer queries (`info`, `tree`, `values`, and `frame`)
+require an ngodeai/pi-tui host.
 
 `send` accepts literal text and `\e`, `\r`, `\n`, `\t`, and `\xNN` escapes.
 On Windows, each payload must contain complete, valid UTF-8; invalid or truncated
@@ -40,7 +40,7 @@ sequences are rejected before any input is written. Arbitrary non-UTF-8 bytes
 (such as `\x9b` 8-bit CSI) are not supported by the Windows PTY string API.
 Use the UTF-8-compatible `\e[` CSI sequence instead. macOS/Linux preserve raw bytes.
 
-Install the tool's dependencies with `bun install --cwd .omp/tools`.
+Install the tool's dependencies with `bun install --cwd .ngodeai/tools`.
 Native PTY API changes require rebuilding the addon with
 `bun --cwd=packages/natives run build` before running the tool.
 Run its real-PTY regressions with `bun test ./.ngodeai/tests/tui.test.ts`. CI runs

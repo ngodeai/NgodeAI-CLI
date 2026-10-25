@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { OmpErrors, Type, type } from "../src";
+import { NgodeErrors, Type, type } from "../src";
 import { scope as arkScope } from "../src/ark";
 
 /** Call count that guarantees the JIT has kicked in (threshold is 3). */
@@ -14,7 +14,7 @@ function everyStage(build: () => (data: unknown) => unknown, data: unknown): unk
 }
 
 function normalized(result: unknown): unknown {
-	return result instanceof OmpErrors ? { error: result.summary } : result;
+	return result instanceof NgodeErrors ? { error: result.summary } : result;
 }
 
 describe("validation", () => {
@@ -28,50 +28,50 @@ describe("validation", () => {
 	it("rejects wrong primitive, bad literal, broken bound, and missing key with path-aware errors", () => {
 		const missing = tool({ mode: "read" });
 		expect(missing).toBeInstanceOf(type.errors);
-		if (missing instanceof OmpErrors) {
+		if (missing instanceof NgodeErrors) {
 			expect(missing[0].path).toEqual(["path"]);
 			expect(missing.summary).toContain("path");
 		}
-		expect(tool({ path: "x", mode: "delete" })).toBeInstanceOf(OmpErrors);
-		expect(tool({ path: "x", mode: "read", offset: 0 })).toBeInstanceOf(OmpErrors);
-		expect(tool({ path: "x", mode: "read", offset: 1.5 })).toBeInstanceOf(OmpErrors);
-		expect(tool({ path: "x", mode: "read", tags: ["a", 1] })).toBeInstanceOf(OmpErrors);
+		expect(tool({ path: "x", mode: "delete" })).toBeInstanceOf(NgodeErrors);
+		expect(tool({ path: "x", mode: "read", offset: 0 })).toBeInstanceOf(NgodeErrors);
+		expect(tool({ path: "x", mode: "read", offset: 1.5 })).toBeInstanceOf(NgodeErrors);
+		expect(tool({ path: "x", mode: "read", tags: ["a", 1] })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("bounds: numbers (exclusive/inclusive) and string length", () => {
 		const s = type({ t: "0 < number <= 3600", name: "1 <= string <= 8" });
 		expect(s({ t: 1, name: "ok" })).toEqual({ t: 1, name: "ok" });
-		expect(s({ t: 0, name: "ok" })).toBeInstanceOf(OmpErrors);
-		expect(s({ t: 3601, name: "ok" })).toBeInstanceOf(OmpErrors);
-		expect(s({ t: 1, name: "" })).toBeInstanceOf(OmpErrors);
-		expect(s({ t: 1, name: "toolongname" })).toBeInstanceOf(OmpErrors);
+		expect(s({ t: 0, name: "ok" })).toBeInstanceOf(NgodeErrors);
+		expect(s({ t: 3601, name: "ok" })).toBeInstanceOf(NgodeErrors);
+		expect(s({ t: 1, name: "" })).toBeInstanceOf(NgodeErrors);
+		expect(s({ t: 1, name: "toolongname" })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("array suffix binds outside a trailing bound: string>0[]", () => {
 		const s = type({ files: "string>0|string>0[]" });
 		expect(s({ files: "a.ts" })).toEqual({ files: "a.ts" });
 		expect(s({ files: ["a.ts", "b.ts"] })).toEqual({ files: ["a.ts", "b.ts"] });
-		expect(s({ files: [""] })).toBeInstanceOf(OmpErrors);
-		expect(s({ files: "" })).toBeInstanceOf(OmpErrors);
+		expect(s({ files: [""] })).toBeInstanceOf(NgodeErrors);
+		expect(s({ files: "" })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("string.url validates parseability", () => {
 		const s = type("string.url");
-		expect(s("https://omp.sh/x")).toBe("https://omp.sh/x");
-		expect(s("not a url")).toBeInstanceOf(OmpErrors);
+		expect(s("https://ngodeai.net/x")).toBe("https://ngodeai.net/x");
+		expect(s("not a url")).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("index signatures validate every value", () => {
 		const s = type({ env: { "[string]": "string" } });
 		expect(s({ env: { A: "1" } })).toEqual({ env: { A: "1" } });
-		expect(s({ env: { A: 1 } })).toBeInstanceOf(OmpErrors);
+		expect(s({ env: { A: 1 } })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("null/undefined union members", () => {
 		const s = type("string | null");
 		expect(s(null)).toBe(null);
 		expect(s("x")).toBe("x");
-		expect(s(5)).toBeInstanceOf(OmpErrors);
+		expect(s(5)).toBeInstanceOf(NgodeErrors);
 	});
 });
 
@@ -163,20 +163,20 @@ describe("methods", () => {
 		expect(s("x")).toBe("x");
 		expect(s(null)).toBe(null);
 		expect(s(5)).toBe(5);
-		expect(s(true)).toBeInstanceOf(OmpErrors);
+		expect(s(true)).toBeInstanceOf(NgodeErrors);
 	});
 
 	it(".array() with length bounds", () => {
 		const s = type({ id: "string" }).array().atLeastLength(1).atMostLength(2);
 		expect(s([{ id: "a" }])).toEqual([{ id: "a" }]);
-		expect(s([])).toBeInstanceOf(OmpErrors);
-		expect(s([{ id: "a" }, { id: "b" }, { id: "c" }])).toBeInstanceOf(OmpErrors);
+		expect(s([])).toBeInstanceOf(NgodeErrors);
+		expect(s([{ id: "a" }, { id: "b" }, { id: "c" }])).toBeInstanceOf(NgodeErrors);
 	});
 
 	it(".pipe() transforms output; chained after validation", () => {
 		const s = type("string").pipe(v => Number.parseInt(v, 10));
 		expect(s("42")).toBe(42);
-		expect(s(42)).toBeInstanceOf(OmpErrors);
+		expect(s(42)).toBeInstanceOf(NgodeErrors);
 	});
 
 	it(".narrow() with ctx.mustBe records the expectation", () => {
@@ -185,14 +185,14 @@ describe("methods", () => {
 		);
 		expect(s({ action: "delete" })).toEqual({ action: "delete" });
 		const bad = s({ action: "create" });
-		expect(bad).toBeInstanceOf(OmpErrors);
-		if (bad instanceof OmpErrors) expect(bad.summary).toContain("a body unless deleting");
+		expect(bad).toBeInstanceOf(NgodeErrors);
+		if (bad instanceof NgodeErrors) expect(bad.summary).toContain("a body unless deleting");
 	});
 
 	it(".narrow() runs after morphs (sees defaults)", () => {
 		const s = type({ n: "number = 5" }).narrow(v => v.n === 5);
 		expect(s({})).toEqual({ n: 5 });
-		expect(s({ n: 6 })).toBeInstanceOf(OmpErrors);
+		expect(s({ n: 6 })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it(".allows() checks without running pipes", () => {
@@ -227,14 +227,14 @@ describe("methods", () => {
 		const s = type({ a: "string" }).and({ "b?": "number" });
 		expect(s({ a: "x" })).toEqual({ a: "x" });
 		expect(s({ a: "x", b: 2 })).toEqual({ a: "x", b: 2 });
-		expect(s({ b: 2 })).toBeInstanceOf(OmpErrors);
+		expect(s({ b: 2 })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("type.enumerated builds literal unions from runtime arrays", () => {
 		const langs = ["py", "js"];
 		const s = type.enumerated(...langs);
 		expect(s("py")).toBe("py");
-		expect(s("rs")).toBeInstanceOf(OmpErrors);
+		expect(s("rs")).toBeInstanceOf(NgodeErrors);
 	});
 
 	it(".describe() lands in JSON Schema and keeps validation identical", () => {
@@ -250,8 +250,8 @@ describe("embedded schemas", () => {
 		const parent = type({ meta: { port: num } });
 		expect(parent({ meta: { port: "8080" } })).toEqual({ meta: { port: 8080 } });
 		const bad = parent({ meta: { port: 8080 } });
-		expect(bad).toBeInstanceOf(OmpErrors);
-		if (bad instanceof OmpErrors) {
+		expect(bad).toBeInstanceOf(NgodeErrors);
+		if (bad instanceof NgodeErrors) {
 			expect(bad[0].path).toEqual(["meta", "port"]);
 		}
 	});
@@ -281,8 +281,8 @@ describe("embedded schemas", () => {
 		const s = type(move.or(wait));
 		for (let i = 0; i < JIT; i++) {
 			const out = s({ op: "wait", ms: "soon" });
-			expect(out).toBeInstanceOf(OmpErrors);
-			if (out instanceof OmpErrors) {
+			expect(out).toBeInstanceOf(NgodeErrors);
+			if (out instanceof NgodeErrors) {
 				expect(out[0].path).toEqual(["ms"]);
 				expect(out.summary).toContain("a number");
 			}
@@ -294,8 +294,8 @@ describe("error contract", () => {
 	it("entries support stable indexing, iteration, map(), and filter()", () => {
 		const s = type({ server: { port: "number.integer" } });
 		const out = s({ server: { port: "80" } });
-		expect(out).toBeInstanceOf(OmpErrors);
-		if (out instanceof OmpErrors) {
+		expect(out).toBeInstanceOf(NgodeErrors);
+		if (out instanceof NgodeErrors) {
 			const mapped = out.map(e => ({
 				instancePath: e.path.length === 0 ? "root" : e.path.join("."),
 				message: e.problem,
@@ -314,7 +314,7 @@ describe("error contract", () => {
 	it("summary is line-per-error human text", () => {
 		const s = type({ a: "string" });
 		const out = s({});
-		if (out instanceof OmpErrors) {
+		if (out instanceof NgodeErrors) {
 			expect(out.summary).toContain("a ");
 			expect(out.summary).toContain("missing");
 		}
@@ -329,8 +329,8 @@ describe("advanced ArkType compatibility", () => {
 			next: { value: 2 },
 		});
 		const invalid = schemas.Node({ value: 1, next: { value: "two" } });
-		expect(invalid).toBeInstanceOf(OmpErrors);
-		if (invalid instanceof OmpErrors) expect(invalid[0].path).toEqual(["next", "value"]);
+		expect(invalid).toBeInstanceOf(NgodeErrors);
+		if (invalid instanceof NgodeErrors) expect(invalid[0].path).toEqual(["next", "value"]);
 	});
 
 	it("resolves recursive scopes, modules, utility generics, and runtime generics", () => {
@@ -352,30 +352,30 @@ describe("advanced ArkType compatibility", () => {
 		expect(schemas.Public({ name: "Ada" })).toEqual({ name: "Ada" });
 		expect(schemas.Maybe({})).toEqual({});
 		const bad = schemas.User({ name: "Ada", manager: { name: 1 } });
-		expect(bad).toBeInstanceOf(OmpErrors);
-		if (bad instanceof OmpErrors) expect(bad[0].path).toEqual(["manager", "name"]);
+		expect(bad).toBeInstanceOf(NgodeErrors);
+		if (bad instanceof NgodeErrors) expect(bad[0].path).toEqual(["manager", "name"]);
 
 		const module = type.module({ Name: "string", User: { name: "Name" } });
 		expect(module.User({ name: "Ada" })).toEqual({ name: "Ada" });
 		const box = type.generic("<value>", { value: "value" });
 		expect(box("number")({ value: 2 })).toEqual({ value: 2 });
-		expect(box("number")({ value: "2" })).toBeInstanceOf(OmpErrors);
+		expect(box("number")({ value: "2" })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("supports fixed, optional, defaulted, and variadic tuple elements", () => {
 		const fixed = type(["string", "number"]);
 		expect(fixed(["x", 1])).toEqual(["x", 1]);
-		expect(fixed(["x"])).toBeInstanceOf(OmpErrors);
+		expect(fixed(["x"])).toBeInstanceOf(NgodeErrors);
 
 		const optional = type(["string", ["number", "?"]]);
 		expect(optional(["x"])).toEqual(["x"]);
 		expect(optional(["x", 1])).toEqual(["x", 1]);
-		expect(optional(["x", 1, 2])).toBeInstanceOf(OmpErrors);
+		expect(optional(["x", 1, 2])).toBeInstanceOf(NgodeErrors);
 
 		const variadic = type(["string", "...", ["boolean", "[]"], "number"]);
 		expect(variadic(["x", 1])).toEqual(["x", 1]);
 		expect(variadic(["x", true, false, 1])).toEqual(["x", true, false, 1]);
-		expect(variadic(["x", true])).toBeInstanceOf(OmpErrors);
+		expect(variadic(["x", true])).toBeInstanceOf(NgodeErrors);
 
 		const defaulted = type([
 			["string", "=", "x"],
@@ -390,16 +390,16 @@ describe("advanced ArkType compatibility", () => {
 		const bounded = type("Date >= d'2024-01-01T00:00:00.000Z'");
 		for (let index = 0; index < JIT; index++) {
 			expect(exact(new Date("2024-01-02T00:00:00.000Z"))).toEqual(new Date("2024-01-02T00:00:00.000Z"));
-			expect(exact(new Date("2024-01-03T00:00:00.000Z"))).toBeInstanceOf(OmpErrors);
+			expect(exact(new Date("2024-01-03T00:00:00.000Z"))).toBeInstanceOf(NgodeErrors);
 			expect(bounded(new Date("2024-01-01T00:00:00.000Z"))).toEqual(new Date("2024-01-01T00:00:00.000Z"));
-			expect(bounded(new Date("2023-12-31T23:59:59.999Z"))).toBeInstanceOf(OmpErrors);
+			expect(bounded(new Date("2023-12-31T23:59:59.999Z"))).toBeInstanceOf(NgodeErrors);
 		}
 	});
 
 	it("supports disjointness-aware intersections and semantic comparison", () => {
 		const bounded = type("number > 0").and("number < 3");
 		expect(bounded(2)).toBe(2);
-		expect(bounded(0)).toBeInstanceOf(OmpErrors);
+		expect(bounded(0)).toBeInstanceOf(NgodeErrors);
 		expect(type("'a' | 'b'").and("'b' | 'c'")("b")).toBe("b");
 		const stringSchema = type.raw("string");
 		const and = Reflect.get(stringSchema, "and");
@@ -426,7 +426,7 @@ describe("advanced ArkType compatibility", () => {
 		).toEqual(["red", "blue"]);
 		const distributed = type("'a' | 'b'").distribute(branch => branch.array());
 		expect(distributed(["a"])).toEqual(["a"]);
-		expect(distributed(["c"])).toBeInstanceOf(OmpErrors);
+		expect(distributed(["c"])).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("exposes nested keyword modules and configurable error codes", () => {
@@ -434,7 +434,7 @@ describe("advanced ArkType compatibility", () => {
 		expect(type.string.uuid.v4("550e8400-e29b-41d4-a716-446655440000")).toBe("550e8400-e29b-41d4-a716-446655440000");
 		expect(type.string.trim.preformatted("trimmed")).toBe("trimmed");
 		expect(type.string.date.iso.parse("2024-01-02")).toBeInstanceOf(Date);
-		expect(type.parse.url("https://omp.sh")).toBeInstanceOf(URL);
+		expect(type.parse.url("https://ngodeai.net")).toBeInstanceOf(URL);
 
 		// ArkType applies `.configure()` to the node it is called on (and its shallow
 		// descendants), so the constraint that should carry the config owns it here.
@@ -448,8 +448,8 @@ describe("advanced ArkType compatibility", () => {
 		});
 		for (let index = 0; index < JIT; index++) {
 			const out = configured({ user: { age: 10 } });
-			expect(out).toBeInstanceOf(OmpErrors);
-			if (out instanceof OmpErrors) {
+			expect(out).toBeInstanceOf(NgodeErrors);
+			if (out instanceof NgodeErrors) {
 				expect(out[0].code).toBe("min");
 				expect(out.summary).toContain("user/age: must be expected:min");
 				expect(Object.keys(out.byPath)).toEqual(["user.age"]);
@@ -476,7 +476,7 @@ describe("Standard Schema V1", () => {
 		expect(staticDefault["~standard"].validate(undefined)).toEqual({ value: "dev" });
 		expect(staticDefault(undefined)).toBe("dev");
 		expect(staticDefault("prod")).toBe("prod");
-		expect(staticDefault(5)).toBeInstanceOf(OmpErrors);
+		expect(staticDefault(5)).toBeInstanceOf(NgodeErrors);
 
 		// Factory defaults run per call — distinct instances each time.
 		const factoryDefault = type("string[]").default(() => []);
@@ -504,9 +504,9 @@ describe("type.withJsonSchema", () => {
 
 		// Runtime validation is delegated to the wrapped schema.
 		expect(inner("a")).toBe("a");
-		expect(inner("c")).toBeInstanceOf(OmpErrors);
+		expect(inner("c")).toBeInstanceOf(NgodeErrors);
 		expect(object({ mode: "b" })).toEqual({ mode: "b" });
-		expect(object({ mode: "c" })).toBeInstanceOf(OmpErrors);
+		expect(object({ mode: "c" })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("rejects defaults and output-changing morphs", () => {

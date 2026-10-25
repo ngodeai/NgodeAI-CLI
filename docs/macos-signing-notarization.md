@@ -27,7 +27,7 @@ script signs with the Developer ID and notarizes; with none, it signs ad hoc
    - signs with the Developer ID certificate, the hardened runtime
      (`--code-signature-flags runtime`), a secure timestamp
      (`--for-notarization`), and `scripts/macos-entitlements.plist`, keeping
-     the file name (`omp-darwin-<arch>`) as the signing identifier;
+     the file name (`ngode-darwin-<arch>`) as the signing identifier;
    - packages the binary in a ZIP and submits it with
      `rcodesign notary-submit --wait`, retrying a failed submission up to three
      times. Credential files are removed on exit.
@@ -99,7 +99,7 @@ signing to engage.
 
 ### Producing the credential files
 
-Drop these into a working directory (default `~/omp-signing`):
+Drop these into a working directory (default `~/ngode-signing`):
 
 | File                 | How                                                                                                                                                                                                                                     |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -125,14 +125,14 @@ can appear in that subprocess's arguments. The script prints the filenames
 and Key ID.
 
 ```sh
-scripts/ci-macos-upload-secrets.sh ~/omp-signing --dry-run   # validate first
-scripts/ci-macos-upload-secrets.sh ~/omp-signing             # upload all five
-gh secret list --repo can1357/oh-my-pi                       # confirm
+scripts/ci-macos-upload-secrets.sh ~/ngode-signing --dry-run   # validate first
+scripts/ci-macos-upload-secrets.sh ~/ngode-signing             # upload all five
+gh secret list --repo can1357/ngodeai                       # confirm
 ```
 
-Re-run it whenever the certificate is renewed. `OMP_SIGNING_DIR` changes the
-default input directory; `OMP_REPO=owner/repo` changes the target repository
-(default `can1357/oh-my-pi`). The validation path requires macOS `security`;
+Re-run it whenever the certificate is renewed. `NGODEAI_SIGNING_DIR` changes the
+default input directory; `NGODEAI_REPO=owner/repo` changes the target repository
+(default `can1357/ngodeai`). The validation path requires macOS `security`;
 uploading also requires an authenticated `gh` CLI.
 
 ### Finding your signing identity / Team ID (sanity check)
@@ -154,7 +154,7 @@ API key) by exporting the five env vars and running:
 RELEASE_TARGETS=darwin-arm64 bun run ci:release:build-binaries
 APPLE_CERTIFICATE_P12=… APPLE_CERTIFICATE_PASSWORD=… \
 APPLE_API_KEY_ID=… APPLE_API_ISSUER_ID=… APPLE_API_KEY=… \
-  bash scripts/ci-macos-sign.sh packages/coding-agent/binaries/omp-darwin-arm64
+  bash scripts/ci-macos-sign.sh packages/coding-agent/binaries/ngode-darwin-arm64
 ```
 
 Without the env vars the same command signs ad hoc.

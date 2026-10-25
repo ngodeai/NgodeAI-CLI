@@ -341,7 +341,7 @@ function settingsGroupOnlyPrefixes(): Readonly<Record<string, true>> {
  * Drop entries from capability-provided project settings whose non-object
  * value would shadow an entire settings group. `.claude/settings.json` is
  * shared with other tools, and a foreign leaf like `"tui": "fullscreen"`
- * deep-merges over omp's `tui` group, silently replacing every `tui.*`
+ * deep-merges over ngodeai's `tui` group, silently replacing every `tui.*`
  * setting for sessions rooted in that project. Values at schema leaves,
  * unknown keys, and well-formed nested objects pass through unchanged.
  */
@@ -1609,7 +1609,7 @@ export class Settings {
 	/**
 	 * Provenance of the effective `extensions` array for extension-root
 	 * sub-discovery. `"project"` only when a project settings provider owns it
-	 * (any of `.ngodeai/config.yml`, `.omp/settings.json`, `.claude/settings.json`,
+	 * (any of `.ngodeai/config.yml`, `.ngodeai/settings.json`, `.claude/settings.json`,
 	 * … — all merged into the project layer) and no higher user-level layer (a
 	 * `--config` overlay or a runtime override) replaces it; otherwise `"user"`.
 	 * Callers pass this into {@link EffectiveExtensionRoots.configuredLevel} so
@@ -2992,7 +2992,7 @@ export class Settings {
 					!("bankId" in hindsightObj) &&
 					typeof agentName === "string" &&
 					agentName.trim().length > 0 &&
-					agentName !== "omp"
+					agentName !== "ngodeai"
 				) {
 					hindsightObj.bankId = agentName;
 				}

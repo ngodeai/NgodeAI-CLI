@@ -29,7 +29,7 @@ async function runScenario(
 	scenario: string,
 	options: { logLevel?: string; probe?: string; exitCode?: number; testRuntime?: boolean } = {},
 ): Promise<ScenarioResult> {
-	const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-logger-contract-"));
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-logger-contract-"));
 	roots.push(root);
 	const primaryDir = path.join(root, "primary");
 	const secondaryDir = path.join(root, "secondary");
@@ -56,8 +56,8 @@ async function runScenario(
 				// os.homedir() on Windows reads USERPROFILE, not HOME: without
 				// this the default-file scenario logs into the real profile.
 				USERPROFILE: primaryDir,
-				PI_CONFIG_DIR: ".omp",
-				OMP_PROFILE: "",
+				PI_CONFIG_DIR: ".ngodeai",
+				NGODEAI_PROFILE: "",
 				PI_PROFILE: "",
 				XDG_DATA_HOME: "",
 				XDG_STATE_HOME: "",
@@ -70,8 +70,8 @@ async function runScenario(
 				TMP: tmpDir,
 				TEMP: tmpDir,
 				PI_TEST_RUNTIME: options.testRuntime ? "1" : "",
-				OMP_LOGGER_TEST_NOW: fixedNow,
-				OMP_LOG_LEVEL: options.logLevel ?? "",
+				NGODEAI_LOGGER_TEST_NOW: fixedNow,
+				NGODEAI_LOG_LEVEL: options.logLevel ?? "",
 				TZ: "Etc/GMT+5",
 			},
 			stdout: Bun.file(stdoutPath),
@@ -214,7 +214,7 @@ describe("central logger file level and batching", () => {
 		);
 	});
 
-	test("OMP_LOG_LEVEL=warn gates info and debug while warn and error stay on disk", async () => {
+	test("NGODEAI_LOG_LEVEL=warn gates info and debug while warn and error stay on disk", async () => {
 		const result = await runScenario("matrix", { logLevel: "WARN" });
 		expect((await readLogEntries(result.primaryDir)).map(entry => entry.message)).toEqual([
 			"level-error",
@@ -248,7 +248,7 @@ describe("central logger transport lifecycle", () => {
 		const result = await runScenario("default-file");
 		expect(result.stdout).toBe("");
 		expect(result.stderr).toBe("");
-		const defaultLogsDir = path.join(result.primaryDir, ".omp", "logs");
+		const defaultLogsDir = path.join(result.primaryDir, ".ngodeai", "logs");
 		const log = await readSingleLog(defaultLogsDir);
 		expect(log.text).toBe(expectedLine(result.pid, "info", "mode-default", { mode: "default" }));
 	});
@@ -256,7 +256,7 @@ describe("central logger transport lifecycle", () => {
 	test("a test process writes its default-file records under the temp dir, never the real logs dir", async () => {
 		const result = await runScenario("default-file", { testRuntime: true });
 		expect(result.stderr).toBe("");
-		// The child's HOME stays empty: no ~/.omp/logs was created.
+		// The child's HOME stays empty: no ~/.ngodeai/logs was created.
 		expect(await fs.readdir(result.primaryDir)).toEqual([]);
 		// Named per user, so users of a shared /tmp never share it.
 		const uid = typeof process.getuid === "function" ? process.getuid() : os.userInfo().username;

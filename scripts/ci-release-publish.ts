@@ -461,17 +461,19 @@ function publishTargetJob(target: PublishTarget, packLocks: KeyedMutex): Publish
 				const tag = npmDistTag(packed.version);
 				// Preflight the exact packed version so reruns skip deterministically.
 				// Fail open on lookup errors; only a confirmed published version may skip publishing.
-				const preflight = process.platform === "win32"
-					? await $`cmd.exe /c npm.cmd view ${`${packed.name}@${packed.version}`} version`.quiet().nothrow()
-					: await $`npm view ${`${packed.name}@${packed.version}`} version`.quiet().nothrow();
+				const preflight =
+					process.platform === "win32"
+						? await $`cmd.exe /c npm.cmd view ${`${packed.name}@${packed.version}`} version`.quiet().nothrow()
+						: await $`npm view ${`${packed.name}@${packed.version}`} version`.quiet().nothrow();
 				if (preflight.exitCode === 0 && preflight.stdout.toString().trim()) {
 					log(`Skipping ${packed.name} (version already published)`);
 					return;
 				}
 				log(`Publishing ${packed.name}…`);
-				const result = process.platform === "win32"
-					? await $`cmd.exe /c npm.cmd publish ${packed.path} --access public --tag ${tag}`.quiet().nothrow()
-					: await $`npm publish ${packed.path} --access public --tag ${tag}`.quiet().nothrow();
+				const result =
+					process.platform === "win32"
+						? await $`cmd.exe /c npm.cmd publish ${packed.path} --access public --tag ${tag}`.quiet().nothrow()
+						: await $`npm publish ${packed.path} --access public --tag ${tag}`.quiet().nothrow();
 				const output = `${result.stdout.toString()}${result.stderr.toString()}`.trim();
 				if (output) log(output);
 				if (result.exitCode !== 0) {

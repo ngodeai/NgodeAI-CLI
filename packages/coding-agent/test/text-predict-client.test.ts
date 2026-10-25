@@ -23,7 +23,7 @@ afterEach(async () => {
  * use this daemon or fail. Returns the ops the daemon received.
  */
 async function serveDaemon(version: string): Promise<string[]> {
-	const runtimeDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-text-predict-client-"));
+	const runtimeDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-text-predict-client-"));
 	const received: string[] = [];
 	const server = await IpcServer.listen(
 		textPredictDaemon(runtimeDir, getAgentDir()).endpoint,
@@ -63,8 +63,8 @@ async function serveDaemon(version: string): Promise<string[]> {
 	return received;
 }
 
-describe("text-predict client against a daemon from another omp version", () => {
-	it("uses a daemon from a newer omp instead of shutting it down", async () => {
+describe("text-predict client against a daemon from another ngodeai version", () => {
+	it("uses a daemon from a newer ngodeai instead of shutting it down", async () => {
 		// After an in-place upgrade, a session still running the old build must not
 		// stop the daemon every session on the new build is using.
 		const [major] = VERSION.split(".");
@@ -76,7 +76,7 @@ describe("text-predict client against a daemon from another omp version", () => 
 		expect(received).toEqual(["ping", "complete"]);
 	});
 
-	it("shuts down a daemon from an older omp so this version's can start", async () => {
+	it("shuts down a daemon from an older ngodeai so this version's can start", async () => {
 		const received = await serveDaemon("0.0.1");
 
 		const error = await rejectionOf(requestTextPrediction("ngram", "please ", "re"));

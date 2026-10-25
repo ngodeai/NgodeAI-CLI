@@ -2,7 +2,7 @@
  * Centralized path helpers for NgodeAI config directories.
  *
  * Uses NGODEAI_CONFIG_DIR (default ".ngodeai") for the config root and
- * NGODEAI_AGENT_DIR to override the agent directory. `OMP_*` and `PI_*` names
+ * NGODEAI_AGENT_DIR to override the agent directory. `NGODEAI_*` and `PI_*` names
  * remain accepted as compatibility aliases so existing installations keep
  * working until `ngodeai config migrate` moves them.
  *
@@ -31,7 +31,12 @@ export const APP_URL: string = "https://ngodeai.net/";
 /** Config directory name (e.g. ".ngodeai") */
 export const CONFIG_DIR_NAME: string = ".ngodeai";
 
-/** Legacy config directory names, newest first, that {@link getConfigDirName} falls back to. */
+/**
+ * Legacy config directory names, newest first. `.omp` and `.pi` are the two
+ * pre-rebrand roots; they are migrated into {@link CONFIG_DIR_NAME} on first
+ * run by {@link migrateLegacyConfigRoot}, so this list only ever drives that
+ * one-way migration — never steady-state path resolution.
+ */
 export const LEGACY_CONFIG_DIR_NAMES = [".omp", ".pi"] as const;
 
 /** Ordered main settings filenames: canonical write target first, legacy-compatible YAML fallback second. */
@@ -47,7 +52,7 @@ export const USER_AGENT = `ngodeai/${VERSION}`;
 export const MIN_BUN_VERSION: string = engines.bun.replace(/[^0-9.]/g, "");
 
 const PROFILE_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
-const PROFILE_ENV_KEYS = ["NGODEAI_PROFILE", "OMP_PROFILE", "PI_PROFILE"] as const;
+const PROFILE_ENV_KEYS = ["NGODEAI_PROFILE", "NGODEAI_PROFILE", "PI_PROFILE"] as const;
 
 /**
  * Names Windows treats as reserved device aliases. Matches the basename
@@ -87,30 +92,26 @@ export function normalizeProfileName(profile: string | undefined): string | unde
 }
 
 /**
- * Resolve the active profile from the three profile env vars. `NGODEAI_PROFILE`
- * is canonical and takes precedence; `OMP_PROFILE` and then `PI_PROFILE` are
- * compatibility fallbacks, consulted only when the canonical name is
- * `undefined`. An explicitly-empty `NGODEAI_PROFILE` therefore selects the
- * default profile rather than silently inheriting a legacy value. Delegates
+ * Resolve the active profile from the two profile env vars. `NGODEAI_PROFILE`
+ * is canonical and takes precedence; `PI_PROFILE` is the compatibility
+ * fallback, consulted only when the canonical name is `undefined`. An
+ * explicitly-empty `NGODEAI_PROFILE` therefore selects the default profile
+ * rather than silently inheriting a legacy value. Delegates
  * validation/normalization to {@link normalizeProfileName} (which throws on a
  * syntactically invalid value).
  */
-export function resolveProfileEnv(
-	ngodeai: string | undefined,
-	omp: string | undefined,
-	pi: string | undefined,
-): string | undefined {
-	const value = ngodeai !== undefined ? ngodeai : omp !== undefined ? omp : pi;
+export function resolveProfileEnv(canonical: string | undefined, legacy: string | undefined): string | undefined {
+	const value = canonical !== undefined ? canonical : legacy;
 	return normalizeProfileName(value);
 }
 
 function getProfileFromEnv(): string | undefined {
-	return resolveProfileEnv(process.env.NGODEAI_PROFILE, process.env.OMP_PROFILE, process.env.PI_PROFILE);
+	return resolveProfileEnv(process.env.NGODEAI_PROFILE, process.env.PI_PROFILE);
 }
 
 /**
  * Module-load profile resolution. Unlike {@link getProfileFromEnv}, an invalid
- * NGODEAI_PROFILE/OMP_PROFILE/PI_PROFILE value does NOT throw here — a bad env
+ * NGODEAI_PROFILE/NGODEAI_PROFILE/PI_PROFILE value does NOT throw here — a bad env
  * var must not crash a bare `import` of this module with an uncaught stack
  * trace before the CLI's error handling is in scope. The default profile is
  * used instead; the CLI re-validates the env (see `runCli` in
@@ -342,37 +343,69 @@ export function getSafeProjectCwd(): string {
  * Get the config directory name relative to home (e.g. ".ngodeai").
  *
  * Resolution order: `NGODEAI_CONFIG_DIR`, then the legacy `PI_CONFIG_DIR`, then
- * {@link CONFIG_DIR_NAME}. When the canonical name is unset and the legacy
- * `~/.ngodeai` directory exists but `~/.ngodeai` does not, the legacy name wins so
- * an existing install keeps reading its sessions and credentials instead of
- * silently starting empty. `ngodeai config migrate` copies the old tree over
- * and flips this for good.
+ * {@link CONFIG_DIR_NAME}. A pre-rebrand root (`~/.omp`, `~/.pi`) is *moved*
+ * into {@link CONFIG_DIR_NAME} on first read by
+ * {@link migrateLegacyConfigRoot}; steady state never resolves to a legacy
+ * name, so no new file is ever written under an old brand.
  */
 export function getConfigDirName(): string {
 	const explicit = process.env.NGODEAI_CONFIG_DIR || process.env.PI_CONFIG_DIR;
 	if (explicit) return explicit;
-	if (legacyConfigDirExists()) return LEGACY_CONFIG_DIR_NAMES[0];
 	return CONFIG_DIR_NAME;
 }
 
 /**
- * Whether a legacy config root exists and the canonical one does not, i.e.
- * whether {@link getConfigDirName} should keep honoring the old layout.
- * Cached: this runs on every path resolution and the answer cannot change
- * mid-process without an explicit `config migrate`.
+ * Move a pre-rebrand config root (`~/.omp`, then `~/.pi`) into `~/.ngodeai`.
+ *
+ * Renames when the canonical root does not exist yet — atomic on the same
+ * filesystem, so a 1 GB session store costs one `rename(2)`. When both roots
+ * exist the legacy tree is *merged* in, entry by entry, without overwriting
+ * anything already under the canonical root; the legacy directory is then
+ * removed. Failures are swallowed: a read-only or cross-device HOME must not
+ * stop the CLI from starting, and the next run retries.
+ *
+ * Called once per process from {@link getConfigRootDir}, so every path
+ * consumer sees the post-migration layout.
  */
-let legacyConfigDirProbe: boolean | undefined;
-function legacyConfigDirExists(): boolean {
-	if (legacyConfigDirProbe !== undefined) return legacyConfigDirProbe;
+export function migrateLegacyConfigRoot(): void {
+	if (legacyMigrationAttempted) return;
+	legacyMigrationAttempted = true;
 	try {
 		const home = os.homedir();
-		const canonicalExists = fs.existsSync(path.join(home, CONFIG_DIR_NAME));
-		legacyConfigDirProbe =
-			!canonicalExists && LEGACY_CONFIG_DIR_NAMES.some(name => fs.existsSync(path.join(home, name)));
-	} catch {
-		legacyConfigDirProbe = false;
+		const canonical = path.join(home, CONFIG_DIR_NAME);
+		for (const legacyName of LEGACY_CONFIG_DIR_NAMES) {
+			const legacy = path.join(home, legacyName);
+			if (!fs.existsSync(legacy)) continue;
+			if (!fs.existsSync(canonical)) {
+				fs.renameSync(legacy, canonical);
+				continue;
+			}
+			mergeDirectorySync(legacy, canonical);
+			fs.rmSync(legacy, { recursive: true, force: true });
+		}
+	} catch {}
+}
+
+let legacyMigrationAttempted = false;
+
+/** Test seam: let a suite re-run the migration against a fresh temp HOME. */
+export function __resetLegacyMigrationForTests(): void {
+	legacyMigrationAttempted = false;
+}
+
+/** Recursively copy `from` into `to`, never replacing an existing entry. */
+function mergeDirectorySync(from: string, to: string): void {
+	fs.mkdirSync(to, { recursive: true });
+	for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+		const source = path.join(from, entry.name);
+		const target = path.join(to, entry.name);
+		if (entry.isDirectory()) {
+			mergeDirectorySync(source, target);
+			continue;
+		}
+		if (fs.existsSync(target)) continue;
+		fs.renameSync(source, target);
 	}
-	return legacyConfigDirProbe;
 }
 
 /** Get the config agent directory name relative to home (e.g. ".ngodeai/agent" or NGODEAI_CONFIG_DIR + "/agent"). */
@@ -572,6 +605,11 @@ function resolveActiveAgentDirOverride(): string | undefined {
 		: resolvePreProfileAgentDir(undefined, readAgentDirEnv(), readPiProfileFromEnvSafe());
 }
 
+// A pre-rebrand `~/.omp` / `~/.pi` must move before the first DirResolver is
+// built: every path below is derived from `os.homedir()` + config dir name, so
+// migrating afterwards would leave this process pointing at the old tree.
+migrateLegacyConfigRoot();
+
 let dirs = new DirResolver({
 	agentDirOverride: resolveActiveAgentDirOverride(),
 	profile: activeProfile,
@@ -678,7 +716,7 @@ export function setProfile(profile: string | undefined): void {
 	if (activeProfile) {
 		dirs = new DirResolver({ profile: activeProfile });
 		process.env.NGODEAI_PROFILE = activeProfile;
-		process.env.OMP_PROFILE = activeProfile;
+		process.env.NGODEAI_PROFILE = activeProfile;
 		process.env.PI_PROFILE = activeProfile;
 		writeAgentDirEnv(dirs.agentDir);
 	} else {
@@ -707,7 +745,7 @@ export function getAgentDir(): string {
 /**
  * Get the project-local config directory (`.ngodeai`).
  *
- * A checkout that still carries a legacy `.omp/` directory keeps resolving to
+ * A checkout that still carries a legacy `.ngodeai/` directory keeps resolving to
  * it until the project is migrated: command, skill, and tool discovery would
  * otherwise silently stop finding a team's committed config.
  */
@@ -748,7 +786,7 @@ export function getLogsDir(): string {
 
 /**
  * Local-timezone `YYYY-MM-DD` day key (zero-padded), formatted exactly like
- * the rotating log sink's file naming: log files are named `omp.<day>.<pid>.log`
+ * the rotating log sink's file naming: log files are named `ngodeai.<day>.<pid>.log`
  * with the LOCAL day, not the UTC day `toISOString()` yields. Anything that
  * computes "today's" log path or matches same-day log files by name must use
  * this key, or between local midnight and UTC midnight it points at files that
@@ -794,7 +832,7 @@ export function getPluginsPackageJson(home?: string): string {
 export const PLUGINS_LOCKFILE_NAME = "ngodeai-plugins.lock.json";
 
 /** Legacy plugin lock filename, still read when the canonical one is absent. */
-export const LEGACY_PLUGINS_LOCKFILE_NAME = "omp-plugins.lock.json";
+export const LEGACY_PLUGINS_LOCKFILE_NAME = "ngode-plugins.lock.json";
 
 /** Plugin lock file (~/.ngodeai/plugins/ngodeai-plugins.lock.json). */
 export function getPluginsLockfile(home?: string): string {
@@ -828,9 +866,9 @@ export function getRemoteDir(): string {
  *
  * Worktree bases and the natives directory are process-global: a worktree base
  * is consumed by both creation (PR checkout, task isolation) and cleanup
- * (`omp worktree`), and every launch extracts or loads the native addon from
+ * (`ngodeai worktree`), and every launch extracts or loads the native addon from
  * the same natives directory. A relative value would resolve against whatever
- * cwd happened to launch `omp`, so those readers could disagree — we refuse it
+ * cwd happened to launch `ngodeai`, so those readers could disagree — we refuse it
  * rather than silently bind it to cwd.
  */
 function resolveAbsoluteDir(value: string | undefined): string | undefined {
@@ -846,9 +884,9 @@ let worktreesDirOverride: string | undefined;
 
 /**
  * Relocate the base directory for agent-managed worktrees (PR checkouts, task
- * isolation, and `omp worktree` cleanup all read the same base). Driven by the
+ * isolation, and `ngodeai worktree` cleanup all read the same base). Driven by the
  * `worktree.base` setting in coding-agent; pass `undefined`/empty to clear and
- * fall back to `NGODEAI_WORKTREE_DIR` (or the legacy `OMP_WORKTREE_DIR`) or the `~/.ngodeai/wt` default.
+ * fall back to `NGODEAI_WORKTREE_DIR` (or the legacy `NGODEAI_WORKTREE_DIR`) or the `~/.ngodeai/wt` default.
  *
  * `~` is expanded and a relative path is rejected (see {@link resolveAbsoluteDir}).
  * Returns the absolute path that took effect, or `undefined` if the input was
@@ -862,13 +900,13 @@ export function setWorktreesDir(dir: string | undefined): string | undefined {
 
 /**
  * Get the agent-managed worktrees directory. Resolution order: the
- * `OMP_WORKTREE_DIR` env var, then the {@link setWorktreesDir} override (the
+ * `NGODEAI_WORKTREE_DIR` env var, then the {@link setWorktreesDir} override (the
  * `worktree.base` setting), then the `~/.ngodeai/wt` default. The env var and the
  * override are both `~`-expanded and must be absolute; a relative value is
  * ignored and resolution falls through.
  */
 export function getWorktreesDir(): string {
-	return resolveAbsoluteDir(process.env.OMP_WORKTREE_DIR) ?? worktreesDirOverride ?? dirs.rootSubdir("wt", "data");
+	return resolveAbsoluteDir(process.env.NGODEAI_WORKTREE_DIR) ?? worktreesDirOverride ?? dirs.rootSubdir("wt", "data");
 }
 
 /** Get the SSH control socket directory (~/.ngodeai/ssh-control). */
@@ -886,7 +924,7 @@ export function getPythonEnvDir(): string {
 	return dirs.rootSubdir("python-env", "data");
 }
 
-/** Get the shared Python gateway state directory (~/.ngodeai/agent/python-gateway; XDG default: $XDG_STATE_HOME/omp/python-gateway). */
+/** Get the shared Python gateway state directory (~/.ngodeai/agent/python-gateway; XDG default: $XDG_STATE_HOME/ngodeai/python-gateway). */
 export function getPythonGatewayDir(): string {
 	return dirs.agentSubdir(undefined, "python-gateway", "state");
 }
@@ -911,7 +949,7 @@ export function getDocsRsCacheDir(): string {
 	return dirs.rootSubdir("webcache", "cache");
 }
 
-/** Get the auto-QA grievances SQLite database path (~/.ngodeai/autoqa.db; XDG: $XDG_DATA_HOME/omp/autoqa.db). */
+/** Get the auto-QA grievances SQLite database path (~/.ngodeai/autoqa.db; XDG: $XDG_DATA_HOME/ngodeai/autoqa.db). */
 export function getAutoQaDbPath(): string {
 	return dirs.rootSubdir("autoqa.db", "data");
 }
@@ -935,30 +973,30 @@ export function getWorktreeDir(segment: string): string {
 
 /**
  * Get the GitHub view cache database path (~/.ngodeai/cache/github-cache.db).
- * Honors the `OMP_GITHUB_CACHE_DB` env var when set so tests can isolate the
+ * Honors the `NGODEAI_GITHUB_CACHE_DB` env var when set so tests can isolate the
  * cache file without touching the rest of the config root.
  */
 export function getGithubCacheDbPath(): string {
-	const override = process.env.OMP_GITHUB_CACHE_DB;
+	const override = process.env.NGODEAI_GITHUB_CACHE_DB;
 	if (override) return override;
 	return dirs.rootSubdir(path.join("cache", "github-cache.db"), "cache");
 }
 /**
  * Get the conventional commit inference cache database path (~/.ngodeai/cache/commit-inference.db).
- * Honors `OMP_COMMIT_CACHE_DB` so tests and operators can isolate the cache.
+ * Honors `NGODEAI_COMMIT_CACHE_DB` so tests and operators can isolate the cache.
  */
 export function getCommitCacheDbPath(): string {
-	const override = process.env.OMP_COMMIT_CACHE_DB;
+	const override = process.env.NGODEAI_COMMIT_CACHE_DB;
 	if (override) return override;
 	return dirs.rootSubdir(path.join("cache", "commit-inference.db"), "cache");
 }
 
 /**
  * Get the judgment answer cache database path (~/.ngodeai/cache/judgment-cache.db).
- * Honors `OMP_JUDGMENT_CACHE_DB` so tests and operators can isolate the cache.
+ * Honors `NGODEAI_JUDGMENT_CACHE_DB` so tests and operators can isolate the cache.
  */
 export function getJudgmentCacheDbPath(): string {
-	const override = process.env.OMP_JUDGMENT_CACHE_DB;
+	const override = process.env.NGODEAI_JUDGMENT_CACHE_DB;
 	if (override) return override;
 	return dirs.rootSubdir(path.join("cache", "judgment-cache.db"), "cache");
 }
@@ -970,11 +1008,11 @@ export function getLegacyPiExtensionCacheDbPath(): string {
 
 /**
  * Get the encrypted auth-broker snapshot cache path (~/.ngodeai/cache/auth-broker-snapshot.enc).
- * Honors the `OMP_AUTH_BROKER_SNAPSHOT_CACHE` env var when set so tests and
+ * Honors the `NGODEAI_AUTH_BROKER_SNAPSHOT_CACHE` env var when set so tests and
  * operators can isolate or relocate the cache file.
  */
 export function getAuthBrokerSnapshotCachePath(): string {
-	const override = process.env.OMP_AUTH_BROKER_SNAPSHOT_CACHE;
+	const override = process.env.NGODEAI_AUTH_BROKER_SNAPSHOT_CACHE;
 	if (override) return override;
 	return dirs.rootSubdir(path.join("cache", "auth-broker-snapshot.enc"), "cache");
 }
@@ -1072,19 +1110,19 @@ export function getTinyModelsCacheDir(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, path.join("cache", "tiny-models"), "cache");
 }
 
-/** Get the document conversion cache directory (~/.ngodeai/agent/cache/document-conversions; XDG default: $XDG_CACHE_HOME/omp/cache/document-conversions). */
+/** Get the document conversion cache directory (~/.ngodeai/agent/cache/document-conversions; XDG default: $XDG_CACHE_HOME/ngodeai/cache/document-conversions). */
 export function getDocumentConversionCacheDir(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, path.join("cache", "document-conversions"), "cache");
 }
-/** Get the composer speculative cache database (~/.ngodeai/agent/cache/composer.db; XDG default: $XDG_CACHE_HOME/omp/cache/composer.db). */
+/** Get the composer speculative cache database (~/.ngodeai/agent/cache/composer.db; XDG default: $XDG_CACHE_HOME/ngodeai/cache/composer.db). */
 export function getComposerCacheDbPath(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, path.join("cache", "composer.db"), "cache");
 }
-/** Get the skill descriptions database (~/.ngodeai/agent/skill-descriptions.db; XDG default: $XDG_DATA_HOME/omp/skill-descriptions.db). */
+/** Get the skill descriptions database (~/.ngodeai/agent/skill-descriptions.db; XDG default: $XDG_DATA_HOME/ngodeai/skill-descriptions.db). */
 export function getSkillDescriptionsDbPath(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, "skill-descriptions.db", "data");
 }
-/** Get the text-predict engine state directory (~/.ngodeai/agent/predict/<method>; XDG default: $XDG_DATA_HOME/omp/predict/<method>). Adopts legacy engine state on first XDG resolution. */
+/** Get the text-predict engine state directory (~/.ngodeai/agent/predict/<method>; XDG default: $XDG_DATA_HOME/ngodeai/predict/<method>). Adopts legacy engine state on first XDG resolution. */
 export function getPredictStateDir(agentDir: string | undefined, method: string): string {
 	const subdir = path.join("predict", method);
 	const stateDir = dirs.agentSubdir(agentDir, subdir, "data");
@@ -1147,12 +1185,12 @@ export function getCustomSessionFilesDir(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, "custom-session-files", "state");
 }
 
-/** Get the crash log path (~/.ngodeai/agent/omp-crash.log). */
+/** Get the crash log path (~/.ngodeai/agent/ngode-crash.log). */
 export function getCrashLogPath(agentDir?: string): string {
-	return dirs.agentSubdir(agentDir, "omp-crash.log", "state");
+	return dirs.agentSubdir(agentDir, "ngode-crash.log", "state");
 }
 
-/** Get the debug log path (~/.ngodeai/agent/omp-debug.log). */
+/** Get the debug log path (~/.ngodeai/agent/ngode-debug.log). */
 export function getDebugLogPath(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, `${APP_NAME}-debug.log`, "state");
 }
@@ -1161,7 +1199,7 @@ export function getDebugLogPath(agentDir?: string): string {
  * Best-effort one-time copy of a legacy config-root file to its redirected XDG
  * location. Existing installs that enable XDG after the file was created keep
  * their data (e.g. a placeholder key whose loss would break deobfuscation of
- * persisted transcripts). The legacy file is left in place for older omp
+ * persisted transcripts). The legacy file is left in place for older ngodeai
  * versions sharing the profile.
  */
 function adoptLegacyFile(legacyPath: string, targetPath: string): void {
@@ -1181,7 +1219,7 @@ function adoptLegacyFile(legacyPath: string, targetPath: string): void {
  * location, so learned state survives enabling XDG. The copy is staged next to
  * the target and renamed into place, so a reader never sees a partial tree and
  * a concurrent adopter cannot clobber a finished one. The legacy directory is
- * left in place for older omp versions sharing the profile.
+ * left in place for older ngodeai versions sharing the profile.
  */
 function adoptLegacyDir(legacyPath: string, targetPath: string): void {
 	if (targetPath === legacyPath) return;
@@ -1199,35 +1237,35 @@ function adoptLegacyDir(legacyPath: string, targetPath: string): void {
 	}
 }
 
-/** Get the secret placeholder key path (~/.ngodeai/agent/secret-placeholder.key; XDG default: $XDG_STATE_HOME/omp/secret-placeholder.key). Adopts a legacy key on first XDG resolution. */
+/** Get the secret placeholder key path (~/.ngodeai/agent/secret-placeholder.key; XDG default: $XDG_STATE_HOME/ngodeai/secret-placeholder.key). Adopts a legacy key on first XDG resolution. */
 export function getSecretPlaceholderKeyPath(): string {
 	const keyPath = dirs.agentSubdir(undefined, "secret-placeholder.key", "state");
 	adoptLegacyFile(path.join(dirs.agentDir, "secret-placeholder.key"), keyPath);
 	return keyPath;
 }
 
-/** Directory holding the per-model tiny-worker sockets and logs (~/.ngodeai/run/tiny; XDG default: $XDG_STATE_HOME/omp/run/tiny). */
+/** Directory holding the per-model tiny-worker sockets and logs (~/.ngodeai/run/tiny; XDG default: $XDG_STATE_HOME/ngodeai/run/tiny). */
 export function getTinyWorkerRuntimeDir(): string {
 	return dirs.rootSubdir(path.join("run", "tiny"), "state");
 }
 
-/** Directory holding the per-model mnemopi embedding server endpoints and logs (~/.ngodeai/run/mnemopi; XDG default: $XDG_STATE_HOME/omp/run/mnemopi). */
+/** Directory holding the per-model mnemopi embedding server endpoints and logs (~/.ngodeai/run/mnemopi; XDG default: $XDG_STATE_HOME/ngodeai/run/mnemopi). */
 export function getMnemopiEmbedRuntimeDir(): string {
 	return dirs.rootSubdir(path.join("run", "mnemopi"), "state");
 }
 
-/** Root directory containing every per-project daemon runtime scope (~/.ngodeai/run/daemons; XDG default: $XDG_STATE_HOME/omp/run/daemons). */
+/** Root directory containing every per-project daemon runtime scope (~/.ngodeai/run/daemons; XDG default: $XDG_STATE_HOME/ngodeai/run/daemons). */
 export function getDaemonRuntimeRoot(): string {
 	return dirs.rootSubdir(path.join("run", "daemons"), "state");
 }
 
-/** Get the daemon runtime directory for a project (~/.ngodeai/run/daemons/<hash>; XDG default: $XDG_STATE_HOME/omp/run/daemons/<hash>). */
+/** Get the daemon runtime directory for a project (~/.ngodeai/run/daemons/<hash>; XDG default: $XDG_STATE_HOME/ngodeai/run/daemons/<hash>). */
 export function getDaemonRuntimeDir(projectDir: string): string {
 	const key = Bun.hash.wyhash(path.resolve(projectDir)).toString(16).padStart(16, "0");
 	return path.join(getDaemonRuntimeRoot(), key);
 }
 
-/** Root directory containing every machine-global daemon service scope (~/.ngodeai/run/daemons/global; XDG default: $XDG_STATE_HOME/omp/run/daemons/global). Shared across profiles. */
+/** Root directory containing every machine-global daemon service scope (~/.ngodeai/run/daemons/global; XDG default: $XDG_STATE_HOME/ngodeai/run/daemons/global). Shared across profiles. */
 export function getGlobalDaemonRuntimeRoot(): string {
 	return dirs.baseRootSubdir(path.join("run", "daemons", "global"), "state");
 }
@@ -1242,19 +1280,19 @@ export function getGlobalDaemonRuntimeDir(service: string): string {
 
 /**
  * Directory naming session ownership leases (~/.ngodeai/run/session-owners; XDG
- * default: $XDG_STATE_HOME/omp/run/session-owners). Shared across profiles:
- * every omp process that opens a session must meet the same lease.
+ * default: $XDG_STATE_HOME/ngodeai/run/session-owners). Shared across profiles:
+ * every ngodeai process that opens a session must meet the same lease.
  */
 export function getSessionOwnersDir(): string {
 	return dirs.baseRootSubdir(path.join("run", "session-owners"), "state");
 }
 
-/** Get the provider in-flight root directory (~/.ngodeai/run/provider-inflight; XDG default: $XDG_STATE_HOME/omp/run/provider-inflight). */
+/** Get the provider in-flight root directory (~/.ngodeai/run/provider-inflight; XDG default: $XDG_STATE_HOME/ngodeai/run/provider-inflight). */
 export function getProviderInFlightRoot(): string {
 	return dirs.rootSubdir(path.join("run", "provider-inflight"), "state");
 }
 
-/** Get the marketplaces registry path (~/.ngodeai/marketplaces.json; XDG default: $XDG_DATA_HOME/omp/marketplaces.json). Adopts a legacy registry on first XDG resolution. */
+/** Get the marketplaces registry path (~/.ngodeai/marketplaces.json; XDG default: $XDG_DATA_HOME/ngodeai/marketplaces.json). Adopts a legacy registry on first XDG resolution. */
 export function getMarketplacesRegistryPath(): string {
 	const registryPath = dirs.rootSubdir("marketplaces.json", "data");
 	adoptLegacyFile(path.join(dirs.configRoot, "marketplaces.json"), registryPath);
@@ -1262,20 +1300,20 @@ export function getMarketplacesRegistryPath(): string {
 }
 
 // =============================================================================
-// Project subdirectories (.omp/*)
+// Project subdirectories (.ngodeai/*)
 // =============================================================================
 
-/** Get the project-level Python modules directory (.omp/modules). */
+/** Get the project-level Python modules directory (.ngodeai/modules). */
 export function getProjectModulesDir(cwd: string = getProjectDir()): string {
 	return path.join(getProjectAgentDir(cwd), "modules");
 }
 
-/** Get the project-level prompts directory (.omp/prompts). */
+/** Get the project-level prompts directory (.ngodeai/prompts). */
 export function getProjectPromptsDir(cwd: string = getProjectDir()): string {
 	return path.join(getProjectAgentDir(cwd), "prompts");
 }
 
-/** Get the project-level plugin overrides path (.omp/plugin-overrides.json). */
+/** Get the project-level plugin overrides path (.ngodeai/plugin-overrides.json). */
 export function getProjectPluginOverridesPath(cwd: string = getProjectDir()): string {
 	return path.join(getProjectAgentDir(cwd), "plugin-overrides.json");
 }
@@ -1308,14 +1346,14 @@ let cachedInstallId: string | null = null;
 
 const INSTALL_ID_FILE = "install-id";
 /**
- * Application label for usage attribution (`NGODEAI_APP_NAME`, with `OMP_APP_NAME`
+ * Application label for usage attribution (`NGODEAI_APP_NAME`, with `NGODEAI_APP_NAME`
  * kept as an alias), defaulting to `ngodeai`. Embedders that drive NgodeAI
- * programmatically (robomp, CI bots, …) set the env var so broker-side
+ * programmatically (ngodebot, CI bots, …) set the env var so broker-side
  * per-client burn tracking can answer "what did app X use" instead of folding
  * everything into one install-wide bucket.
  */
 export function getAppName(): string {
-	const value = (process.env.NGODEAI_APP_NAME ?? process.env.OMP_APP_NAME)?.trim();
+	const value = (process.env.NGODEAI_APP_NAME ?? process.env.NGODEAI_APP_NAME)?.trim();
 	return value ? value : APP_NAME;
 }
 

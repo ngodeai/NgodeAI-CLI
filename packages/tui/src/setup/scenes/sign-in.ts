@@ -340,7 +340,7 @@ export class SignInScene implements SetupSceneController {
 				onAuth: info => {
 					// Store the full authorization URL as the primary copy/display
 					// target: it works from any machine, including SSH boxes where
-					// the OMP-hosted `launchUrl` would resolve against the user's
+					// the NGODEAI-hosted `launchUrl` would resolve against the user's
 					// local browser and fail. The wizard render uses
 					// `wrapTextWithAnsi`, so long URLs wrap across lines rather
 					// than getting truncated — the RFC 7636 §4.3 PKCE-downgrade

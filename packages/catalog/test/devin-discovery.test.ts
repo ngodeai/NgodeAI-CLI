@@ -380,7 +380,7 @@ const FIXTURE_CONFIGS: readonly ClientModelConfig[] = [
 let models: ModelSpec<"devin-agent">[];
 let requestMetadata: Metadata | undefined;
 
-/** Unprefixed Devin session token, as OMP's own Devin login stores it. */
+/** Unprefixed Devin session token, as NGODEAI's own Devin login stores it. */
 const SESSION_TOKEN = "header.payload.signature";
 
 function captureDiscoveryKey(): { fetch: FetchImpl; keys: string[] } {

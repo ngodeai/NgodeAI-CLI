@@ -7,8 +7,8 @@ import { removeWithRetries } from "../../utils/src/temp";
 import { withEnv } from "./helpers";
 
 const CLEAR_BROKER_ENV = {
-	OMP_AUTH_BROKER_URL: undefined,
-	OMP_AUTH_BROKER_TOKEN: undefined,
+	NGODEAI_AUTH_BROKER_URL: undefined,
+	NGODEAI_AUTH_BROKER_TOKEN: undefined,
 } as const;
 
 describe("auth-broker config.yml key resolution", () => {

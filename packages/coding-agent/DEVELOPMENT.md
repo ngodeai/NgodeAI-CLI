@@ -1,6 +1,6 @@
 # Developing `@ngodeai/coding-agent`
 
-This package is the `omp` CLI. This file is a **developer's map**: where things live
+This package is the `ngodeai` CLI. This file is a **developer's map**: where things live
 in `src/`, how to run the local loops, and — for each subsystem — which document in
 the repo [`docs/`](../../docs/) tree is the authoritative reference.
 
@@ -20,7 +20,7 @@ Run from `packages/coding-agent/` (or add `--cwd=packages/coding-agent`):
 | Lint only | `bun run lint` |
 | Tests | `bun run test` |
 | Autofix: lint + format prompts | `bun run fix` |
-| Build the `dist/omp` binary | `bun run build` |
+| Build the `dist/ngodeai` binary | `bun run build` |
 
 Never invoke `tsc`/`npx tsc` directly — `bun run check` is the typecheck gate. After
 changing the React tool renderers under `collab-web/src/tool-render/`, rebuild them
@@ -31,7 +31,7 @@ before real socket listeners are started. Bun's mocked clock can defer
 `server.listen` callbacks, leaving registry publication and teardown waiting.
 
 Tests that call `setAgentDir()` must snapshot and restore `PI_CODING_AGENT_DIR`,
-`OMP_PROFILE`, and `PI_PROFILE` for each test, then call
+`NGODEAI_PROFILE`, and `PI_PROFILE` for each test, then call
 `__resetDirsFromEnvForTests()` after restoration. Home-directory discovery fixtures
 must clear and restore `PI_CODING_AGENT_DIR` so inherited overrides cannot bypass
 the fixture. Reuse `restoreEnvValue()` from `test/helpers/settings-test-state.ts`
@@ -157,7 +157,7 @@ Top-level entry modules: `cli.ts`, `main.ts`, `sdk.ts`, `index.ts` (SDK barrel),
 - [macos-signing-notarization.md](../../docs/macos-signing-notarization.md)
 - [porting-from-pi-mono.md](../../docs/porting-from-pi-mono.md)
 
-## Extending omp
+## Extending ngodeai
 
 | To add… | Start here |
 |---|---|

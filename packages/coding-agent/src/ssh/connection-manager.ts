@@ -26,7 +26,7 @@ export interface SSHHostInfo {
 	os: SSHHostOs;
 	shell: SSHHostShell;
 	/**
-	 * Shell name OMP verified can execute the POSIX transfer snippets
+	 * Shell name NGODEAI verified can execute the POSIX transfer snippets
 	 * (`head`/`cat`/`mv`/`test`/`ls`) `ssh://` uses. Probed by running
 	 * `sh -lc` / `bash -lc` / `zsh -lc` against the remote and keeping the
 	 * first one that round-trips a known marker. Independent of `shell`
@@ -83,7 +83,7 @@ export function sshControlFallbackDir(canonicalDir: string, uid: number, tmpBase
 		.digest("hex")
 		.slice(0, 20);
 	// Only ControlMaster (POSIX) platforms reach this, so the socket dir is a POSIX path.
-	return path.posix.join(tmpBase, `omp-${key}`);
+	return path.posix.join(tmpBase, `ngode-${key}`);
 }
 
 interface ControlDirChoice {
@@ -185,10 +185,10 @@ async function validateKeyPermissions(keyPath?: string, platform: SshPlatform = 
 }
 
 /**
- * Who owns the ControlPath socket for a host: omp's private control directory,
+ * Who owns the ControlPath socket for a host: ngodeai's private control directory,
  * or the user's ssh_config (see {@link resolveControlPathOwner}).
  */
-type ControlPathOwner = "omp" | "config";
+type ControlPathOwner = "ngodeai" | "config";
 
 function buildCommonArgs(host: SSHConnectionTarget, owner: ControlPathOwner, options?: SSHArgsOptions): string[] {
 	const args = options?.allowStdin ? [] : ["-n"];
@@ -196,7 +196,7 @@ function buildCommonArgs(host: SSHConnectionTarget, owner: ControlPathOwner, opt
 	if (supportsSshControlMaster(options?.platform)) {
 		args.push("-o", "ControlMaster=auto");
 		// A config-owned socket keeps the user's ControlPath and ControlPersist.
-		if (owner === "omp") args.push("-o", `ControlPath=${CONTROL_PATH}`, "-o", "ControlPersist=3600");
+		if (owner === "ngodeai") args.push("-o", `ControlPath=${CONTROL_PATH}`, "-o", "ControlPersist=3600");
 	}
 
 	args.push("-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new");
@@ -272,15 +272,15 @@ const controlPathOwners = new Map<string, Promise<ControlPathOwner>>();
  * Decide whose ControlPath socket `host` uses.
  *
  * When the user's ssh_config resolves a `ControlPath` (`ssh -G` reports one
- * other than `none`), omp defers to it instead of injecting its own, so a
+ * other than `none`), ngodeai defers to it instead of injecting its own, so a
  * master the user already authenticated — e.g. interactively on an MFA host
- * that `BatchMode=yes` can never reach — serves omp too (#15974). Cached per
- * destination for the process lifetime; a failed lookup keeps omp's socket.
+ * that `BatchMode=yes` can never reach — serves ngodeai too (#15974). Cached per
+ * destination for the process lifetime; a failed lookup keeps ngodeai's socket.
  *
  * Throws when the username or host would be parsed as an ssh option.
  */
 function resolveControlPathOwner(host: SSHConnectionTarget, platform?: SshPlatform): Promise<ControlPathOwner> {
-	if (!supportsSshControlMaster(platform)) return Promise.resolve("omp");
+	if (!supportsSshControlMaster(platform)) return Promise.resolve("ngodeai");
 	const target = buildSshTarget(host.username, host.host);
 	const key = `${target}:${host.port ?? ""}`;
 	let owner = controlPathOwners.get(key);
@@ -296,18 +296,18 @@ async function lookupControlPathOwner(target: string, port?: number): Promise<Co
 	try {
 		const { exitCode, stdout, stderr } = await runSshCaptureSync(args);
 		if (exitCode !== 0) {
-			logger.debug("ssh -G failed; using omp ControlPath", { target, error: stderr });
-			return "omp";
+			logger.debug("ssh -G failed; using ngodeai ControlPath", { target, error: stderr });
+			return "ngodeai";
 		}
 		for (const line of stdout.split("\n")) {
 			if (!line.startsWith("controlpath ")) continue;
 			const value = line.slice("controlpath ".length).trim();
-			return value && value !== "none" ? "config" : "omp";
+			return value && value !== "none" ? "config" : "ngodeai";
 		}
-		return "omp";
+		return "ngodeai";
 	} catch (err) {
-		logger.debug("ssh -G failed; using omp ControlPath", { target, error: String(err) });
-		return "omp";
+		logger.debug("ssh -G failed; using ngodeai ControlPath", { target, error: String(err) });
+		return "ngodeai";
 	}
 }
 
@@ -769,7 +769,7 @@ export async function ensureConnection(host: SSHConnectionTarget): Promise<void>
 		const commonArgs = buildCommonArgs(host, owner);
 		const check = await runSshSync(["-O", "check", ...commonArgs, target]);
 		if (check.exitCode === 0 || owner === "config") {
-			// Only omp-owned sockets need an explicit master. Configured sockets
+			// Only ngode-owned sockets need an explicit master. Configured sockets
 			// use ssh_config's normal connection and ControlPersist policy.
 			activeHosts.set(key, host);
 			if (!hostInfoCache.has(key) && !(await loadHostInfoFromDisk(host))) {
@@ -822,7 +822,7 @@ async function closeConnectionInternal(host: SSHConnectionTarget): Promise<void>
 	const target = buildSshTarget(host.username, host.host);
 	const owner = await resolveControlPathOwner(host);
 	// Configured sockets may have been replaced by a user's master since the
-	// last check. Never exit a socket that omp doesn't own.
+	// last check. Never exit a socket that ngodeai doesn't own.
 	if (owner === "config") return;
 	await runSshSync(["-O", "exit", ...buildCommonArgs(host, owner), target]);
 }

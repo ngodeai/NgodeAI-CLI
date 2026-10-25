@@ -8,13 +8,13 @@
  */
 import { parseFlag } from "@ngodeai/utils";
 
-/** Browser kind selecting the omp browser relay. */
+/** Browser kind selecting the ngodeai browser relay. */
 export interface RelayKind {
 	kind: "relay";
 	cdpUrl: string;
 }
 
-/** Default endpoint of the `omp-browser-relay` CLI. */
+/** Default endpoint of the `ngode-browser-relay` CLI. */
 export const DEFAULT_RELAY_URL = "http://127.0.0.1:9224";
 
 export interface ResolveRelayKindOptions {

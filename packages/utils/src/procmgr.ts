@@ -32,7 +32,7 @@ let capturedChildShellEnv: Record<string, string> | undefined;
 /**
  * Project whose dotenv values the spawn environment filters out: the one current
  * when it was first built or captured.
- * That is normally the launch project, whose dotenv files Bun and omp load into
+ * That is normally the launch project, whose dotenv files Bun and ngodeai load into
  * `process.env`; a later session in another project must not receive them.
  */
 let spawnEnvProjectDir: string | undefined;
@@ -48,7 +48,7 @@ function buildSpawnEnv(shell: string): Record<string, string> {
 		SHELL: shell,
 		GIT_EDITOR: "true",
 		GPG_TTY: "not a tty",
-		OMPCODE: "1",
+		NGODECODE: "1",
 		CLAUDECODE: "1",
 		...(noCI ? {} : { CI: "true" }),
 	} as Record<string, string>;

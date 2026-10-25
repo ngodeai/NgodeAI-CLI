@@ -83,7 +83,7 @@ export function StringEnum<T extends string | number>(
 	return schema;
 }
 
-/** Clamp a historical Pi thinking level against OMP's model metadata. */
+/** Clamp a historical Pi thinking level against NGODEAI's model metadata. */
 export function clampThinkingLevel<TApi extends Api>(model: Model<TApi>, level: Effort | "off"): Effort | "off" {
 	if (level === "off") return "off";
 	return clampThinkingLevelForModel(model, level) ?? "off";
@@ -93,7 +93,7 @@ export function clampThinkingLevel<TApi extends Api>(model: Model<TApi>, level: 
  * Enumerate the thinking levels a model supports, mirroring historical pi-ai's
  * `getSupportedThinkingLevels` (`@earendil-works/pi-ai` `models.ts`). Upstream
  * returns `["off"]` for non-reasoning models and, for reasoning models, `off`
- * followed by each selectable effort in canonical order; OMP's baked
+ * followed by each selectable effort in canonical order; NGODEAI's baked
  * `getSupportedEfforts` supplies that effort ladder directly. Legacy `/thinking`
  * menus (e.g. `@companion-ai/feynman`) call this to list the levels a user may
  * pick for the active model.
@@ -108,9 +108,9 @@ export function getSupportedThinkingLevels<TApi extends Api>(model: Model<TApi>)
  * (`@earendil-works/pi-ai` `utils/retry.ts`). Legacy extensions call
  * {@link isRetryableAssistantError} to decide whether to restart a failed
  * assistant turn, so the wording tables must match the upstream semantics they
- * were authored against rather than OMP's own `Error`-based classifiers.
+ * were authored against rather than NGODEAI's own `Error`-based classifiers.
  *
- * The transport wording also covers OMP's own network-failure sentences from
+ * The transport wording also covers NGODEAI's own network-failure sentences from
  * `networkFailureMessage` (offline, unreachable, refused, TLS); legacy
  * extensions must keep restarting those turns exactly as they did for the
  * bare `Connection error.` text they replaced.
@@ -156,7 +156,7 @@ const ANTHROPIC_MESSAGES_API = {
 };
 
 /**
- * Expose OMP's Anthropic transport through the legacy `/compat` provider
+ * Expose NGODEAI's Anthropic transport through the legacy `/compat` provider
  * factory used by extensions such as `pi-background-tasks`.
  */
 export function anthropicMessagesApi() {
@@ -182,7 +182,7 @@ export function streamSimpleOpenAIResponses(
 }
 /**
  * Compatibility re-exports for runtime helpers that upstream
- * `@earendil-works/pi-ai` exposed from its package root but omp's
+ * `@earendil-works/pi-ai` exposed from its package root but ngodeai's
  * `@ngodeai/ai` barrel no longer forwards. Each symbol still exists in the
  * host graph — only its root re-export was dropped — so bridging it here keeps
  * legacy extensions importing it from the pi-ai root resolving through Bun's
@@ -192,7 +192,7 @@ export function streamSimpleOpenAIResponses(
  * `@ngodeai/ai/error`) and the JSON-repair helpers (relocated to
  * `@ngodeai/utils`) still exist in the host graph and are re-exported.
  * Upstream pi-ai 1.x additionally exposes a transcript-replay module
- * (`src/utils/transcript.ts`, present since at least 1.0.2) that omp's fork
+ * (`src/utils/transcript.ts`, present since at least 1.0.2) that ngodeai's fork
  * predates and has no equivalent of anywhere; that family is ported verbatim
  * in `legacy-pi-transcript.ts` (observed consumer:
  * `pi-optchat` importing `getCurrentSystemMessage`).

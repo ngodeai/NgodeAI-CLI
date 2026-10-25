@@ -1,5 +1,5 @@
 /**
- * Regression for the Windows `bun install -g` update path: when an `omp`
+ * Regression for the Windows `bun install -g` update path: when an `ngodeai`
  * process is running, bun cannot overwrite a locked
  * `node_modules/@ngodeai/natives/native/ngode_natives.win32-x64.node` during
  * package update and silently keeps the old binary next to the new ESM
@@ -8,7 +8,7 @@
  *
  * The fix has two halves, both pinned by this test:
  *   1. The loader stages `nativeDir/<filename>.node` → `versionedDir/<filename>.node`
- *      (per-package-version cache under `~/.omp/natives/<version>/`) so the
+ *      (per-package-version cache under `~/.ngodeai/natives/<version>/`) so the
  *      running process holds its OS-level handle on a path bun is never asked
  *      to overwrite. Gated to Windows + node_modules installs + non-compiled
  *      mode by `shouldStageNodeModulesAddon`.
@@ -33,8 +33,8 @@ import {
 } from "../native/loader-state.js";
 import packageJson from "../package.json" with { type: "json" };
 
-const winNodeModulesNativeDir = "C:\\Users\\Admin\\node_modules\\@oh-my-pi\\ngode-natives\\native";
-const winWorkspaceNativeDir = "C:\\Users\\Admin\\dev\\oh-my-pi\\packages\\natives\\native";
+const winNodeModulesNativeDir = "C:\\Users\\Admin\\node_modules\\@ngodeai\\ngode-natives\\native";
+const winWorkspaceNativeDir = "C:\\Users\\Admin\\dev\\ngodeai\\packages\\natives\\native";
 const posixNodeModulesNativeDir = "/home/u/proj/node_modules/@ngodeai/natives/native";
 
 describe("windows native addon staging", () => {
@@ -87,8 +87,8 @@ describe("windows native addon staging", () => {
 	});
 
 	it("prepends versionedDir candidates ahead of node_modules when staging on Windows", () => {
-		const versionedDir = "C:\\Users\\Admin\\.omp\\natives\\15.0.1";
-		const userDataDir = "C:\\Users\\Admin\\AppData\\Local\\omp";
+		const versionedDir = "C:\\Users\\Admin\\.ngodeai\\natives\\15.0.1";
+		const userDataDir = "C:\\Users\\Admin\\AppData\\Local\\ngodeai";
 		const candidates = resolveLoaderCandidates({
 			addonFilenames: getAddonFilenames({ tag: "win32-x64", arch: "x64", variant: "baseline" }),
 			isCompiledBinary: false,
@@ -125,7 +125,7 @@ describe("windows native addon staging", () => {
 			const workspace = initLoaderContext({
 				platform: "linux",
 				isCompiledBinary: false,
-				nativeDir: "/tmp/oh-my-pi/packages/natives/native",
+				nativeDir: "/tmp/ngodeai/packages/natives/native",
 				leafPackageDir,
 			});
 			const installed = initLoaderContext({
@@ -173,7 +173,7 @@ describe("windows native addon staging", () => {
 	});
 
 	it("removes only older version directories after the current native version loads", async () => {
-		const nativesDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-natives-cache-"));
+		const nativesDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-natives-cache-"));
 		const currentMajor = Number.parseInt(packageJson.version, 10);
 		const futureVersion = `${currentMajor + 1}.0.0`;
 		const staleVersion = "15.10.11";

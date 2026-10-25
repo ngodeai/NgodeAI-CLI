@@ -1,5 +1,5 @@
 /**
- * Descriptors omp holds for its own lifetime — session/advisor transcripts and
+ * Descriptors ngodeai holds for its own lifetime — session/advisor transcripts and
  * the rotating log — must not reach the commands the bash tool runs.
  *
  * The bash tool executes through the natives brush shell, which `fork`/`exec`s
@@ -11,7 +11,7 @@
  * it was launched from for its whole life.
  *
  * Oracle: list the child's descriptor table. `sh -c` is required — a bare `ls`
- * resolves to an in-process builtin, whose `$$` is omp itself. The scenario runs
+ * resolves to an in-process builtin, whose `$$` is ngodeai itself. The scenario runs
  * in a spawned bun that receives a control descriptor as fd 3 the way a
  * launcher passes one: an extra stdio entry, `dup2`'d in without close-on-exec
  * whatever the Bun version's `fs.open` defaults are. It must reach the listed
@@ -36,7 +36,7 @@ afterAll(async () => {
 });
 
 test.skipIf(process.platform !== "linux")("bash tool children never inherit session or log descriptors", async () => {
-	const root = await fsp.mkdtemp(path.join(os.tmpdir(), "omp-session-fd-"));
+	const root = await fsp.mkdtemp(path.join(os.tmpdir(), "ngode-session-fd-"));
 	ROOTS.push(root);
 	const transcript = path.join(root, "session.jsonl");
 	const logsDir = path.join(root, "logs");
@@ -52,7 +52,7 @@ await writer.append('{"type":"session_start"}\\n');
 await fsp.mkdir(${JSON.stringify(logsDir)}, { recursive: true });
 const logSink = new RotatingFileSink({
 	directory: ${JSON.stringify(logsDir)},
-	filenamePrefix: "omp",
+	filenamePrefix: "ngodeai",
 	filenameSuffix: String(process.pid),
 	maxBytes: 1 << 20,
 	maxFiles: 2,
@@ -98,5 +98,5 @@ process.stdout.write(output);
 		.join("\n");
 	expect(inherited, `control: an inheritable descriptor must reach the child\n${stdout}`).toContain(control);
 	expect(inherited).not.toContain(transcript);
-	expect(inherited).not.toMatch(/omp\.[\d-]+\.\d+\.log/);
+	expect(inherited).not.toMatch(/ngodeai\.[\d-]+\.\d+\.log/);
 });

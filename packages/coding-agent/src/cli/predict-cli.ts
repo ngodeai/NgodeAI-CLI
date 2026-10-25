@@ -252,7 +252,7 @@ class PredictCompareComponent implements Component, Focusable {
 				[
 					row(
 						[
-							text("omp predict", { role: "ngodeai.app.title" }),
+							text("ngodeai predict", { role: "ngodeai.app.title" }),
 							text([span(`${this.#lanes.length} engines · comparison typing never teaches them`, "muted")], {
 								truncate: "end",
 							}),
@@ -312,7 +312,7 @@ class PredictCompareComponent implements Component, Focusable {
 
 	render(width: number): readonly string[] {
 		const value = this.#input.getValue();
-		const header = `${chalk.bold("omp predict")} ${chalk.dim(
+		const header = `${chalk.bold("ngodeai predict")} ${chalk.dim(
 			`· type to compare engines · ${formatKeyHint("tab")} accepts ${ENGINES[0]} · ${formatKeyHint("enter")} clears · ${formatKeyHint("escape")} quits`,
 		)}`;
 		const textWidth = Math.max(8, width - LABEL_WIDTH - STATS_WIDTH - 2);

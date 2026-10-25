@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { listOmpExtensionRoots } from "@ngodeai/coding-agent/discovery/omp-extension-roots";
+import { listOmpExtensionRoots } from "@ngodeai/coding-agent/discovery/ngode-extension-roots";
 import { getEnabledPlugins } from "@ngodeai/coding-agent/extensibility/plugins/loader";
 import { PluginManager } from "@ngodeai/coding-agent/extensibility/plugins/manager";
 import {
@@ -23,7 +23,7 @@ import { removeSyncWithRetries } from "@ngodeai/utils";
 let FIXTURE_DIR: string;
 
 function buildMinimalFixture(): string {
-	const root = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mgr-fixture-"));
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-mgr-fixture-"));
 	const pluginDir = path.join(root, "plugins", "hello-plugin");
 	fs.mkdirSync(path.join(pluginDir, ".claude-plugin"), { recursive: true });
 	fs.mkdirSync(path.join(root, ".claude-plugin"), { recursive: true });
@@ -54,7 +54,7 @@ function buildMinimalFixture(): string {
 		JSON.stringify({
 			name: "hello-plugin",
 			version: "1.0.0",
-			omp: { extensions: ["./extensions"] },
+			ngodeai: { extensions: ["./extensions"] },
 		}),
 	);
 	fs.writeFileSync(path.join(pluginDir, "extensions", "index.ts"), "export default {};\n");
@@ -91,12 +91,12 @@ interface TestContext {
 }
 
 function createTestContext(): TestContext {
-	const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mgr-test-"));
+	const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-mgr-test-"));
 
 	const dirs = {
 		mktRegistry: path.join(tmpDir, "marketplaces.json"),
 		instRegistry: path.join(tmpDir, "installed_plugins.json"),
-		// Distinct runtime root from user scope, mirroring production (~/.omp/plugins vs <project>/.omp/plugins).
+		// Distinct runtime root from user scope, mirroring production (~/.ngodeai/plugins vs <project>/.ngodeai/plugins).
 		projectInstRegistry: path.join(tmpDir, "project", "installed_plugins.json"),
 		mktCache: path.join(tmpDir, "cache", "marketplaces"),
 		plugCache: path.join(tmpDir, "cache", "plugins"),
@@ -227,7 +227,7 @@ describe("MarketplaceManager", () => {
 
 		try {
 			const added = await ctx.manager.addMarketplace(FIXTURE_DIR);
-			const catalogPath = "~/.omp/plugins/cache/marketplaces/test-marketplace/marketplace.json";
+			const catalogPath = "~/.ngodeai/plugins/cache/marketplaces/test-marketplace/marketplace.json";
 			const registry = await readMarketplacesRegistry(registryPath);
 			await writeMarketplacesRegistry(registryPath, {
 				...registry,
@@ -637,11 +637,11 @@ describe("MarketplaceManager", () => {
 	});
 
 	it("installPlugin exposes marketplace package to the runtime loader", async () => {
-		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mgr-home-"));
+		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-mgr-home-"));
 		try {
-			const pluginsDir = path.join(tmpHome, ".omp", "plugins");
+			const pluginsDir = path.join(tmpHome, ".ngodeai", "plugins");
 			const manager = new MarketplaceManager({
-				marketplacesRegistryPath: path.join(tmpHome, ".omp", "marketplaces.json"),
+				marketplacesRegistryPath: path.join(tmpHome, ".ngodeai", "marketplaces.json"),
 				installedRegistryPath: path.join(pluginsDir, "installed_plugins.json"),
 				marketplacesCacheDir: path.join(pluginsDir, "cache", "marketplaces"),
 				pluginsCacheDir: path.join(pluginsDir, "cache", "plugins"),
@@ -697,7 +697,7 @@ describe("MarketplaceManager", () => {
 			`${JSON.stringify({
 				name: "hello-plugin",
 				version: "9.9.9",
-				omp: { tools: "tools" },
+				ngodeai: { tools: "tools" },
 			})}\n`,
 		);
 		fs.mkdirSync(path.join(localPlugin, "tools"), { recursive: true });
@@ -722,12 +722,12 @@ describe("MarketplaceManager", () => {
 		}
 	});
 
-	it("installPlugin keeps marketplace packages out of OMP extension roots", async () => {
-		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mgr-home-"));
+	it("installPlugin keeps marketplace packages out of NGODEAI extension roots", async () => {
+		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-mgr-home-"));
 		try {
-			const pluginsDir = path.join(tmpHome, ".omp", "plugins");
+			const pluginsDir = path.join(tmpHome, ".ngodeai", "plugins");
 			const manager = new MarketplaceManager({
-				marketplacesRegistryPath: path.join(tmpHome, ".omp", "marketplaces.json"),
+				marketplacesRegistryPath: path.join(tmpHome, ".ngodeai", "marketplaces.json"),
 				installedRegistryPath: path.join(pluginsDir, "installed_plugins.json"),
 				marketplacesCacheDir: path.join(pluginsDir, "cache", "marketplaces"),
 				pluginsCacheDir: path.join(pluginsDir, "cache", "plugins"),
@@ -749,14 +749,14 @@ describe("MarketplaceManager", () => {
 	});
 
 	it("installPlugin with scope:project exposes the marketplace package to the runtime loader", async () => {
-		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mgr-home-"));
-		const projectAnchor = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mgr-project-"));
+		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-mgr-home-"));
+		const projectAnchor = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-mgr-project-"));
 		try {
-			const userPluginsDir = path.join(tmpHome, ".omp", "plugins");
-			const projectPluginsDir = path.join(projectAnchor, ".omp", "plugins");
+			const userPluginsDir = path.join(tmpHome, ".ngodeai", "plugins");
+			const projectPluginsDir = path.join(projectAnchor, ".ngodeai", "plugins");
 			fs.mkdirSync(projectPluginsDir, { recursive: true });
 			const manager = new MarketplaceManager({
-				marketplacesRegistryPath: path.join(tmpHome, ".omp", "marketplaces.json"),
+				marketplacesRegistryPath: path.join(tmpHome, ".ngodeai", "marketplaces.json"),
 				installedRegistryPath: path.join(userPluginsDir, "installed_plugins.json"),
 				projectInstalledRegistryPath: path.join(projectPluginsDir, "installed_plugins.json"),
 				marketplacesCacheDir: path.join(userPluginsDir, "cache", "marketplaces"),
@@ -1091,7 +1091,7 @@ describe("MarketplaceManager", () => {
 	// ── Scope feature ────────────────────────────────────────────────────────
 
 	it("installPlugin scope:project when no projectInstalledRegistryPath → throws", async () => {
-		const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "omp-mgr-noproj-"));
+		const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-mgr-noproj-"));
 		try {
 			const noProjectManager = new MarketplaceManager({
 				marketplacesRegistryPath: path.join(tmp, "marketplaces.json"),

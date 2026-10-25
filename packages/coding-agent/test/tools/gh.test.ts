@@ -187,7 +187,7 @@ async function createPrFixture(): Promise<PrFixture> {
 /**
  * Stub `os.homedir()` AND rebuild the cached `dirs` resolver in pi-utils so
  * `getWorktreesDir()` resolves under an isolated temp home instead of the
- * user's real `~/.omp/wt`. Returns the temp home and a cleanup hook.
+ * user's real `~/.ngodeai/wt`. Returns the temp home and a cleanup hook.
  */
 interface TempHome {
 	home: string;
@@ -198,7 +198,7 @@ async function setupTempHome(): Promise<{ home: string; cleanup: () => Promise<v
 	const home = await fs.mkdtemp(path.join(os.tmpdir(), "gh-pr-tool-home-"));
 	vi.spyOn(os, "homedir").mockReturnValue(home);
 	// Clear XDG_*_HOME so the rebuilt resolver routes `dirs.rootSubdir("wt", "data")`
-	// through the spied homedir instead of `$XDG_DATA_HOME/omp/wt` (CI sets these).
+	// through the spied homedir instead of `$XDG_DATA_HOME/ngodeai/wt` (CI sets these).
 	const xdgKeys = ["XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME"] as const;
 	const xdgPrevious: Partial<Record<(typeof xdgKeys)[number], string | undefined>> = {};
 	for (const key of xdgKeys) {
@@ -209,7 +209,7 @@ async function setupTempHome(): Promise<{ home: string; cleanup: () => Promise<v
 	// we must rebuild the resolver after the spy + env scrub are in place.
 	// `setAgentDir` recreates it; we point it at the temp home's default agent dir.
 	const originalAgentDir = getAgentDir();
-	setAgentDir(path.join(home, ".omp", "agent"));
+	setAgentDir(path.join(home, ".ngodeai", "agent"));
 	return {
 		home,
 		cleanup: async () => {
@@ -233,7 +233,7 @@ async function setupTempHome(): Promise<{ home: string; cleanup: () => Promise<v
 async function expectedWorktreePath(home: string, primaryRoot: string, localBranch: string): Promise<string> {
 	const prNumber = localBranch.replace(/^pr-/, "");
 	const segment = `${prNumber}-${hashPath(primaryRoot)}`;
-	return fs.realpath(path.join(home, ".omp", "wt", segment));
+	return fs.realpath(path.join(home, ".ngodeai", "wt", segment));
 }
 
 describe("sanitizeRemoteName", () => {
@@ -535,12 +535,12 @@ describe("github tool", () => {
 			encoding: "base64",
 			size: 20,
 			content: Buffer.from('{"version":"16.3.11"}\n').toString("base64"),
-			html_url: "https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/package.json",
+			html_url: "https://github.com/can1357/ngodeai/blob/main/packages/coding-agent/package.json",
 		});
 		const tool = new GithubTool(createSession());
 		const result = await tool.execute("file-read", {
 			op: "file_read",
-			repo: "can1357/oh-my-pi",
+			repo: "can1357/ngodeai",
 			branch: "main",
 			path: "packages/coding-agent/package.json",
 		});
@@ -551,7 +551,7 @@ describe("github tool", () => {
 			"/tmp/test",
 			[
 				"api",
-				"/repos/can1357/oh-my-pi/contents/packages/coding-agent/package.json",
+				"/repos/can1357/ngodeai/contents/packages/coding-agent/package.json",
 				"--method",
 				"GET",
 				"-H",
@@ -1213,7 +1213,7 @@ describe("github tool", () => {
 
 	it("pins gh messages while preserving UTF-8 character locale", async () => {
 		if (process.platform === "win32") return;
-		const fakeBin = await fs.mkdtemp(path.join(os.tmpdir(), "omp-fake-gh-locale-"));
+		const fakeBin = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-fake-gh-locale-"));
 		const fakeGh = path.join(fakeBin, "gh");
 		await fs.writeFile(
 			fakeGh,
@@ -1348,9 +1348,9 @@ echo ok
 			expect(runGit(wt200, ["branch", "--show-current"])).toBe("pr-200");
 			// Both PR URLs persisted to git config (single read instead of two).
 			// `--get-regexp` echoes variable names in git's canonical lowercase.
-			const prUrls = runGit(fixture.repoRoot, ["config", "--get-regexp", "^branch\\.pr-.*\\.ompprurl$"]);
-			expect(prUrls).toContain("branch.pr-100.ompprurl https://github.com/owner/repo/pull/100");
-			expect(prUrls).toContain("branch.pr-200.ompprurl https://github.com/owner/repo/pull/200");
+			const prUrls = runGit(fixture.repoRoot, ["config", "--get-regexp", "^branch\\.pr-.*\\.ngodeprurl$"]);
+			expect(prUrls).toContain("branch.pr-100.ngodeprurl https://github.com/owner/repo/pull/100");
+			expect(prUrls).toContain("branch.pr-200.ngodeprurl https://github.com/owner/repo/pull/200");
 
 			const summaries = result.details?.checkouts;
 			expect(summaries?.length).toBe(2);

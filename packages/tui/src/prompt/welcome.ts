@@ -248,11 +248,11 @@ export class WelcomeComponent implements Component {
 					node(
 						"image",
 						{
-							// Tern ships this gradient mark under the fixed id `omp`
+							// Tern ships this gradient mark under the fixed id `ngodeai`
 							// (`TspBuiltinImage` in @ngodeai/wire). It is a terminal
 							// capability, not our display name: renaming it makes the
 							// lockup render no mark at all.
-							builtin: "omp",
+							builtin: "ngodeai",
 							alt: APP_NAME,
 							w: 128,
 							role: "ngodeai.welcome.logo",

@@ -1,8 +1,8 @@
 /**
  * Project-local `tui` tool: run and debug pi-tui apps headlessly. Each session
  * spawns a TypeScript/JavaScript entry or executable on a real PTY: ConPTY on
- * Windows, Bun's controlling terminal on POSIX. `OMP_TUI_DEBUG` points at the
- * local IPC endpoint served by an omp/pi-tui host. Injected input
+ * Windows, Bun's controlling terminal on POSIX. `NGODEAI_TUI_DEBUG` points at the
+ * local IPC endpoint served by an ngodeai/pi-tui host. Injected input
  * rides the app's own input path, while renderer and component queries inspect
  * the last painted frame.
  *
@@ -34,7 +34,7 @@ import type { Color, KittyEvent, KittyTerminal } from "kitty-vt-wasm";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-/** Minimal slice of the host schema builder (`omp.zod`) this tool uses. */
+/** Minimal slice of the host schema builder (`ngodeai.zod`) this tool uses. */
 interface Schema {
 	describe(text: string): Schema;
 	optional(): Schema;
@@ -110,7 +110,7 @@ function loadVt() {
 	vtApi ??= import("kitty-vt-wasm").catch((error) => {
 		vtApi = null;
 		throw new Error(
-			`screen emulation needs kitty-vt-wasm — run \`bun install\` in .omp/tools (${error})`,
+			`screen emulation needs kitty-vt-wasm — run \`bun install\` in .ngodeai/tools (${error})`,
 		);
 	});
 	return vtApi;
@@ -197,7 +197,7 @@ async function loadCanvas() {
 		mod = await import("@napi-rs/canvas");
 	} catch (error) {
 		throw new Error(
-			`shot needs @napi-rs/canvas — run \`bun install\` in .omp/tools (${error})`,
+			`shot needs @napi-rs/canvas — run \`bun install\` in .ngodeai/tools (${error})`,
 		);
 	}
 	const families = mod.GlobalFonts.families.map((entry) => entry.family);
@@ -243,7 +243,7 @@ function lerpColor(from: number, to: number, t: number): number {
  * Terminal emulation fed every PTY byte: kitty's real core (screen.c +
  * vt-parser.c compiled to wasm via kitty-vt-wasm), so SGR, rewrap-on-resize,
  * scrollback, graphemes, and wide chars behave exactly as in kitty. Any
- * session — omp-tui host or not — can be read as plain text (`snapshot`) or
+ * session — ngode-tui host or not — can be read as plain text (`snapshot`) or
  * rasterized to pixels (`png`). Backs the `screen`/`shot` ops, the socketless
  * `text` fallback, and the after-screenshot on input ops. Query replies the
  * core emits (DA, DECRQSS, XTGETTCAP, OSC color queries) surface on
@@ -756,7 +756,7 @@ function request(
 		return Promise.reject(
 			new Error(
 				`session "${session.name}" has no debug socket — the app is not an ` +
-					"omp-tui host (or exited). screen/raw/send/resize/stop still work.",
+					"ngode-tui host (or exited). screen/raw/send/resize/stop still work.",
 			),
 		);
 	}
@@ -812,7 +812,7 @@ async function stopSession(session: Session): Promise<number | null> {
 		if (session.sock) {
 			await request(session, { op: "quit" }, 2_000);
 		} else if (session.exit === null) {
-			// Non-omp-tui apps have no debug socket; Ctrl-C is the
+			// Non-ngode-tui apps have no debug socket; Ctrl-C is the
 			// conventional quit chord.
 			session.proc.terminal.write("\x03");
 		}
@@ -1072,7 +1072,7 @@ function ptyDimensions(cols: number, rows: number): PtyDimensions {
 		: { cols, rows };
 }
 
-const factory = (omp: ToolHost) => {
+const factory = (ngodeai: ToolHost) => {
 	const startSession = async (params: TuiParams): Promise<string> => {
 		const name = params.name ?? "main";
 		if (sessions.has(name)) {
@@ -1081,15 +1081,15 @@ const factory = (omp: ToolHost) => {
 		if (params.file && params.bin) {
 			throw new Error("start takes `file` or `bin`, not both");
 		}
-		// Default target: this repo's own TUI, omp itself.
+		// Default target: this repo's own TUI, ngodeai itself.
 		const file = params.bin ? undefined : (params.file ?? "packages/coding-agent/src/cli.ts");
 		const target = file ?? params.bin ?? "";
 		const command = file
-			? [process.execPath, resolve(omp.cwd, file), ...(params.args ?? [])]
+			? [process.execPath, resolve(ngodeai.cwd, file), ...(params.args ?? [])]
 			: [target, ...(params.args ?? [])];
 
 		const { cols, rows } = ptyDimensions(params.cols ?? 100, params.rows ?? 30);
-		const dir = mkdtempSync(join(tmpdir(), `omp-tui-${name}-`));
+		const dir = mkdtempSync(join(tmpdir(), `ngode-tui-${name}-`));
 		let screen: Screen | undefined;
 		let session: Session | undefined;
 		// Native output may arrive before the PID promise resumes. Buffer it until
@@ -1103,7 +1103,7 @@ const factory = (omp: ToolHost) => {
 			screen = await Screen.create(cols, rows);
 			const sockPath = ipcEndpoint(dir, "debug");
 			const env = {
-				OMP_TUI_DEBUG: sockPath,
+				NGODEAI_TUI_DEBUG: sockPath,
 				TERM: "xterm-256color",
 				COLORTERM: "truecolor",
 			};
@@ -1113,7 +1113,7 @@ const factory = (omp: ToolHost) => {
 					{
 						application: command[0],
 						args: command.slice(1),
-						cwd: omp.cwd,
+						cwd: ngodeai.cwd,
 						env,
 						cols,
 						rows,
@@ -1123,7 +1123,7 @@ const factory = (omp: ToolHost) => {
 			} else {
 				const gatePath = join(dir, "spawn.gate");
 				const spawned = Bun.spawn(gated(gatePath, command), {
-					cwd: omp.cwd,
+					cwd: ngodeai.cwd,
 					env: { ...process.env, ...env },
 					terminal: {
 						cols,
@@ -1231,7 +1231,7 @@ const factory = (omp: ToolHost) => {
 				text += `\n${screenshotText(shot)}`;
 			} else {
 				text +=
-					"\n(no debug socket: app is not an omp-tui host; `send` injects " +
+					"\n(no debug socket: app is not an ngode-tui host; `send` injects " +
 					"input, `screen` renders the emulated display)" +
 					`\n${session.screen.snapshot()}`;
 			}
@@ -1252,11 +1252,11 @@ const factory = (omp: ToolHost) => {
 		name: "tui",
 		label: "TUI Debug",
 		description:
-			"Run and debug omp/pi-tui apps headlessly on a real PTY plus the " +
-			"OMP_TUI_DEBUG socket. Start defaults to omp itself " +
+			"Run and debug ngodeai/pi-tui apps headlessly on a real PTY plus the " +
+			"NGODEAI_TUI_DEBUG socket. Start defaults to ngodeai itself " +
 			"(packages/coding-agent/src/cli.ts); override with file (a TS/JS entry, e.g. " +
-			"file: \"packages/tui/examples/debug-demo.ts\") or bin (an executable name/path), plus optional rows/cols and args. Any omp/pi-tui app serves " +
-			"OMP_TUI_DEBUG. Ops: text (viewport screenshot as plain text), screen " +
+			"file: \"packages/tui/examples/debug-demo.ts\") or bin (an executable name/path), plus optional rows/cols and args. Any ngodeai/pi-tui app serves " +
+			"NGODEAI_TUI_DEBUG. Ops: text (viewport screenshot as plain text), screen " +
 			"(plain-text screen from kitty's real terminal core — works for any app, no " +
 			"debug socket needed; peek=N prepends N scrollback lines), frame (full " +
 			"document), tree (component tree with ids/rects/focus), values (widget " +
@@ -1272,65 +1272,65 @@ const factory = (omp: ToolHost) => {
 			"resize) return an after-screenshot of the resulting display (quiet:true " +
 			"skips it). Sessions persist across calls; injected input rides the " +
 			"app's real input path.",
-		parameters: omp.zod.object({
-			op: omp.zod
+		parameters: ngodeai.zod.object({
+			op: ngodeai.zod
 				.string()
 				.describe(
 					"operation: start | stop | list | text | screen | shot | frame | tree | values | info | keys | type | paste | mouse | send | resize | raw",
 				),
-			name: omp.zod
+			name: ngodeai.zod
 				.string()
 				.optional()
 				.describe("session name (default: main)"),
-			file: omp.zod
+			file: ngodeai.zod
 				.string()
 				.optional()
-				.describe("start: TS/JS entry path relative to cwd (default: packages/coding-agent/src/cli.ts — omp itself)"),
-			bin: omp.zod
+				.describe("start: TS/JS entry path relative to cwd (default: packages/coding-agent/src/cli.ts — ngodeai itself)"),
+			bin: ngodeai.zod
 				.string()
 				.optional()
 				.describe("start: executable name or path"),
-			args: omp.zod
-				.array(omp.zod.string())
+			args: ngodeai.zod
+				.array(ngodeai.zod.string())
 				.optional()
 				.describe("start: program argv"),
-			rows: omp.zod
+			rows: ngodeai.zod
 				.number()
 				.optional()
 				.describe("start/resize: pty rows (default 30)"),
-			cols: omp.zod
+			cols: ngodeai.zod
 				.number()
 				.optional()
 				.describe("start/resize: pty cols (default 100)"),
-			keys: omp.zod
+			keys: ngodeai.zod
 				.string()
 				.optional()
 				.describe("keys: spec, e.g. \"tab tab enter C-c pgdn 'hello'\""),
-			text: omp.zod
+			text: ngodeai.zod
 				.string()
 				.optional()
 				.describe("type/paste/send: payload text"),
-			x: omp.zod.number().optional().describe("mouse: zero-based column"),
-			y: omp.zod.number().optional().describe("mouse: zero-based viewport row"),
-			action: omp.zod
+			x: ngodeai.zod.number().optional().describe("mouse: zero-based column"),
+			y: ngodeai.zod.number().optional().describe("mouse: zero-based viewport row"),
+			action: ngodeai.zod
 				.string()
 				.optional()
 				.describe("mouse: gesture (default click)"),
-			peek: omp.zod
+			peek: ngodeai.zod
 				.number()
 				.optional()
 				.describe(
 					"screen: scrollback lines to include; raw: tail bytes (default 2000)",
 				),
-			clear: omp.zod
+			clear: ngodeai.zod
 				.boolean()
 				.optional()
 				.describe("raw: reset capture after reading"),
-			quiet: omp.zod
+			quiet: ngodeai.zod
 				.boolean()
 				.optional()
 				.describe("input ops: skip the after-screenshot"),
-			timeout: omp.zod
+			timeout: ngodeai.zod
 				.number()
 				.optional()
 				.describe("start: socket wait seconds (default 15)"),
@@ -1381,7 +1381,7 @@ const factory = (omp: ToolHost) => {
 					const session = need(params.name);
 					const png = join(
 						tmpdir(),
-						`omp-tui-${session.name}-${Date.now()}.png`,
+						`ngode-tui-${session.name}-${Date.now()}.png`,
 					);
 					const bytes = await session.screen.png();
 					writeFileSync(png, bytes);

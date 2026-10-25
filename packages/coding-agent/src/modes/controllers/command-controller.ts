@@ -1513,7 +1513,7 @@ export class CommandController {
 				...forkScopeEnvCommand({
 					PI_CODING_AGENT_DIR: this.ctx.settings.getAgentDir(),
 					PI_CONFIG_DIR: getConfigDirName(),
-					OMP_PROFILE: activeProfile,
+					NGODEAI_PROFILE: activeProfile,
 					PI_PROFILE: activeProfile,
 					PI_CONFIG_FILES: this.ctx.settings.getConfigFiles().join(path.delimiter),
 					PI_CODING_AGENT_SESSION_DIR: environment.PI_CODING_AGENT_SESSION_DIR,
@@ -1576,7 +1576,7 @@ export class CommandController {
 				return false;
 			}
 			if (!client.supports("fork")) return false;
-			// The new pane's omp reads the session file as it starts.
+			// The new pane's ngodeai reads the session file as it starts.
 			await this.ctx.session.flushToDisk();
 			try {
 				await client.fork({ block: tern.pane }, { timeoutMs: TERN_FORK_TIMEOUT_MS });
@@ -1885,7 +1885,7 @@ export class CommandController {
 				if (shouldPersistCwd) return await this.#applyBashResultCwd(result);
 			} catch (error) {
 				this.ctx.showError(
-					`Bash command completed, but OMP failed to update its working directory: ${
+					`Bash command completed, but NGODEAI failed to update its working directory: ${
 						error instanceof Error ? error.message : "Unknown error"
 					}`,
 				);
@@ -2639,7 +2639,7 @@ export function renderUsageReports(
 			lines.push(`  ${uiTheme.fg("dim", truncateToWidth(`${boundedLabel}${status}`, availableWidth - 2))}`);
 		}
 
-		// Provider-wide disclaimers (e.g. "OMP-observed spend only") render once
+		// Provider-wide disclaimers (e.g. "NGODEAI-observed spend only") render once
 		// above the per-account sections instead of duplicating onto every limit.
 		const providerNotes = [...new Set(providerReports.flatMap(report => report.notes ?? []))];
 		if (providerNotes.length > 0) {

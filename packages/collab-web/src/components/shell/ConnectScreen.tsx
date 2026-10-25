@@ -1,7 +1,7 @@
 import { ArrowRight, Lock } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
-import { OmpMark } from "./OmpMark";
+import { NgodeMark } from "./NgodeMark";
 import { ThemeToggle } from "./ThemeToggle";
 
 export interface ConnectScreenProps {
@@ -33,8 +33,8 @@ export function ConnectScreen({ defaultName, error, onConnect }: ConnectScreenPr
 			<div className="sh-ambient" />
 			<div className="sh-connect-top">
 				<div className="sh-brand">
-					<OmpMark />
-					<span>omp</span>
+					<NgodeMark />
+					<span>ngodeai</span>
 					<span className="sh-brand-slash">/</span>
 					<span className="sh-brand-app">collab</span>
 				</div>
@@ -44,7 +44,8 @@ export function ConnectScreen({ defaultName, error, onConnect }: ConnectScreenPr
 				<div className="sh-connect-head">
 					<h1 className="sh-connect-title">Join a live session</h1>
 					<p className="sh-connect-sub">
-						Watch an omp agent work in real time — transcript, tool calls and subagents — and prompt it from here.
+						Watch an ngodeai agent work in real time — transcript, tool calls and subagents — and prompt it from
+						here.
 					</p>
 				</div>
 				<label className="sh-field">
@@ -60,7 +61,7 @@ export function ConnectScreen({ defaultName, error, onConnect }: ConnectScreenPr
 						autoFocus
 					/>
 					<span className="sh-field-hint">
-						Run <code>/collab</code> in any omp session to get one.
+						Run <code>/collab</code> in any ngodeai session to get one.
 					</span>
 				</label>
 				<label className="sh-field">

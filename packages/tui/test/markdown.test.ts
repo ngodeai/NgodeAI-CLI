@@ -1762,7 +1762,7 @@ bar`,
 		});
 
 		it("should isolate wrapped OSC 8 links from adjacent table cells", () => {
-			const issueUrl = "https://github.com/can1357/oh-my-pi/issues/5860";
+			const issueUrl = "https://github.com/can1357/ngodeai/issues/5860";
 			const markdown = new Markdown(
 				`| Issue | Title |
 |---|---|
@@ -1808,7 +1808,7 @@ bar`,
 		});
 
 		it("should balance OSC 8 links across explicit newlines in a table cell", () => {
-			const issueUrl = "https://github.com/can1357/oh-my-pi/issues/5860";
+			const issueUrl = "https://github.com/can1357/ngodeai/issues/5860";
 			const markdown = new Markdown(
 				`| Issue | Title |
 |---|---|

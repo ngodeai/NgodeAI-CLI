@@ -2,7 +2,7 @@
 
 This document covers how the coding-agent discovers and parses Gemini-style manifest extensions (`gemini-extension.json`) into the `extensions` capability.
 
-It does **not** cover TypeScript/JavaScript extension module loading (`extensions/*.ts`, `index.ts`, `package.json omp.extensions`), which is documented in [Extension Loading](./extension-loading.md).
+It does **not** cover TypeScript/JavaScript extension module loading (`extensions/*.ts`, `index.ts`, `package.json ngodeai.extensions`), which is documented in [Extension Loading](./extension-loading.md).
 
 ## Implementation files
 

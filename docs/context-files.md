@@ -31,7 +31,7 @@ Two details matter:
 - **The nearest non-empty `.ngodeai/` directory owns native project discovery.** Discovery starts in the current working directory and climbs toward the repository root. Once it finds a non-empty `.ngodeai/`, it stops; native `AGENTS.md` and `RULES.md` are each read from that directory only. A missing file does not make discovery continue upward.
 - **Empty directories and files contribute nothing.** An empty `.ngodeai/` directory is skipped during the walk. In the selected non-empty directory, an empty `AGENTS.md` or `RULES.md` contributes nothing.
 
-`~/.ngodeai/agent` is shorthand for the active native agent directory. `PI_CODING_AGENT_DIR` relocates it. A named profile (`ngodeai --profile <name>`, `OMP_PROFILE`, or `PI_PROFILE`) uses `~/.ngodeai/profiles/<name>/agent` by default; external-tool user bases such as `~/.claude` are not profile-scoped.
+`~/.ngodeai/agent` is shorthand for the active native agent directory. `PI_CODING_AGENT_DIR` relocates it. A named profile (`ngodeai --profile <name>`, `NGODEAI_PROFILE`, or `PI_PROFILE`) uses `~/.ngodeai/profiles/<name>/agent` by default; external-tool user bases such as `~/.claude` are not profile-scoped.
 
 ### Monorepo example
 

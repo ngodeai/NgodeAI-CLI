@@ -11,7 +11,7 @@ export const cfgExtensions = register({ id: "extensions", type: "array", default
 
 export const cfgDisabledExtensions = register({ id: "disabledExtensions", type: "array", default: EMPTY_STRING_ARRAY });
 
-// Skill registry (omp skill)
+// Skill registry (ngodeai skill)
 export const cfgSkillsRegistryUrl = register({
 	id: "skills.registryUrl",
 	type: "string",
@@ -157,6 +157,6 @@ export const cfgExtensionHandlersToolCallTimeoutMs = register({
 		group: "Extensions",
 		label: "Tool Call Handler Timeout (ms)",
 		description:
-			"Positive finite active-work timeout for extension tool_call handlers; invalid values use 30000ms, and time awaiting OMP-owned dialogs does not count",
+			"Positive finite active-work timeout for extension tool_call handlers; invalid values use 30000ms, and time awaiting NGODEAI-owned dialogs does not count",
 	},
 });

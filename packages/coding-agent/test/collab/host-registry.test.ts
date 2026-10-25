@@ -10,7 +10,7 @@
  * The in-memory relay harness (./helpers/in-memory-relay) replaces the real
  * WebSocket so a real CollabHost/CollabSocket run unchanged; a per-test spy on
  * the `publishCollabHost` export redirects discovery metadata into a temp dir,
- * so the registry's real Unix-socket IPC is exercised without touching ~/.omp.
+ * so the registry's real Unix-socket IPC is exercised without touching ~/.ngodeai.
  */
 import { afterEach, beforeEach, describe, expect, it, type Mock, spyOn } from "bun:test";
 import * as fs from "node:fs/promises";
@@ -135,7 +135,7 @@ let host: CollabHost | undefined;
 const guestCleanups: (() => void)[] = [];
 
 beforeEach(async () => {
-	tmp = await fs.mkdtemp(path.join(os.tmpdir(), "omp-hostreg-"));
+	tmp = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-hostreg-"));
 	installInMemoryRelay();
 	// Record every fake socket the host/guests construct so a test can drive a
 	// terminal close on the host's transport directly.

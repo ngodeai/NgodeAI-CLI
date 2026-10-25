@@ -23,17 +23,17 @@ section() {
 }
 
 smoke_cli() {
-   local omp_bin="$1"
+   local ngode_bin="$1"
    local runtime_dir
    runtime_dir="$(mktemp -d "$WORK_DIR/compiled-runtime.XXXXXX")"
-   XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$omp_bin" --version
-   XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$omp_bin" --help >/dev/null
-   XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$omp_bin" stats --summary >/dev/null
+   XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$ngode_bin" --version
+   XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$ngode_bin" --help >/dev/null
+   XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$ngode_bin" stats --summary >/dev/null
    # Spawns bundled workers and serves the stats dashboard once. Regression
    # probe for #1011/#1027 worker loading and for npm/compiled distributions
    # missing the dashboard assets that `stats --summary` never touches.
-   XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$omp_bin" --smoke-test
-   bun "$ROOT_DIR/scripts/install-tests/settings-session.ts" "$omp_bin"
+   XDG_DATA_HOME="$runtime_dir/xdg" HOME="$runtime_dir/home" "$ngode_bin" --smoke-test
+   bun "$ROOT_DIR/scripts/install-tests/settings-session.ts" "$ngode_bin"
 }
 
 find_tarball() {
@@ -83,7 +83,7 @@ align_native_manifest() {
    mv "$WORK_DIR/natives-package.aligned.json" "$NATIVES_PACKAGE"
 }
 section "Binary install smoke"
-if [ "${OMP_INSTALL_TEST_SKIP_NATIVE_BUILD:-0}" != "1" ]; then
+if [ "${NGODEAI_INSTALL_TEST_SKIP_NATIVE_BUILD:-0}" != "1" ]; then
    bun --cwd=packages/natives run build
 fi
 align_native_manifest
@@ -91,8 +91,8 @@ bun --cwd=packages/coding-agent run build
 
 BINARY_DIR="$WORK_DIR/binary-bin"
 mkdir -p "$BINARY_DIR"
-cp packages/coding-agent/dist/omp "$BINARY_DIR/omp"
-smoke_cli "$BINARY_DIR/omp"
+cp packages/coding-agent/dist/ngodeai "$BINARY_DIR/ngodeai"
+smoke_cli "$BINARY_DIR/ngodeai"
 
 section "Source install smoke"
 SOURCE_BUN_HOME="$WORK_DIR/bun-source"
@@ -100,7 +100,7 @@ SOURCE_BUN_HOME="$WORK_DIR/bun-source"
    export BUN_INSTALL="$SOURCE_BUN_HOME"
    export PATH="$BUN_INSTALL/bin:$PATH"
    bun --cwd="$ROOT_DIR/packages/coding-agent" link
-   smoke_cli "$BUN_INSTALL/bin/omp"
+   smoke_cli "$BUN_INSTALL/bin/ngodeai"
 )
 
 section "Tarball install smoke"
@@ -144,7 +144,7 @@ for pkg in utils wire ngodetype catalog ai mnemopi snapcompact agent tui stats c
 done
 
 # 4. Pack the coding agent with its *published* manifest: release swaps
-#    `bin.omp` from `src/cli.ts` to the prepack bundle `dist/cli.js`. The repo
+#    `bin.ngodeai` from `src/cli.ts` to the prepack bundle `dist/cli.js`. The repo
 #    manifest keeps pointing at source so `bun link`/`install.sh --source`
 #    work without a build, so the swap must be reproduced here for the smoke
 #    to exercise the bundled worker-host entry the published package ships.
@@ -159,20 +159,20 @@ agent_rc=0
 cp "$agent_pkg_backup" "$ROOT_DIR/packages/coding-agent/package.json"
 [ "$agent_rc" -eq 0 ] || exit "$agent_rc"
 
-utils_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-utils-*.tgz)"
-wire_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-wire-*.tgz)"
-ngodetype_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-ngodetype-*.tgz)"
-natives_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-ngode-natives-[0-9]*.tgz)"
-natives_leaf_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-ngode-natives-"$host_tag"-*.tgz)"
-catalog_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-catalog-*.tgz)"
-ai_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-ai-*.tgz)"
-mnemopi_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-mnemopi-*.tgz)"
-snapcompact_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-snapcompact-*.tgz)"
-agent_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-agent-core-*.tgz)"
-tui_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-tui-*.tgz)"
-stats_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-ngodeai-stats-*.tgz)"
-coding_agent_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-coding-agent-*.tgz)"
-collab_web_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-collab-web-*.tgz)"
+utils_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-pi-utils-*.tgz)"
+wire_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-pi-wire-*.tgz)"
+ngodetype_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-ngodetype-*.tgz)"
+natives_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-ngode-natives-[0-9]*.tgz)"
+natives_leaf_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-ngode-natives-"$host_tag"-*.tgz)"
+catalog_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-pi-catalog-*.tgz)"
+ai_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-pi-ai-*.tgz)"
+mnemopi_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-pi-mnemopi-*.tgz)"
+snapcompact_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-snapcompact-*.tgz)"
+agent_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-pi-agent-core-*.tgz)"
+tui_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-pi-tui-*.tgz)"
+stats_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-ngodeai-stats-*.tgz)"
+coding_agent_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-pi-coding-agent-*.tgz)"
+collab_web_tgz="$(find_tarball "$TARBALL_DIR"/ngodeai-collab-web-*.tgz)"
 
 TARBALL_APP_DIR="$WORK_DIR/tarball-install"
 mkdir -p "$TARBALL_APP_DIR"
@@ -220,11 +220,11 @@ mkdir -p "$TARBALL_APP_DIR"
    ngodetype_probe="$(bun -e '
       import { type } from "@ngodeai/ngodetype";
       import { Type } from "@ngodeai/ngodetype/typebox";
-      const root = type({ name: "string", enabled: "boolean = false" }).assert({ name: "omp" });
+      const root = type({ name: "string", enabled: "boolean = false" }).assert({ name: "ngodeai" });
       const typebox = Type.Object({ name: Type.String() }).assert({ name: "tb" });
       process.stdout.write(`${root.name}:${root.enabled}:${typebox.name}`);
    ')"
-   [ "$ngodetype_probe" = "omp:false:tb" ] || {
+   [ "$ngodetype_probe" = "ngodeai:false:tb" ] || {
       echo "Unexpected @ngodeai/ngodetype probe result: $ngodetype_probe"
       exit 1
    }
@@ -232,7 +232,7 @@ mkdir -p "$TARBALL_APP_DIR"
       echo "Collab web tarball did not install built dist/index.html"
       exit 1
    }
-   smoke_cli ./node_modules/.bin/omp
+   smoke_cli ./node_modules/.bin/ngodeai
 )
 
 echo ""

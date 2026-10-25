@@ -17,9 +17,9 @@ A successful call is not memoized by JS. Repeated calls rely on the runtime's `r
 - `platformTag`: `${platform}-${process.arch}`;
 - package version (the expected addon release, subject to the pre-sentinel compatibility exception below);
 - package-local `nativeDir` and the directory of `process.execPath`;
-- `nativesDir`: `PI_NATIVES_DIR` first (trimmed, `~`-expanded, and normalized; empty or relative values are ignored), then `$XDG_DATA_HOME/omp/natives` only when `$XDG_DATA_HOME/omp` exists, otherwise `~/.ngodeai/natives`;
+- `nativesDir`: `PI_NATIVES_DIR` first (trimmed, `~`-expanded, and normalized; empty or relative values are ignored), then `$XDG_DATA_HOME/ngodeai/natives` only when `$XDG_DATA_HOME/ngodeai` exists, otherwise `~/.ngodeai/natives`;
 - `versionedDir`: `<nativesDir>/<packageVersion>`;
-- legacy compiled-binary directory: `%LOCALAPPDATA%/omp` (or `~/AppData/Local/omp`) on Windows, `~/.local/bin` elsewhere;
+- legacy compiled-binary directory: `%LOCALAPPDATA%/ngodeai` (or `~/AppData/Local/ngodeai`) on Windows, `~/.local/bin` elsewhere;
 - workspace/install/compiled mode, optional leaf directory, Windows staging policy, CPU variant, filenames, and ordered candidates.
 
 Compiled mode is true when a populated embedded manifest exists, `PI_COMPILED` is set, or `import.meta.url` contains a Bun embedded marker (`$bunfs`, `~BUN`, or `%7EBUN`). A non-compiled `nativeDir` outside a `node_modules` path is a workspace load. Windows path classification is case-insensitive; other platforms use case-sensitive path matching.

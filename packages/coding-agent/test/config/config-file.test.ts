@@ -38,7 +38,7 @@ describe("ConfigFile JSON → YAML migration", () => {
 	});
 
 	test("publishes the migrated config readable only by its owner", () => {
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-config-migrate-"));
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-config-migrate-"));
 		tempDirs.push(dir);
 		fs.writeFileSync(path.join(dir, "models.json"), LEGACY_MODELS_JSON, { encoding: "utf-8", mode: 0o600 });
 		const ymlPath = path.join(dir, "models.yml");
@@ -54,7 +54,7 @@ describe("ConfigFile JSON → YAML migration", () => {
 	});
 
 	test("a write that dies midway leaves no config behind, so the next load retries", () => {
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-config-migrate-"));
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-config-migrate-"));
 		tempDirs.push(dir);
 		fs.writeFileSync(path.join(dir, "models.json"), LEGACY_MODELS_JSON, { encoding: "utf-8", mode: 0o600 });
 		const ymlPath = path.join(dir, "models.yml");

@@ -38,7 +38,7 @@ describe("StdioTransport cancellation", () => {
 	let frameLog: BunFile;
 
 	beforeEach(async () => {
-		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-mcp-cancellation-"));
+		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-mcp-cancellation-"));
 		logPath = path.join(tempDir, "frames.jsonl");
 		frameLog = Bun.file(logPath);
 		await Bun.write(frameLog, "");

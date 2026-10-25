@@ -1,6 +1,6 @@
 # Generic XML owned tool-calling format (`<invoke>` / `<tool_response>`)
 
-OMP's `xml` dialect is a generic, prompt-driven in-band protocol. The model writes one `<invoke>` element per tool call directly in assistant text; NgodeAI parses those calls and returns one ordered `<tool_response>` block per result in the next user turn. Neither side carries tool-call ids, and result blocks do not carry tool names, so ordering is the correlation mechanism.
+NGODEAI's `xml` dialect is a generic, prompt-driven in-band protocol. The model writes one `<invoke>` element per tool call directly in assistant text; NgodeAI parses those calls and returns one ordered `<tool_response>` block per result in the next user turn. Neither side carries tool-call ids, and result blocks do not carry tool names, so ordering is the correlation mechanism.
 
 This reference describes the converter implemented by `packages/ai/src/dialect/xml.ts`. The ordinary `tools.format: xml` path uses the shared Anthropic-style invoke scanner. The exported scanner API can instead select DeepSeek's pipe-wrapped DSML tagset; that scanner-only option is documented separately below.
 
@@ -48,7 +48,7 @@ One call is one invoke:
 | --- | --- |
 | `<invoke name="TOOL">…</invoke>` | One tool call. The prompt contract requires a listed tool name. |
 | `<parameter name="ARG">VALUE</parameter>` | One named argument. |
-| `<tool_calls>…</tool_calls>` | Optional model-emitted wrapper accepted by the guide/scanner; OMP's renderer does not add it. |
+| `<tool_calls>…</tool_calls>` | Optional model-emitted wrapper accepted by the guide/scanner; NGODEAI's renderer does not add it. |
 
 `renderAssistantToolCalls` emits consecutive invokes separated by newlines, with no outer wrapper. The default scanner also accepts `<function_calls>` as a wrapper alias, `antml:`-prefixed variants of the Anthropic tags, and a bare invoke. Its accepted input is deliberately wider than the canonical renderer output.
 
@@ -78,7 +78,7 @@ accepts a `string` override on each parameter:
 - `string="true"` (or any value other than `false`, `0`, or `no`) forces the raw body to remain a string.
 - `string="false"`, `string="0"`, or `string="no"` forces JSON parsing even when the schema declares a string.
 
-Non-string bodies are trimmed for parsing and passed through OMP's repair-capable JSON parser. If repair fails, the original body is retained as a string. Empty bodies remain empty strings. A parameter without a usable name is discarded.
+Non-string bodies are trimmed for parsing and passed through NGODEAI's repair-capable JSON parser. If repair fails, the original body is retained as a string. Empty bodies remain empty strings. A parameter without a usable name is discarded.
 
 The scanner does not validate tool membership or full argument schemas.
 Repeated parameter names overwrite earlier values at call completion. Attribute
@@ -204,7 +204,7 @@ Failure behavior is explicit:
 - an incomplete parameter or invoke emits no `toolEnd` when flushed; and
 - complete invokes remain valid even when the outer wrapper never closes.
 
-OMP's stream projector creates a canonical call at `toolStart`, before `toolEnd`. Therefore, on a normally stopped provider response, an unterminated invoke can remain as a partial runnable call: streamed argument text stays uncoerced, or arguments are `{}` if none arrived. A provider `length` stop remains non-runnable `length`. This behavior applies to the ordinary owned `xml` path and is important when diagnosing model output that stops mid-tag.
+NGODEAI's stream projector creates a canonical call at `toolStart`, before `toolEnd`. Therefore, on a normally stopped provider response, an unterminated invoke can remain as a partial runnable call: streamed argument text stays uncoerced, or arguments are `{}` if none arrived. A provider `length` stop remains non-runnable `length`. This behavior applies to the ordinary owned `xml` path and is important when diagnosing model output that stops mid-tag.
 
 ### DSML tagset
 
@@ -240,7 +240,7 @@ I'll compare both cities.
 <invoke name="get_weather"><parameter name="city">Oslo</parameter><parameter name="days">2</parameter></invoke>
 ```
 
-Next user turn produced by OMP:
+Next user turn produced by NGODEAI:
 
 ```text
 <tool_response>

@@ -1,6 +1,6 @@
 //go:build unix
 
-package omprpc
+package ngodeairpc
 
 import (
 	"errors"
@@ -46,11 +46,11 @@ func (p *process) terminate() error {
 	}
 	_ = syscall.Kill(-p.pgid, syscall.SIGKILL)
 	if !p.exitedWithin(processGrace) {
-		return errors.New("omprpc: server process survived SIGKILL")
+		return errors.New("ngodeairpc: server process survived SIGKILL")
 	}
 	for deadline := time.Now().Add(processGrace); !p.groupGone(); time.Sleep(20 * time.Millisecond) {
 		if time.Now().After(deadline) {
-			return fmt.Errorf("omprpc: process group %d still has members after SIGKILL", p.pgid)
+			return fmt.Errorf("ngodeairpc: process group %d still has members after SIGKILL", p.pgid)
 		}
 	}
 	return nil
@@ -71,7 +71,7 @@ func (p *process) terminateLeader() error {
 	}
 	_ = p.cmd.Process.Kill()
 	if !p.exitedWithin(processGrace) {
-		return errors.New("omprpc: server process survived SIGKILL")
+		return errors.New("ngodeairpc: server process survived SIGKILL")
 	}
 	return nil
 }

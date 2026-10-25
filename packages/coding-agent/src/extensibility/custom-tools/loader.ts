@@ -1,6 +1,6 @@
 /**
  * Custom tool loader - loads TypeScript tool modules through the same loader
- * as extensions, so `@oh-my-pi/*` imports resolve to the host's bundled copy
+ * as extensions, so `@ngodeai/*` imports resolve to the host's bundled copy
  * (in the compiled binary there is no other copy to resolve).
  *
  * Dependencies are also injected through CustomToolAPI so tools loaded from
@@ -248,7 +248,7 @@ export async function loadCustomTools(
 /**
  * Collect the absolute tool-source paths to load, without importing or
  * binding factories. Hot path on session startup — the scan walks
- * `.omp/tools/`, `.claude/tools/`, the plugin tree, and any configured paths.
+ * `.ngodeai/tools/`, `.claude/tools/`, the plugin tree, and any configured paths.
  *
  * Subagents reuse the parent's collected paths via the SDK's
  * `preloadedCustomToolPaths` option, then call `loadCustomTools` themselves

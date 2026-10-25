@@ -1,6 +1,6 @@
 /**
  * Tool card chrome + per-tool dispatch. Works in the collab-web app and inside
- * the `<omp-tool-view>` web component embedded in HTML session exports.
+ * the `<ngode-tool-view>` web component embedded in HTML session exports.
  */
 import { INTENT_FIELD } from "@ngodeai/wire";
 import type { ReactNode } from "react";

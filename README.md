@@ -158,7 +158,7 @@ Configuration is stored in `~/.ngodeai/`:
 | `NGODEAI_CONFIG_DIR` | Custom config directory path (default: `~/.ngodeai`). |
 | `NGODEAI_PROFILE` | Named configuration profile to activate. |
 
-*(Note: NgodeAI maintains full backward compatibility with legacy `OMP_*` and `PI_*` environment variables).*
+*(Note: NgodeAI maintains full backward compatibility with legacy `NGODEAI_*` and `PI_*` environment variables).*
 
 ---
 

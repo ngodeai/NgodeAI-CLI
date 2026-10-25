@@ -18,7 +18,7 @@ Rust client for the NgodeAI RPC protocol: JSON lines over the stdio of `ngodeai 
 use std::process::Command as Process;
 use ngodeai_rpc::*;
 
-let mut process = Process::new("omp");
+let mut process = Process::new("ngodeai");
 process.args(["--mode", "rpc", "--no-session"]);
 let (client, events) = Client::spawn(process, ClientOptions::default())?; // waits for `ready`, negotiates v2
 let state = client.call(&GetStateCommand {})?;

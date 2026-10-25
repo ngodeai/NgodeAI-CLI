@@ -3,7 +3,7 @@
  * turns (`/retry`) and for the `/stats` exclusion:
  *
  * - A `/retry`-started turn must get `promptTurn`'s pre-turn prep — MCP
- *   readiness binding and the strict `OMP_MCP_REQUIRE_READY` gate — BEFORE
+ *   readiness binding and the strict `NGODEAI_MCP_REQUIRE_READY` gate — BEFORE
  *   `session.retry()` schedules the continuation, or strict automation
  *   passes on a run it should fail and the retried turn streams without the
  *   tools turn one gets.
@@ -89,12 +89,12 @@ describe("print-mode dispatched builtins", () => {
 	});
 
 	afterEach(() => {
-		delete process.env.OMP_MCP_REQUIRE_READY;
+		delete process.env.NGODEAI_MCP_REQUIRE_READY;
 		vi.restoreAllMocks();
 	});
 
 	it("refuses a /retry under the strict gate before session.retry() schedules the continuation", async () => {
-		process.env.OMP_MCP_REQUIRE_READY = "1";
+		process.env.NGODEAI_MCP_REQUIRE_READY = "1";
 		const { session, spies } = createMockSession();
 
 		const exitCode = await runPrintMode(session, {

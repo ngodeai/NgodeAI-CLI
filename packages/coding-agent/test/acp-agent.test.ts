@@ -536,7 +536,7 @@ async function createHarness(
 		authStorage?: AuthStorage;
 	} = {},
 ): Promise<AgentHarness> {
-	const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "omp-acp-test-"));
+	const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ngode-acp-test-"));
 	cleanupRoots.push(root);
 	const agentDir = path.join(root, "agent");
 	const cwdA = path.join(root, "cwd-a");
@@ -845,7 +845,7 @@ describe("ACP agent", () => {
 		expect(result.content[0]?.text).toMatch(/Plan approved/);
 		expect(result.content[0]?.text).not.toContain(harness.cwdA);
 		expect(result.content[0]?.text).not.toContain("autosaved to");
-		const saved = path.join(harness.cwdA, ".omp", "plans", "WORDS_COUNTER_PLAN.md");
+		const saved = path.join(harness.cwdA, ".ngodeai", "plans", "WORDS_COUNTER_PLAN.md");
 		expect(await Bun.file(saved).text()).toBe("# Words Counter\n\nFile contents.");
 		expect(session.planModeState).toBeUndefined();
 
@@ -1319,14 +1319,14 @@ describe("ACP agent", () => {
 		await Bun.sleep(0);
 	});
 
-	it("accepts OMP extension methods and rejects unknown unprefixed methods", async () => {
+	it("accepts NGODEAI extension methods and rejects unknown unprefixed methods", async () => {
 		const harness = await createHarness();
 
 		const result = await harness.agent.extMethod("_omp/sessions/listAll", { limit: 2 });
 
 		expect(Array.isArray(result.sessions)).toBe(true);
 		expect(typeof result.total).toBe("number");
-		await expect(harness.agent.extMethod("omp/sessions/listAll", { limit: 2 })).rejects.toThrow(
+		await expect(harness.agent.extMethod("ngodeai/sessions/listAll", { limit: 2 })).rejects.toThrow(
 			"Unknown ACP ext method",
 		);
 
@@ -2263,7 +2263,7 @@ describe("ACP agent", () => {
 
 	it("refreshes task agent descriptions on ACP /reload-plugins", async () => {
 		const harness = await createHarness();
-		const agentDir = path.join(harness.cwdA, ".omp", "agents");
+		const agentDir = path.join(harness.cwdA, ".ngodeai", "agents");
 		const agentFile = path.join(agentDir, "acp-reload-agent.md");
 		await fs.promises.mkdir(agentDir, { recursive: true });
 		await fs.promises.writeFile(
@@ -4125,7 +4125,7 @@ describe("ACP agent MCP server configuration (late-connecting servers)", () => {
 		const harness = await createHarness();
 		const created = await harness.agent.newSession({
 			cwd: harness.cwdA,
-			mcpServers: [{ name: "broken", command: "/nonexistent/omp-fixture-binary", args: [], env: [] }],
+			mcpServers: [{ name: "broken", command: "/nonexistent/ngode-fixture-binary", args: [], env: [] }],
 		});
 		expectAcpStructure(zNewSessionResponse, created);
 

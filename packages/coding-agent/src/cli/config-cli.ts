@@ -5,11 +5,15 @@
  * The settings registry (`config/registry.ts`) is the source of truth for available settings.
  */
 
-import { APP_NAME, getAgentDir, isRecord } from "@ngodeai/utils";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { APP_NAME, CONFIG_DIR_NAME, getAgentDir, isRecord, LEGACY_CONFIG_DIR_NAMES } from "@ngodeai/utils";
 import chalk from "@ngodeai/utils/chalk";
 import { orderedSettings } from "../config/all-settings";
 import { type AnySetting, lookup } from "../config/registry";
 import { Settings, settings } from "../config/settings";
+import { migrateLegacyConfigRoot, __resetLegacyMigrationForTests } from "@ngodeai/utils";
 import { theme } from "@ngodeai/tui/theme";
 import { initXdg } from "./commands/init-xdg";
 
@@ -17,7 +21,7 @@ import { initXdg } from "./commands/init-xdg";
 // Types
 // =============================================================================
 
-export type ConfigAction = "list" | "get" | "set" | "reset" | "path" | "init-xdg";
+export type ConfigAction = "list" | "get" | "set" | "reset" | "path" | "init-xdg" | "migrate";
 
 export interface ConfigCommandArgs {
 	action: ConfigAction;
@@ -63,7 +67,7 @@ function findSettingDef(path: string): CliSettingDef | undefined {
 // Argument Parser
 // =============================================================================
 
-const VALID_ACTIONS: ConfigAction[] = ["list", "get", "set", "reset", "path", "init-xdg"];
+const VALID_ACTIONS: ConfigAction[] = ["list", "get", "set", "reset", "path", "init-xdg", "migrate"];
 
 /**
  * Parse config subcommand arguments.
@@ -182,7 +186,40 @@ export async function runConfigCommand(cmd: ConfigCommandArgs): Promise<void> {
 		case "init-xdg":
 			await initXdg();
 			break;
+		case "migrate":
+			await handleMigrate();
+			break;
 	}
+}
+
+/**
+ * Move a pre-rebrand config root into the canonical one.
+ *
+ * `migrateLegacyConfigRoot` already runs at module load, so this handler exists
+ * for the case the user wants the move performed deliberately and reported:
+ * it re-runs the migration with the process-level "already attempted" latch
+ * cleared and prints where the data went.
+ */
+async function handleMigrate(): Promise<void> {
+	const home = os.homedir();
+	const canonical = path.join(home, CONFIG_DIR_NAME);
+	const legacyRoots = LEGACY_CONFIG_DIR_NAMES.map(name => path.join(home, name)).filter(dir => fs.existsSync(dir));
+
+	if (legacyRoots.length === 0) {
+		console.log(`${canonical.replace(home, "~")} is already the only config root; nothing to migrate.`);
+		return;
+	}
+
+	__resetLegacyMigrationForTests();
+	migrateLegacyConfigRoot();
+
+	for (const legacy of legacyRoots) {
+		const label = legacy.replace(home, "~");
+		console.log(
+			fs.existsSync(legacy) ? `could not remove ${label}` : `moved ${label} → ${canonical.replace(home, "~")}`,
+		);
+	}
+	console.log(`\nActive config root: ${getAgentDir().replace(home, "~")}`);
 }
 
 async function writeStdout(text: string): Promise<void> {
@@ -412,6 +449,7 @@ ${chalk.bold("Commands:")}
   reset <key>        Remove a setting from config.yml so its default applies
   path               Print the config directory path
   init-xdg           Initialize XDG Base Directory structure
+  migrate            Move a legacy ${LEGACY_CONFIG_DIR_NAMES.join(" / ")} config root into ~/.ngodeai
 
 ${chalk.bold("Options:")}
   --json             Output as JSON
@@ -425,6 +463,7 @@ ${chalk.bold("Examples:")}
   ${APP_NAME} config reset steeringMode
   ${APP_NAME} config list --json
   ${APP_NAME} config init-xdg
+  ${APP_NAME} config migrate
 
 ${chalk.bold("Boolean Values:")}
   true, false, yes, no, on, off, 1, 0

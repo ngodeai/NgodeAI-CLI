@@ -114,7 +114,7 @@ const SPEECH_MODELS_LIST_METHOD = "speech.models.list";
  * codex-acp (spec proposal: ACP `session/inject`,
  * agentclientprotocol/agent-client-protocol#1261, still open). Advertised via
  * top-level `_meta.steering.supported` in the `initialize` response; params
- * carry `{ sessionId, prompt: ContentBlock[] }`. The omp extension
+ * carry `{ sessionId, prompt: ContentBlock[] }`. The ngodeai extension
  * `_meta.steering.queue: "followUp"` routes to the native follow-up queue
  * instead of the steering queue. Idle sessions are never consumed or started:
  * the response is always `promptRequired`, so the host submits the prompt
@@ -318,7 +318,7 @@ const STEERING_BLOCK_STRING_FIELDS: Record<string, string[]> = {
 };
 
 /**
- * `_meta.steering.queue` of a `_session/steering` request — the omp-specific
+ * `_meta.steering.queue` of a `_session/steering` request — the ngode-specific
  * opt-in routing the message to the native follow-up queue instead of the
  * steering queue. Everything else (including `idleBehavior`) is unused: idle
  * sessions always answer `promptRequired`, so the host keeps owning the turn.
@@ -819,7 +819,7 @@ export class AcpAgent implements Agent {
 			authMethods.push({
 				type: "terminal",
 				id: "terminal",
-				name: "Set up omp in terminal",
+				name: "Set up ngodeai in terminal",
 				description: "Launch the NgodeAI TUI to add provider keys and select models.",
 				args: [ACP_TERMINAL_AUTH_FLAG],
 			});
@@ -827,8 +827,8 @@ export class AcpAgent implements Agent {
 		return {
 			protocolVersion: PROTOCOL_VERSION,
 			agentInfo: {
-				name: "omp",
-				title: "omp",
+				name: "ngodeai",
+				title: "ngodeai",
 				version: VERSION,
 			},
 			authMethods,
@@ -1514,11 +1514,11 @@ export class AcpAgent implements Agent {
 	 *   always `promptRequired`, so the host submits the content through
 	 *   `session/prompt` and keeps owning the turn.
 	 *
-	 * omp deliberately never returns `startedNewTurn` (claude-agent-acp's
+	 * ngodeai deliberately never returns `startedNewTurn` (claude-agent-acp's
 	 * behavior without the `idleBehavior` opt-in) because a detached turn has
 	 * no `session/prompt` response to carry a failed start, so a rejection
 	 * would be invisible to the client (claude-agent-acp#903). `queue` is
-	 * `followUp` when the request opts into the omp-specific
+	 * `followUp` when the request opts into the ngode-specific
 	 * `_meta.steering.queue: "followUp"` routing.
 	 */
 	async #handleSessionSteering(params: { [key: string]: unknown }): Promise<{ [key: string]: unknown }> {

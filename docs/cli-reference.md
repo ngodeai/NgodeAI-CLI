@@ -37,7 +37,7 @@ initial message(s):
 
 ```sh
 # Interactive session
-omp
+ngodeai
 
 # Interactive session with an initial prompt
 ngodeai "List all .ts files in src/"
@@ -74,7 +74,7 @@ Argument handling:
 | `--add-dir <dir>` | Add a workspace directory beyond the working directory (repeatable). |
 | `--allow-home` | Allow starting in `~` without auto-switching to a temp dir. |
 | `--profile <name>` | Use an isolated profile for auth, sessions, settings, and caches. |
-| `--alias <name>` | Create a shell shortcut for a named profile and exit; requires `--profile` or `OMP_PROFILE`. |
+| `--alias <name>` | Create a shell shortcut for a named profile and exit; requires `--profile` or `NGODEAI_PROFILE`. |
 | `--config <file>` | Load an extra `config.yml`-style overlay for this run (repeatable). |
 | `--session-dir <dir>` | Directory for session storage and lookup. |
 | `--no-session` | Don't save the session (ephemeral). |
@@ -87,8 +87,8 @@ Argument handling:
 | `--resume [id]`, `-r`, `--session [id]` | Resume a session by ID prefix or path, or open the picker when no value is given. |
 | `--restore [id]` | Resume a session as `--resume` does, then go on with what its last process left unfinished when it crashed or was killed: the interrupted turn and the subagents it was running. Interactive only; takes no prompt. See [session operations](./session-operations-export-share-fork-resume.md#cli---restore). |
 | `--fork <session>` | Fork a saved session (by ID prefix or path) into a new session. See [session operations](./session-operations-export-share-fork-resume.md). |
-| `--from-claude` | Import a Claude Code session into OMP. |
-| `--from-codex` | Import a Codex session into OMP. |
+| `--from-claude` | Import a Claude Code session into NGODEAI. |
+| `--from-codex` | Import a Codex session into NGODEAI. |
 | `--export <session>` | Export a session file to HTML and exit. |
 | `--no-title` | Disable title auto-generation (equivalent to the `PI_NO_TITLE` [environment variable](./environment-variables.md)). |
 
@@ -249,7 +249,7 @@ Run `ngodeai <command> --help` for each command's own flags and examples.
 | `browser-relay` | Run the local CDP relay used by Eval's browser API to drive your own Chrome tabs. | [computer use](./computer-use.md) |
 | `cleanse` | Detect and fix project diagnostics with weighted parallel subagents. | |
 | `collab` | List active local Collab hosts without exposing URLs; `collab link <instanceId\|pid>` retrieves a control link (`--view` for view-only). | [collab](./collab.md) |
-| `clip` | Upload a `/record` recording to live.omp.sh as a public clip and print its URL. | |
+| `clip` | Upload a `/record` recording to live.ngodeai.net as a public clip and print its URL. | |
 | `commit` | Generate a commit message and update changelogs. | |
 | `completions` | Print a shell completion script (bash, zsh, or fish). | |
 | `compress` | Rewrite a text file into the dense prompt register, reporting what it drops. | |
@@ -277,7 +277,7 @@ Run `ngodeai <command> --help` for each command's own flags and examples.
 | `shell` | Interactive shell console. | |
 | `read` | Show what the read tool will return for a path, URL, or internal URI. (The [`read` tool](./tools/read.md) is a separate agent tool.) | |
 | `render` | Draw a session's entire thread through the production transcript pipeline (with repaint timing). | |
-| `skill`, `skills` | Install, search, publish, and manage skills on skills.omp.sh. | [skills](./skills.md) |
+| `skill`, `skills` | Install, search, publish, and manage skills on skills.ngodeai.net. | [skills](./skills.md) |
 | `ssh` | Manage SSH host configurations. | |
 | `stats` | View usage statistics. | |
 | `stream` | Broadcast local NgodeAI session screens and chat to a public live channel. | |

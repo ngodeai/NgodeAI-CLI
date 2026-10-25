@@ -15,7 +15,7 @@ let
 in
 pkgs.mkShell (
   {
-    name = "omp-dev";
+    name = "ngode-dev";
 
     packages =
       [ bun bun2nix rustToolchain ]

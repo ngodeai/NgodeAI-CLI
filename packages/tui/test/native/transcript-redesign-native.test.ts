@@ -61,7 +61,7 @@ function texts(node: TspNode | undefined): string {
 }
 
 describe("native transcript redesign", () => {
-	it("draws a failed request as one frame: status chip, the message once, actions that run omp's commands", async () => {
+	it("draws a failed request as one frame: status chip, the message once, actions that run ngodeai's commands", async () => {
 		const actions: TranscriptAction[] = [];
 		setTranscriptActionHandler(action => actions.push(action));
 		const component = new AssistantMessageComponent(
@@ -170,7 +170,7 @@ describe("native transcript redesign", () => {
 		expect(harness.errors).toEqual([]);
 	});
 
-	it("gives a user message no head row, and routes its toolbar to omp's copy and rewind", async () => {
+	it("gives a user message no head row, and routes its toolbar to ngodeai's copy and rewind", async () => {
 		const actions: TranscriptAction[] = [];
 		setTranscriptActionHandler(action => actions.push(action));
 		const user = new UserMessageComponent("Fix the build", { timestamp: Date.UTC(2026, 0, 1, 12, 30) });

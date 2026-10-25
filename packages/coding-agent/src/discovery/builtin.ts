@@ -1,7 +1,7 @@
 /**
- * Builtin Provider (.omp)
+ * Builtin Provider (.ngodeai)
  *
- * Primary provider for OMP native configs. Supports all capabilities.
+ * Primary provider for NGODEAI native configs. Supports all capabilities.
  */
 import * as path from "node:path";
 import { getAgentDir, logger, normalizePathForComparison, parseFrontmatter, tryParseJson } from "@ngodeai/utils";
@@ -40,7 +40,7 @@ import {
 } from "./helpers";
 
 const PROVIDER_ID = "native";
-const DISPLAY_NAME = "OMP";
+const DISPLAY_NAME = "NGODEAI";
 const DESCRIPTION = "Native NgodeAI configuration from ~/.ngodeai and .ngodeai/";
 const PRIORITY = 100;
 
@@ -108,7 +108,7 @@ export async function* getProjectAncestorDirs(ctx: LoadContext): AsyncGenerator<
 }
 
 /**
- * Nearest `.omp/` between cwd and the repo root. The home directory is never a
+ * Nearest `.ngodeai/` between cwd and the repo root. The home directory is never a
  * project: `~/.ngodeai` is the user config root, so a cwd under home (temp dirs on
  * Windows, scratch folders) must not load its SYSTEM.md/RULES.md/AGENTS.md as
  * project config — that also bypasses an overridden agent dir or profile.
@@ -419,7 +419,7 @@ async function loadRules(ctx: LoadContext): Promise<LoadResult<Rule>> {
 	// request (system-prompt text, or image frames under snapcompact
 	// system-prompt imaging) so it keeps its hold across long sessions.
 	// User scope:    <agentDir>/RULES.md (~/.ngodeai/agent/RULES.md by default)
-	// Project scope: nearest .omp/RULES.md walking up from cwd to repoRoot
+	// Project scope: nearest .ngodeai/RULES.md walking up from cwd to repoRoot
 	const userRulesFile = path.join(ctx.agentDir ?? getAgentDir(), "RULES.md");
 	const userRule = await loadStickyRulesFile(userRulesFile, "user");
 	if (userRule) items.push(userRule);

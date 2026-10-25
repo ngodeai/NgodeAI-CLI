@@ -932,7 +932,7 @@ describe("ModelHub", () => {
 		test("overlay tombstones do not hide stored scoped default assignments", async () => {
 			const model = makeModel("test", "claude-haiku-4.5");
 			const selector = `${model.provider}/${model.id}`;
-			const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-model-hub-"));
+			const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-model-hub-"));
 			const cwd = path.join(root, "project");
 			const agentDir = path.join(root, "agent");
 			const overlayPath = path.join(root, "overlay.yml");
@@ -943,7 +943,7 @@ describe("ModelHub", () => {
 					`modelRoleStorage: project\nmodelRoles:\n  default: ${selector}\n  smol: ${selector}\n`,
 				);
 				await Bun.write(
-					path.join(cwd, ".omp", "config.yml"),
+					path.join(cwd, ".ngodeai", "config.yml"),
 					`modelRoles:\n  default: ${selector}\n  smol: ${selector}\n`,
 				);
 				await Bun.write(overlayPath, "modelRoles:\n  default: null\n  smol: null\n");

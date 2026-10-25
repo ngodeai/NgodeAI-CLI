@@ -1,19 +1,19 @@
 /**
- * Client for Stencil's build service, the source of omp's standalone binaries.
+ * Client for Stencil's build service, the source of ngodeai's standalone binaries.
  *
  * `ngodeai update` on a standalone binary install, the binary takeover of a
  * package-manager install, and the startup update check of a compiled binary
  * all ask the service which build to install ({@link fetchBuild}):
  *
- * - `GET {origin}/api/products/omp/latest/{target}?channel=stable|canary` for
+ * - `GET {origin}/api/products/ngodeai/latest/{target}?channel=stable|canary` for
  *   the newest build on a channel;
- * - `GET {origin}/api/products/omp/versions/{version}/{target}` for one exact
+ * - `GET {origin}/api/products/ngodeai/versions/{version}/{target}` for one exact
  *   version.
  *
- * omp is a public product, so no token is sent. The origin is `PI_BUILD_URL`
+ * ngodeai is a public product, so no token is sent. The origin is `PI_BUILD_URL`
  * ({@link DEFAULT_BUILD_URL} when unset). `{target}` is
  * `{macos|linux|linux-musl|windows}-{arm64|x86_64}` ({@link resolveBuildHost}).
- * Requests carry `User-Agent: omp/<version>`, which the service counts in its
+ * Requests carry `User-Agent: ngodeai/<version>`, which the service counts in its
  * update-check statistics.
  *
  * Adding `from_version=<installed version>` makes the answer carry an
@@ -65,7 +65,7 @@ export function buildServiceUrl(): string {
 export interface BuildHost {
 	/** Build service target, e.g. `macos-arm64` or `linux-musl-x86_64`. */
 	target: string;
-	/** Name of the target's file, the release asset name (e.g. `omp-darwin-arm64`). */
+	/** Name of the target's file, the release asset name (e.g. `ngode-darwin-arm64`). */
 	fileName: string;
 }
 

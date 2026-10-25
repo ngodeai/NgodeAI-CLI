@@ -3,7 +3,7 @@
   "name": "@ngodeai/collab-web",
   "version": "16.3.6",
   "private": true,
-  "description": "Browser guest client and local relay tools for omp collab live sessions",
+  "description": "Browser guest client and local relay tools for ngodeai collab live sessions",
   "homepage": "https://ngodeai.net",
   "author": {
     "name": "NgodeAI",

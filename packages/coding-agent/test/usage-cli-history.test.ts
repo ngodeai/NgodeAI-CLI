@@ -6,7 +6,7 @@ import { runUsageCommand } from "@ngodeai/coding-agent/cli/usage-cli";
 import { Settings } from "@ngodeai/coding-agent/config/settings";
 import * as sdkModule from "@ngodeai/coding-agent/sdk";
 
-const BROKER_ENV = ["OMP_AUTH_BROKER_URL", "OMP_AUTH_BROKER_TOKEN"] as const;
+const BROKER_ENV = ["NGODEAI_AUTH_BROKER_URL", "NGODEAI_AUTH_BROKER_TOKEN"] as const;
 const HOUR_MS = 60 * 60 * 1000;
 
 function snapshot(provider: string, recordedAt: number, usedFraction: number): UsageHistoryEntry {
@@ -37,8 +37,8 @@ beforeEach(() => {
 		bearerTokens: ["history-bearer"],
 		disableRefresher: true,
 	});
-	process.env.OMP_AUTH_BROKER_URL = handle.url;
-	process.env.OMP_AUTH_BROKER_TOKEN = "history-bearer";
+	process.env.NGODEAI_AUTH_BROKER_URL = handle.url;
+	process.env.NGODEAI_AUTH_BROKER_TOKEN = "history-bearer";
 	vi.spyOn(Settings, "loadReadOnly").mockResolvedValue(Settings.isolated());
 	vi.spyOn(sdkModule, "discoverAuthStorage").mockResolvedValue(new AuthStorage(localStore));
 });
@@ -53,7 +53,7 @@ afterEach(async () => {
 	}
 });
 
-test("omp usage --history reads the broker host's record, not the client's own store", async () => {
+test("ngodeai usage --history reads the broker host's record, not the client's own store", async () => {
 	const now = Date.now();
 	brokerStore.recordUsageSnapshots([
 		snapshot("anthropic", now - 3 * HOUR_MS, 0.25),

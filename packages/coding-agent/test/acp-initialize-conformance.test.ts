@@ -143,7 +143,7 @@ afterEach(async () => {
 });
 
 async function createAgent(): Promise<AcpAgent> {
-	const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "omp-acp-init-"));
+	const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ngode-acp-init-"));
 	cleanupRoots.push(root);
 	const agentDir = path.join(root, "agent");
 	const cwd = path.join(root, "cwd");
@@ -232,7 +232,7 @@ describe("ACP initialize conformance", () => {
 		const pkg = (await Bun.file(pkgPath).json()) as { version: string };
 		expect(response.agentInfo).toEqual(
 			expect.objectContaining({
-				title: "omp",
+				title: "ngodeai",
 				version: VERSION,
 			}),
 		);

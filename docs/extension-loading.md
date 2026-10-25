@@ -23,7 +23,7 @@ Extension loading builds an ordered list of module entry files, imports the modu
 - `src/extensibility/plugins/legacy-pi-compat.ts` — in-place module graph loading and host-package compatibility rewriting
 - `src/config/settings.ts` — loads merged `extensions` / `disabledExtensions` settings
 - `src/sdk.ts` — session-specific discovery, prepared-factory rebinding, and live source reconciliation
-- `src/discovery/omp-extension-roots.ts` — sibling capability roots from extension packages
+- `src/discovery/ngode-extension-roots.ts` — sibling capability roots from extension packages
 
 ---
 
@@ -39,11 +39,11 @@ Native `extension-module` discovery comes from:
 - User directory: the active agent directory's `extensions/` (default `~/.ngodeai/agent/extensions`)
 - Native legacy/settings JSON entries: `<cwd>/.ngodeai/settings.json#extensions` and the active agent directory's `settings.json#extensions`
 
-The project root is the native provider's `.omp` directory (`SOURCE_PATHS.native.projectDir`), cwd-only; it does not walk ancestors. Native discovery uses its `LoadContext.agentDir` when supplied, otherwise `getAgentDir()`. With the default user config root, `ngodeai --profile <name>` selects `~/.ngodeai/profiles/<name>/agent/extensions`. `PI_CONFIG_DIR` changes that user config root; `PI_CODING_AGENT_DIR` overrides the agent directory only in the default profile, not named profiles. See [Profiles](./config-usage.md#profiles).
+The project root is the native provider's `.ngodeai` directory (`SOURCE_PATHS.native.projectDir`), cwd-only; it does not walk ancestors. Native discovery uses its `LoadContext.agentDir` when supplied, otherwise `getAgentDir()`. With the default user config root, `ngodeai --profile <name>` selects `~/.ngodeai/profiles/<name>/agent/extensions`. `PI_CONFIG_DIR` changes that user config root; `PI_CODING_AGENT_DIR` overrides the agent directory only in the default profile, not named profiles. See [Profiles](./config-usage.md#profiles).
 
 Notes:
 
-- Native auto-discovery is currently `.omp` based.
+- Native auto-discovery is currently `.ngodeai` based.
 - Legacy `.pi` is still accepted in package manifests (`pi.extensions`) and project override lookup, but `.pi/extensions` is not a native root here.
 
 ### 2) Discovered JS/TS hook factories
@@ -56,12 +56,12 @@ Hook-capability loading already applies its own hook-specific disabled ids, so t
 
 After hook discovery, `discoverAndLoadExtensions()` appends extension entry points from enabled installed plugins via `getAllPluginExtensionPaths(cwd)`.
 
-Plugin extension entries come from package `omp.extensions` / `pi.extensions` manifests, including enabled feature entries.
+Plugin extension entries come from package `ngodeai.extensions` / `pi.extensions` manifests, including enabled feature entries.
 
 Installed-plugin manifest resolution accepts explicit `.ts`, `.js`, `.mjs`, and `.cjs` files. For a manifest entry that names a directory, it recognizes `index.ts`, `index.js`, `index.mjs`, or `index.cjs`; extension-directory expansion uses the same four suffixes. This is broader than native and configured-directory auto-scanning, which remains limited to `.ts` and `.js`.
 
 Installed-plugin extension directory resolution uses the directory's own
-non-empty `omp.extensions` / `pi.extensions` manifest first, then a direct index,
+non-empty `ngodeai.extensions` / `pi.extensions` manifest first, then a direct index,
 then a sorted one-level scan. That scan skips declaration files
 (`*.d.ts`, `*.d.mts`, `*.d.cts`); explicitly declared file entries are not
 suffix-filtered.
@@ -214,13 +214,13 @@ It is used directly as a module entry candidate. Explicit `.ts`, `.js`, `.mjs`, 
 
 Resolution order:
 
-1. `package.json` in that directory with a non-empty `omp.extensions` (or legacy `pi.extensions`) array -> use declared entries
+1. `package.json` in that directory with a non-empty `ngodeai.extensions` (or legacy `pi.extensions`) array -> use declared entries
 2. `index.ts`
 3. `index.js`
 4. Otherwise scan one level for extension entries:
    - direct `*.ts` / `*.js`
    - subdir `index.ts` / `index.js`
-   - subdir `package.json` with `omp.extensions` / `pi.extensions`
+   - subdir `package.json` with `ngodeai.extensions` / `pi.extensions`
 
 Rules and constraints:
 
@@ -363,7 +363,7 @@ described in [Extensions](./extensions.md#background-work-ctxsetinterval--ctxset
 
 ```text
 <repo>/
-  .omp/
+  .ngodeai/
     settings.json
     extensions/
       checks/
@@ -375,7 +375,7 @@ described in [Extensions](./extensions.md#background-work-ctxsetinterval--ctxset
 
 ```json
 {
-  "omp": {
+  "ngodeai": {
     "extensions": ["./src/check-a.ts", "./src/check-b.js"]
   }
 }

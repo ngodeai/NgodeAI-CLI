@@ -17,7 +17,7 @@ export interface BuildLeafManifestInput extends LeafTarget {
 export interface LeafManifest {
 	name: string;
 	version: string;
-	author: string;
+	author: string | { name: string; url: string };
 	os: string[];
 	cpu: string[];
 	main: string;

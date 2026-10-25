@@ -1,6 +1,6 @@
 /**
  * Validation error containers mirroring ArkType's observable error surface:
- * `result instanceof type.errors` / `instanceof OmpErrors`, lazy `.summary`,
+ * `result instanceof type.errors` / `instanceof NgodeErrors`, lazy `.summary`,
  * array iteration, and per-entry `.path` / `.problem` / `.message`.
  *
  * Failure-path cost matters: schemas reject untrusted input constantly, so
@@ -40,7 +40,7 @@ function format(
 }
 
 /** A single validation failure at one path. */
-export class OmpError {
+export class NgodeError {
 	#rawExpected: string;
 	#config: ErrorConfig | undefined;
 
@@ -295,12 +295,12 @@ function errorCode(expected: string, data: unknown): string {
  */
 type StoredPath = PropertyKey[] | PropertyKey | undefined;
 
-export class OmpErrors implements Iterable<OmpError> {
+export class NgodeErrors implements Iterable<NgodeError> {
 	#path: StoredPath;
 	#expected: string;
 	#data: unknown;
-	#entry: OmpError | undefined;
-	#entries: OmpError[] | undefined;
+	#entry: NgodeError | undefined;
+	#entries: NgodeError[] | undefined;
 	#config: ErrorConfig | undefined;
 	#separator = "\n";
 
@@ -315,24 +315,24 @@ export class OmpErrors implements Iterable<OmpError> {
 		return this.#entries?.length ?? 1;
 	}
 
-	get 0(): OmpError {
+	get 0(): NgodeError {
 		return this.#entries?.[0] ?? this.#getEntry();
 	}
 
-	static single(path: PropertyKey[], expected: string, data: unknown, config?: ErrorConfig): OmpErrors {
-		return new OmpErrors(path, expected, data, config);
+	static single(path: PropertyKey[], expected: string, data: unknown, config?: ErrorConfig): NgodeErrors {
+		return new NgodeErrors(path, expected, data, config);
 	}
 
-	#getEntry(): OmpError {
+	#getEntry(): NgodeError {
 		if (this.#entry) return this.#entry;
 		const path = this.#path === undefined ? [] : Array.isArray(this.#path) ? [...this.#path] : [this.#path];
-		const entry = new OmpError(path, this.#expected, this.#data, this.#config);
+		const entry = new NgodeError(path, this.#expected, this.#data, this.#config);
 		this.#entry = entry;
 		return entry;
 	}
 
 	/** Append all failures from `other`, preserving traversal order. */
-	append(other: OmpErrors): this {
+	append(other: NgodeErrors): this {
 		this.#entries ??= [this.#getEntry()];
 		const entries = this.#entries;
 		for (const entry of other) entries.push(entry);
@@ -362,21 +362,21 @@ export class OmpErrors implements Iterable<OmpError> {
 		return this;
 	}
 
-	get byPath(): Readonly<Record<string, OmpError>> {
-		const result: Record<string, OmpError> = {};
+	get byPath(): Readonly<Record<string, NgodeError>> {
+		const result: Record<string, NgodeError> = {};
 		for (const entry of this) result[entry.path.map(String).join(".")] = entry;
 		return result;
 	}
 
-	map<result>(fn: (error: OmpError, index: number, errors: OmpErrors) => result): result[] {
+	map<result>(fn: (error: NgodeError, index: number, errors: NgodeErrors) => result): result[] {
 		const result: result[] = [];
 		let index = 0;
 		for (const entry of this) result.push(fn(entry, index++, this));
 		return result;
 	}
 
-	filter(fn: (error: OmpError, index: number, errors: OmpErrors) => unknown): OmpError[] {
-		const result: OmpError[] = [];
+	filter(fn: (error: NgodeError, index: number, errors: NgodeErrors) => unknown): NgodeError[] {
+		const result: NgodeError[] = [];
 		let index = 0;
 		for (const entry of this) {
 			if (fn(entry, index++, this)) result.push(entry);
@@ -384,7 +384,7 @@ export class OmpErrors implements Iterable<OmpError> {
 		return result;
 	}
 
-	*[Symbol.iterator](): IterableIterator<OmpError> {
+	*[Symbol.iterator](): IterableIterator<NgodeError> {
 		if (this.#entries) {
 			yield* this.#entries;
 		} else {
@@ -427,7 +427,7 @@ export class OmpErrors implements Iterable<OmpError> {
 
 /** Error thrown by `Type.assert` on invalid input. */
 export class TraversalError extends Error {
-	constructor(readonly errors: OmpErrors) {
+	constructor(readonly errors: NgodeErrors) {
 		super(errors.summary);
 		this.name = "TraversalError";
 	}
@@ -436,11 +436,11 @@ export class TraversalError extends Error {
 /**
  * Definition/usage error thrown while building a schema — malformed string
  * DSL, unsupported composition, or an illegal builder call. Distinct from
- * validation failures, which are returned as {@link OmpErrors}.
+ * validation failures, which are returned as {@link NgodeErrors}.
  */
-export class OmpTypeError extends Error {
+export class NgodeTypeError extends Error {
 	constructor(message: string) {
 		super(message);
-		this.name = "OmpTypeError";
+		this.name = "NgodeTypeError";
 	}
 }

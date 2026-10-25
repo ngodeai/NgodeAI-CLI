@@ -901,7 +901,7 @@ describe("ChainJudge", () => {
 	});
 
 	it("answers repeated questions from the cache and sends only the unanswered ones", async () => {
-		using tempDir = TempDir.createSync("@omp-judgment-cache-");
+		using tempDir = TempDir.createSync("@ngode-judgment-cache-");
 		const dbPath = path.join(tempDir.path(), "judgment-cache.db");
 		const cache = JudgmentCache.open(dbPath);
 		// $1000/M input tokens: 10 tokens per question bill $0.01 each.
@@ -957,7 +957,7 @@ describe("ChainJudge", () => {
 	});
 
 	it("shares TypeSafe Jev image cache entries across ignored detail values", async () => {
-		using tempDir = TempDir.createSync("@omp-judgment-typesafe-image-cache-");
+		using tempDir = TempDir.createSync("@ngode-judgment-typesafe-image-cache-");
 		const cache = JudgmentCache.open(path.join(tempDir.path(), "judgment-cache.db"));
 		try {
 			const model = {
@@ -1008,7 +1008,7 @@ describe("ChainJudge", () => {
 	});
 
 	it("keys native answer caching by ordered image digests and detail without persisting payloads", async () => {
-		using tempDir = TempDir.createSync("@omp-judgment-image-cache-");
+		using tempDir = TempDir.createSync("@ngode-judgment-image-cache-");
 		const dbPath = path.join(tempDir.path(), "judgment-cache.db");
 		const cache = JudgmentCache.open(dbPath);
 		const questions = { visible: { type: "noul" as const, instructions: "Is an object visible?" } };
@@ -1070,7 +1070,7 @@ describe("ChainJudge", () => {
 	});
 
 	it("rejects malformed image aliases before serving native cached answers", async () => {
-		using tempDir = TempDir.createSync("@omp-judgment-image-cache-validation-");
+		using tempDir = TempDir.createSync("@ngode-judgment-image-cache-validation-");
 		const cache = JudgmentCache.open(path.join(tempDir.path(), "judgment-cache.db"));
 		try {
 			const settings = Settings.isolated({

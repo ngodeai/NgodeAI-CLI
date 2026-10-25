@@ -126,13 +126,13 @@ export async function ensureRelayDaemon(opts: { cdpUrl: string; signal?: AbortSi
 }
 
 /**
- * Replace the broker-owned relay at `cdpUrl` with one from this OMP version
+ * Replace the broker-owned relay at `cdpUrl` with one from this NGODEAI version
  * when it comes from an older one; with `idleOnly`, only while it reports no
  * CDP client connected. True once the old relay has stopped (the caller's wait
  * reports whether the new one serves) or another process already replaced it
  * or stopped it to replace it. False when a relay the broker does not run
  * serves there (a manually started relay is left alone), the relay comes from
- * a newer OMP (a concurrently running newer omp owns it), an `idleOnly` relay
+ * a newer NGODEAI (a concurrently running newer ngodeai owns it), an `idleOnly` relay
  * has a client or does not report its clients, or the old relay did not stop.
  */
 export async function restartRelayDaemon(opts: {
@@ -146,7 +146,7 @@ export async function restartRelayDaemon(opts: {
 	const client = await daemonClientForGlobal(RELAY_BROKER_SCOPE);
 	const existing = await describeQuietly(client, name, "Browser relay", opts.signal);
 	if (!existing || existing.state === "exited" || existing.state === "failed") {
-		// Another omp may have stopped the old relay and not yet registered its
+		// Another ngodeai may have stopped the old relay and not yet registered its
 		// replacement; start or adopt it unless a relay the broker does not run serves.
 		const serving = await probeRelayServer(opts.cdpUrl);
 		throwIfAborted(opts.signal);
@@ -156,19 +156,19 @@ export async function restartRelayDaemon(opts: {
 		await ensureRelayDaemon(opts);
 		return true;
 	}
-	// Another omp of this version may have replaced it since the caller's probe,
+	// Another ngodeai of this version may have replaced it since the caller's probe,
 	// possibly with a relay that has not printed its ready line yet.
 	if (existing.readyAt === undefined) await waitReady(client, name, "Browser relay", opts.signal);
 	const status = await relayStatusAt(opts.cdpUrl, opts.signal);
 	if (status?.version === VERSION) return true;
-	// A newer omp running alongside this one owns a newer relay; replacing it
+	// A newer ngodeai running alongside this one owns a newer relay; replacing it
 	// would only make the two versions take turns killing each other's relay.
 	if (status !== null && !isOlderRelayVersion(status.version)) return false;
 	// The last read before the stop: a client that connected since the caller's
 	// probe keeps the relay. One connecting during the stop request itself loses
 	// its connection, as on any relay restart.
 	if (opts.idleOnly && status?.cdpClients !== 0) return false;
-	// Stops only the generation judged outdated, not one another omp started since.
+	// Stops only the generation judged outdated, not one another ngodeai started since.
 	const stopped = await stopQuietly(client, name, "Browser relay", opts.signal, existing.id);
 	if (stopped?.state === "exited" || stopped?.state === "failed") {
 		// As above: a failed start surfaces as unreachable on the caller's wait.
@@ -181,7 +181,7 @@ export async function restartRelayDaemon(opts: {
 }
 
 /**
- * The OMP version (empty for a relay too old to report one) and connected CDP
+ * The NGODEAI version (empty for a relay too old to report one) and connected CDP
  * client count the relay at `cdpUrl` reports on `/json/version`, ready or
  * waiting for its extension; null when nothing parseable answers.
  */

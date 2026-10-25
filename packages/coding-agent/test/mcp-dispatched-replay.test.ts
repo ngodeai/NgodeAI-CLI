@@ -19,7 +19,7 @@ let auth: AuthStorage;
 let context: CustomToolContext;
 
 beforeEach(async () => {
-	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-mcp-no-replay-"));
+	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-mcp-no-replay-"));
 	effectsPath = path.join(tempDir, "effects.txt");
 	auth = await AuthStorage.create(":memory:");
 	context = {

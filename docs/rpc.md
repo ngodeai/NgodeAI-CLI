@@ -335,7 +335,7 @@ Data payloads are command-specific and defined in `rpc-types.ts`.
 - `agentInvoked: false`: the prompt finished locally (an extension or custom command that started no turn) or failed before reaching the agent.
 - `agentInvoked: true`: the prompt was dispatched or queued for agent work; normal completion reports when the agent **yielded** — see [Yield vs settled](#yield-vs-settled). An abort that wins before dispatch can still report `true` with `status: "aborted"`. A prompt dispatched as a fresh turn reports the first run that started after it was accepted, so a late `agent_end` from an earlier run never completes it. A prompt queued into a live run (`streamingBehavior`) reports at the first yield after its message left the queue. An `agent_end` with `yielded: false` (the agent is retrying, compacting, or answering a stop-time reminder) never completes a prompt.
 - `status`: `"completed"`, `"aborted"` (interrupted by `abort`, `abort_and_prompt`, or a session transition, or dropped by an abort before dispatch), or `"error"`.
-- `error` (only with `status: "error"`): `{ message, provider?, model?, httpStatus?, retryable }`. `message` is the provider's error text with OMP-local diagnostics (such as saved request-dump paths) removed. `retryable` marks a transient failure; OMP's own automatic retries have already been exhausted. A prompt that fails before reaching the agent also gets the legacy error response with the same `id` before its `prompt_result`.
+- `error` (only with `status: "error"`): `{ message, provider?, model?, httpStatus?, retryable }`. `message` is the provider's error text with NGODEAI-local diagnostics (such as saved request-dump paths) removed. `retryable` marks a transient failure; NGODEAI's own automatic retries have already been exhausted. A prompt that fails before reaching the agent also gets the legacy error response with the same `id` before its `prompt_result`.
 - `sessionSettled`: whether the session is already done when the result is written — see [Yield vs settled](#yield-vs-settled). `false` means background work can still wake the agent; a `session_settled` frame follows once it has.
 
 A failed provider turn is not a failed command: the prompt response is still `success: true`, and the turn ends with a normal terminal `agent_end` whose last assistant message has `stopReason: "error"`. Use `prompt_result.status` rather than parsing that message.
@@ -816,7 +816,7 @@ unregistered; an empty list clears all host schemes.
 
 Every built-in scheme (`local://`, `skill://`, `artifact://`, `security://`,
 `mcp://`, …) is reserved: RPC hosts cannot register or shadow one, and the
-request fails with `Host URI scheme is reserved by OMP: <scheme>://`.
+request fails with `Host URI scheme is reserved by NGODEAI: <scheme>://`.
 
 ## Event Stream Schema
 
@@ -958,14 +958,14 @@ changes. Each command has `name`, `source`, and optional `aliases`,
 
 Command discovery is intentionally an NgodeAI dialect: Pi's `get_commands` (a
 `RpcSlashCommand[]` projection over extensions → prompt templates → skills) is
-not served because OMP's richer catalog (builtins/custom/MCP/file commands,
+not served because NGODEAI's richer catalog (builtins/custom/MCP/file commands,
 broader `source` enum, no Pi `sourceInfo`) is not wire-compatible with it.
 
-### Pi-compatible history/tree commands with OMP-native entry payloads
+### Pi-compatible history/tree commands with NGODEAI-native entry payloads
 
 The commands and reconciliation semantics below are Pi-compatible, but the
-returned `SessionEntry` payload union is OMP-native, not wire-identical to
-Pi. Concretely: Pi `model_change` carries `provider` + `modelId` while OMP
+returned `SessionEntry` payload union is NGODEAI-native, not wire-identical to
+Pi. Concretely: Pi `model_change` carries `provider` + `modelId` while NGODEAI
 carries a combined `model` plus role/fallback metadata; Pi uses a `usage`
 entry where NgodeAI uses `model_usage`; and NgodeAI has additional entry types (for
 example service-tier, title, mode, credential, and reset records). A
@@ -983,10 +983,10 @@ durable entry id. An unknown `since` fails explicitly with
 
 `get_available_thinking_levels` returns `{ levels }`: the selectable levels
 for the live model with `"off"` first (it is accepted by
-`set_thinking_level` but excluded from the effort-only model helper). OMP-only
+`set_thinking_level` but excluded from the effort-only model helper). NGODEAI-only
 `auto`/`inherit` selectors are intentionally omitted from discovery.
 
-Lifecycle stays OMP: `agent_end` carries `isTerminal`, `yielded`, and optional
+Lifecycle stays NGODEAI: `agent_end` carries `isTerminal`, `yielded`, and optional
 `awaitingAsyncWork`; `prompt_result` correlates prompt completion and
 `session_settled` reports quiescence. There is no Pi `agent_settled` frame.
 These, `agentInvoked`, `open_session`, `set_event_filter`, `messageId`, `ready`,
@@ -1025,7 +1025,7 @@ When `set_subagent_subscription` is `"progress"` or `"events"`, a
 `subagent_lifecycle` frame with `status: "aborted"` follows.
 
 ```json
-{ "id": "req_1", "type": "cancel_subagent", "subagentId": "OmpWorker" }
+{ "id": "req_1", "type": "cancel_subagent", "subagentId": "NgodeWorker" }
 { "id": "req_1", "type": "response", "command": "cancel_subagent", "success": true, "data": { "cancelled": true } }
 ```
 
@@ -1046,7 +1046,7 @@ and the parent sees only the subagent's eventual result. Isolated (worktree)
 subagents run in-process and are steered the same way.
 
 ```json
-{ "id": "req_1", "type": "steer_subagent", "subagentId": "OmpWorker", "message": "Drop the glob, keep the direct path." }
+{ "id": "req_1", "type": "steer_subagent", "subagentId": "NgodeWorker", "message": "Drop the glob, keep the direct path." }
 { "id": "req_1", "type": "response", "command": "steer_subagent", "success": true }
 ```
 

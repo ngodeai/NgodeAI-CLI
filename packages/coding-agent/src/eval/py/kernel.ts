@@ -302,7 +302,7 @@ export class PythonKernel extends BaseKernel<PythonKernelExecuteOptions> {
 		spawnEnv.PYTHONUNBUFFERED = "1";
 		spawnEnv.PYTHONIOENCODING = "utf-8";
 
-		const scriptPath = await stageRunnerScript("omp-python-runner", "py", RUNNER_SCRIPT);
+		const scriptPath = await stageRunnerScript("ngode-python-runner", "py", RUNNER_SCRIPT);
 		const kernel = new PythonKernel(Snowflake.next(), runtime.pythonPath);
 
 		const proc = Bun.spawn([runtime.pythonPath, "-u", scriptPath], {

@@ -3,7 +3,7 @@
   "name": "@ngodeai/browser-relay",
   "version": "0.1.0",
   "private": true,
-  "description": "Chrome extension that lets the omp browser tool drive your existing tabs (relay server lives in the omp CLI: `omp browser-relay`)",
+  "description": "Chrome extension that lets the ngodeai browser tool drive your existing tabs (relay server lives in the ngodeai CLI: `ngodeai browser-relay`)",
   "homepage": "https://ngodeai.net",
   "author": {
     "name": "NgodeAI",

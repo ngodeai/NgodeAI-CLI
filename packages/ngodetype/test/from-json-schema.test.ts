@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { fromJsonSchema, OmpErrors, type } from "../src";
+import { fromJsonSchema, NgodeErrors, type } from "../src";
 
 describe("fromJsonSchema", () => {
 	it("resolves URI-encoded and JSON-pointer-escaped definition names", () => {
@@ -11,13 +11,13 @@ describe("fromJsonSchema", () => {
 			$ref: "#/$defs/a%252Fb%20~1~01%20%E7%A9%BA%0A",
 		});
 		expect(imported("valid")).toBe("valid");
-		expect(imported(false)).toBeInstanceOf(OmpErrors);
+		expect(imported(false)).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("resolves an empty legacy definition name", () => {
 		const imported = fromJsonSchema({ definitions: { "": { type: "integer" } }, $ref: "#/definitions/" });
 		expect(imported(2)).toBe(2);
-		expect(imported(2.5)).toBeInstanceOf(OmpErrors);
+		expect(imported(2.5)).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("rejects malformed URI fragments and non-local references", () => {
@@ -45,10 +45,10 @@ describe("fromJsonSchema", () => {
 		const imported = fromJsonSchema(original.toJsonSchema());
 		const valid = { name: "job", mode: "read", tags: ["a"] };
 		expect(imported(valid)).toEqual(valid);
-		expect(imported({ name: "job", mode: "delete", tags: [] })).toBeInstanceOf(OmpErrors);
-		expect(imported({ name: "", mode: "read", tags: [] })).toBeInstanceOf(OmpErrors);
-		expect(imported({ mode: "read", tags: [] })).toBeInstanceOf(OmpErrors);
-		expect(imported({ name: "job", mode: "read", tags: [1] })).toBeInstanceOf(OmpErrors);
+		expect(imported({ name: "job", mode: "delete", tags: [] })).toBeInstanceOf(NgodeErrors);
+		expect(imported({ name: "", mode: "read", tags: [] })).toBeInstanceOf(NgodeErrors);
+		expect(imported({ mode: "read", tags: [] })).toBeInstanceOf(NgodeErrors);
+		expect(imported({ name: "job", mode: "read", tags: [1] })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("treats defaulted properties as fillable, matching emitted required semantics", () => {
@@ -58,12 +58,12 @@ describe("fromJsonSchema", () => {
 			required: ["source"],
 		});
 		expect(imported({ source: "api" })).toEqual({ source: "api", level: "info" });
-		expect(imported({})).toBeInstanceOf(OmpErrors);
+		expect(imported({})).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("supports enum, const, unions, intersections, and boolean schemas", () => {
 		expect(fromJsonSchema({ enum: ["a", "b"] })("a")).toBe("a");
-		expect(fromJsonSchema({ enum: ["a", "b"] })("c")).toBeInstanceOf(OmpErrors);
+		expect(fromJsonSchema({ enum: ["a", "b"] })("c")).toBeInstanceOf(NgodeErrors);
 		expect(fromJsonSchema({ const: 5 })(5)).toBe(5);
 		expect(fromJsonSchema({ anyOf: [{ type: "string" }, { type: "null" }] })(null)).toBe(null);
 		const bounded = fromJsonSchema({
@@ -73,19 +73,19 @@ describe("fromJsonSchema", () => {
 			],
 		});
 		expect(bounded(2)).toBe(2);
-		expect(bounded(4)).toBeInstanceOf(OmpErrors);
+		expect(bounded(4)).toBeInstanceOf(NgodeErrors);
 		expect(fromJsonSchema(true)("anything")).toBe("anything");
-		expect(fromJsonSchema(false)("anything")).toBeInstanceOf(OmpErrors);
+		expect(fromJsonSchema(false)("anything")).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("validates string formats and patterns", () => {
 		const email = fromJsonSchema({ type: "string", format: "email" });
-		expect(email("a@omp.sh")).toBe("a@omp.sh");
-		expect(email("nope")).toBeInstanceOf(OmpErrors);
+		expect(email("a@ngodeai.net")).toBe("a@ngodeai.net");
+		expect(email("nope")).toBeInstanceOf(NgodeErrors);
 		const patterned = fromJsonSchema({ type: "string", pattern: "^G-[A-Z0-9]+$", minLength: 3 });
 		expect(patterned("G-X1")).toBe("G-X1");
-		expect(patterned("bad")).toBeInstanceOf(OmpErrors);
-		expect(patterned("G-")).toBeInstanceOf(OmpErrors);
+		expect(patterned("bad")).toBeInstanceOf(NgodeErrors);
+		expect(patterned("G-")).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("resolves recursive $defs references", () => {
@@ -101,8 +101,8 @@ describe("fromJsonSchema", () => {
 		});
 		expect(imported({ value: 1, next: { value: 2 } })).toEqual({ value: 1, next: { value: 2 } });
 		const invalid = imported({ value: 1, next: { value: "two" } });
-		expect(invalid).toBeInstanceOf(OmpErrors);
-		if (invalid instanceof OmpErrors) expect(invalid[0].path).toEqual(["next", "value"]);
+		expect(invalid).toBeInstanceOf(NgodeErrors);
+		if (invalid instanceof NgodeErrors) expect(invalid[0].path).toEqual(["next", "value"]);
 	});
 
 	it("imports tuples with variadic tails and rejects undeclared keys on closed objects", () => {
@@ -114,7 +114,7 @@ describe("fromJsonSchema", () => {
 		});
 		expect(pair(["x", 1, true])).toEqual(["x", 1, true]);
 		expect(pair(["x"])).toEqual(["x"]);
-		expect(pair([1])).toBeInstanceOf(OmpErrors);
+		expect(pair([1])).toBeInstanceOf(NgodeErrors);
 
 		const closed = fromJsonSchema({
 			type: "object",
@@ -123,7 +123,7 @@ describe("fromJsonSchema", () => {
 			additionalProperties: false,
 		});
 		expect(closed({ a: "x" })).toEqual({ a: "x" });
-		expect(closed({ a: "x", b: 1 })).toBeInstanceOf(OmpErrors);
+		expect(closed({ a: "x", b: 1 })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("emits recursive scopes as $defs/$ref and round-trips them", () => {
@@ -137,7 +137,7 @@ describe("fromJsonSchema", () => {
 			value: 1,
 			next: { value: 2, next: { value: 3 } },
 		});
-		expect(imported({ value: 1, next: { value: "two" } })).toBeInstanceOf(OmpErrors);
+		expect(imported({ value: 1, next: { value: "two" } })).toBeInstanceOf(NgodeErrors);
 
 		const draft7 = Node.toJsonSchema({ target: "draft-07" });
 		expect(JSON.stringify(draft7)).toContain("#/definitions/");
@@ -161,7 +161,7 @@ describe("fromJsonSchema", () => {
 		// The emitted input schema accepts what the source schema accepts.
 		const imported = fromJsonSchema(input);
 		expect(imported({ raw: "42" })).toEqual({ raw: "42", port: 8080 });
-		expect(imported({ raw: 42 })).toBeInstanceOf(OmpErrors);
+		expect(imported({ raw: 42 })).toBeInstanceOf(NgodeErrors);
 	});
 
 	it("io output uses the .to() target for piped schemas", () => {
@@ -170,7 +170,7 @@ describe("fromJsonSchema", () => {
 			.to("number.integer > 0");
 		expect(Uid.assert("42")).toBe(42);
 		expect(Uid.assert(7n)).toBe(7);
-		expect(Uid(0)).toBeInstanceOf(OmpErrors);
+		expect(Uid(0)).toBeInstanceOf(NgodeErrors);
 
 		const output = Uid.toJsonSchema({ io: "output" });
 		expect(output).toEqual({ type: "integer", exclusiveMinimum: 0 });

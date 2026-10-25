@@ -34,7 +34,7 @@ The tiny-model CLI and source registry retain **title** and **memory** groupings
 - **Non-FHS distros (NixOS, and any host without `libstdc++.so.6` on the loader path)**: the
   on-demand `onnxruntime-node` / `sherpa-onnx-node` / `sharp` addons are prebuilt binaries that
   `dlopen` `libstdc++.so.6` and `libgcc_s.so.1`, and they carry their own `DT_RUNPATH`, so nothing in
-  the NgodeAI executable's own RPATH can resolve them. Set `OMP_NATIVE_LIBRARY_PATH` to the
+  the NgodeAI executable's own RPATH can resolve them. Set `NGODEAI_NATIVE_LIBRARY_PATH` to the
   colon-separated directories holding those libraries; NgodeAI appends it to `LD_LIBRARY_PATH` for the
   inference worker subprocesses only (never for shell/eval/daemon children). The Nix package
   (`nix/package.nix`) sets this by default.
@@ -45,10 +45,10 @@ The tiny-model CLI and source registry retain **title** and **memory** groupings
   the pair spawns it detached (log next to the socket, `<model>-<backend>.log`);
   other NgodeAI processes connect, so weights are not duplicated per NgodeAI instance.
   Nothing supervises it: the worker exits on its own
-  after 15 minutes without a request (`OMP_TINY_WORKER_IDLE_MS` overrides the window for tests),
+  after 15 minutes without a request (`NGODEAI_TINY_WORKER_IDLE_MS` overrides the window for tests),
   unlinks its socket, and the next request from any NgodeAI process spawns a fresh one. Concurrent
   spawns race on a `.bind.lock` file lock: the loser sees a live socket and exits while its parent
-  adopts the winner. `ping` returns a launch tag (`<omp version>|onnx|<device>|<dtype>` or
+  adopts the winner. `ping` returns a launch tag (`<ngodeai version>|onnx|<device>|<dtype>` or
   `mlx|<mlx-lm version>|<script crc>`), so an NgodeAI upgrade or a changed
   `providers.tinyModelDevice`/`providers.tinyModelDtype` replaces a stale ONNX worker;
   MLX replacement follows its runtime version/script tag. Concurrent ONNX clients with

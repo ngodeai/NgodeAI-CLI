@@ -425,10 +425,10 @@ async function runIpcSubprocessWorker<In, Out>(
 
 /**
  * Hidden subcommand that boots the ONNX tiny-model worker for one model: a
- * detached process owning that model's socket (`OMP_TINY_WORKER_SOCKET`),
- * shared by every omp process on the machine and exiting on its own when
+ * detached process owning that model's socket (`NGODEAI_TINY_WORKER_SOCKET`),
+ * shared by every ngodeai process on the machine and exiting on its own when
  * idle. It exists so `onnxruntime-node` (loaded transitively by
- * `@huggingface/transformers`) never runs in an omp address space — its NAPI
+ * `@huggingface/transformers`) never runs in an ngodeai address space — its NAPI
  * finalizer segfaults Bun on Windows (issue #1606).
  */
 async function runTinyWorker(): Promise<void> {
@@ -448,7 +448,7 @@ export async function runCli(argv: string[]): Promise<void> {
 		if (extracted.profile !== undefined) {
 			setProfile(extracted.profile);
 		} else {
-			// No explicit --profile: activate any NGODEAI_PROFILE/OMP_PROFILE/PI_PROFILE
+			// No explicit --profile: activate any NGODEAI_PROFILE/NGODEAI_PROFILE/PI_PROFILE
 			// inherited from the environment. Module-load resolution deliberately
 			// swallows an invalid value to avoid an uncaught throw before this
 			// try/catch is in scope (see `readProfileFromEnvSafe` in dirs.ts), and
@@ -457,14 +457,14 @@ export async function runCli(argv: string[]): Promise<void> {
 			// `NGODEAI_PROFILE=.. ngodeai --version` into a clean error; calling
 			// setProfile keeps every later path helper on the env-selected profile
 			// instead of the default agent directory.
-			setProfile(resolveProfileEnv(process.env.NGODEAI_PROFILE, process.env.OMP_PROFILE, process.env.PI_PROFILE));
+			setProfile(resolveProfileEnv(process.env.NGODEAI_PROFILE, process.env.PI_PROFILE));
 		}
 		if (extracted.aliasName !== undefined) {
 			// Command boundary: shell/path setup is used only by --alias.
 			const { installProfileAlias, resolveProfileAliasCommandFromProcess } = await import("./cli/profile-alias");
 			const profile = extracted.profile ?? getActiveProfile();
 			if (!profile) {
-				throw new Error("--alias requires --profile <name> or OMP_PROFILE");
+				throw new Error("--alias requires --profile <name> or NGODEAI_PROFILE");
 			}
 			const result = await installProfileAlias({
 				profile,
@@ -585,7 +585,7 @@ if (isProcessEntry || !Bun.isMainThread) {
 	const postmortem: typeof Postmortem | undefined = isProcessEntry
 		? require("@ngodeai/utils/postmortem.js")
 		: undefined;
-	// A one-shot CLI run (`ngodeai --help | head`, `ngodeai --version | true`, `omp <sub> | grep -m1`)
+	// A one-shot CLI run (`ngodeai --help | head`, `ngodeai --version | true`, `ngodeai <sub> | grep -m1`)
 	// whose stdout consumer closes before the write drains gets an EPIPE that Bun surfaces as
 	// an unhandled rejection. Treat a vanished stdout peer as an ordinary Unix disconnect
 	// (graceful exit) rather than the fatal path. Interactive launches register their own

@@ -1875,7 +1875,7 @@ mod tests {
 		let ctx = test_ctx(Some("fetch"), "git fetch origin", &cfg);
 		let out = filter(
 			&ctx,
-			"From github.com:can1357/oh-my-pi\n * [new branch]      feature -> origin/feature\n",
+			"From github.com:can1357/ngodeai\n * [new branch]      feature -> origin/feature\n",
 			0,
 		);
 		assert!(out.changed);
@@ -1892,7 +1892,7 @@ mod tests {
 		let cfg = MinimizerConfig { enabled: true, ..Default::default() };
 		let ctx = test_ctx(Some("push"), "git push origin --delete old-branch", &cfg);
 		let out =
-			filter(&ctx, "To github.com:can1357/oh-my-pi.git\n - [deleted]         old-branch\n", 0);
+			filter(&ctx, "To github.com:can1357/ngodeai.git\n - [deleted]         old-branch\n", 0);
 		assert!(out.changed);
 		assert!(out.text.contains("- [deleted]         old-branch"));
 		assert!(out.text.contains("ok old-branch"));

@@ -1,4 +1,4 @@
-package omprpc
+package ngodeairpc
 
 import (
 	"context"
@@ -50,10 +50,10 @@ func (c *Client) SetHostUris(ctx context.Context, uris []HostUri) ([]string, err
 		uri := &registered[i]
 		uri.Scheme = strings.ToLower(strings.TrimSpace(uri.Scheme))
 		if uri.Scheme == "" {
-			return nil, errors.New("omprpc: host URI scheme must be a non-empty string")
+			return nil, errors.New("ngodeairpc: host URI scheme must be a non-empty string")
 		}
 		if uri.Read == nil {
-			return nil, fmt.Errorf("omprpc: host URI scheme %q has no Read handler", uri.Scheme)
+			return nil, fmt.Errorf("ngodeairpc: host URI scheme %q has no Read handler", uri.Scheme)
 		}
 		definitions[i] = HostUriSchemeDefinition{
 			Scheme:    uri.Scheme,

@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 // Subpaths, not the `@ngodeai/utils` barrel: the barrel loads the native
 // addon (file-lock), and key-hint formatting runs on addon-free CLI paths
-// (`omp --version`, help) through cli/command-help.ts.
+// (`ngodeai --version`, help) through cli/command-help.ts.
 import { getActiveProfile, getAgentDir, getProfileRootDir } from "@ngodeai/utils/dirs";
 import { isEnoent } from "@ngodeai/utils/fs-error";
 import * as logger from "@ngodeai/utils/logger";

@@ -1,1 +1,1 @@
-`omp://`: harness docs, AVOID unless asked.
+`ngodeai://`: harness docs, AVOID unless asked.

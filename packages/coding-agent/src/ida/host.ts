@@ -3,9 +3,9 @@
  *
  * `acquireIdaDatabase` (`client.ts`) starts it under the project's daemon broker, so `ngodeai ps`
  * lists it as `ngodeai.ida.<id>`. The host listens on its endpoint first, then takes the IDB lock and
- * opens the database in an {@link IdaWorker}; every omp process in the project shares that worker
+ * opens the database in an {@link IdaWorker}; every ngodeai process in the project shares that worker
  * over NDJSON ({@link IdaHostRequest}). The host exits once the worker does (`close`, idle close,
- * crash). SIGTERM (broker shutdown after the last omp process leaves, `ngodeai ps stop`) closes the
+ * crash). SIGTERM (broker shutdown after the last ngodeai process leaves, `ngodeai ps stop`) closes the
  * worker first, saving when it has unsaved changes.
  */
 import * as fs from "node:fs";
@@ -104,7 +104,7 @@ class IdaHost {
 		const { loc, runtime, idleCloseMs } = this.#config;
 		if (loc.kind === "store") await fs.promises.mkdir(loc.dir, { recursive: true });
 		const lock = await acquireFileLock(loc.lockTarget, { retries: 1 }).catch(() => {
-			throw new ToolError(`IDB ${loc.id} is in use by another omp process outside this project`);
+			throw new ToolError(`IDB ${loc.id} is in use by another ngodeai process outside this project`);
 		});
 		try {
 			await prepareStoreDir(loc);

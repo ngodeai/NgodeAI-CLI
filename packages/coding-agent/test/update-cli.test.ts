@@ -67,7 +67,7 @@ const npmSupportsReleaseAge = (() => {
 const tempDirs: string[] = [];
 
 async function makeTempDir(): Promise<string> {
-	const dir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "omp-update-test-")));
+	const dir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "ngode-update-test-")));
 	tempDirs.push(dir);
 	return dir;
 }
@@ -103,8 +103,8 @@ async function withPlatformAsync<T>(platform: NodeJS.Platform, fn: () => Promise
 function buildAnswer(version: string, content: string | Uint8Array, overrides: Partial<BuildAnswer> = {}): BuildAnswer {
 	return {
 		version,
-		file: { name: "omp-linux-x64", size: Buffer.byteLength(content), sha256: Bun.SHA256.hash(content, "hex") },
-		download: "https://r2.test/omp-linux-x64",
+		file: { name: "ngode-linux-x64", size: Buffer.byteLength(content), sha256: Bun.SHA256.hash(content, "hex") },
+		download: "https://r2.test/ngode-linux-x64",
 		...overrides,
 	};
 }
@@ -130,7 +130,7 @@ afterEach(async () => {
 	await Promise.all(tempDirs.splice(0).map(dir => removeWithRetries(dir)));
 });
 const TEST_CONFIG: CliConfig = {
-	bin: "omp",
+	bin: "ngodeai",
 	version: "0.0.0-test",
 	commands: new Map(),
 };
@@ -186,8 +186,8 @@ describe("parseReportedVersion", () => {
 		// Regression: dropping `-canary.1` made a correctly installed canary
 		// build look like a stale `X.Y.Z` launcher, triggering a needless
 		// binary repair.
-		expect(parseReportedVersion("omp/18.0.6-canary.1")).toBe("18.0.6-canary.1");
-		expect(parseReportedVersion("omp/18.0.5")).toBe("18.0.5");
+		expect(parseReportedVersion("ngodeai/18.0.6-canary.1")).toBe("18.0.6-canary.1");
+		expect(parseReportedVersion("ngodeai/18.0.5")).toBe("18.0.5");
 		expect(parseReportedVersion("not a version")).toBeUndefined();
 	});
 
@@ -200,21 +200,21 @@ describe("parseReportedVersion", () => {
 describe("update-cli install target detection", () => {
 	it("leaves Nix store installations under Nix management", () => {
 		const method = resolveUpdateMethodForTest(
-			"/nix/store/0123456789-omp-17.2.15/bin/omp",
+			"/nix/store/0123456789-ngode-17.2.15/bin/ngodeai",
 			"/nix/store/9876543210-bun-1.3.14/bin",
 		);
 
 		expect(method).toBe("nix");
 	});
 
-	it("uses bun update when prioritized omp is inside bun global bin", () => {
-		const method = resolveUpdateMethodForTest("/Users/test/.bun/bin/omp", "/Users/test/.bun/bin");
+	it("uses bun update when prioritized ngodeai is inside bun global bin", () => {
+		const method = resolveUpdateMethodForTest("/Users/test/.bun/bin/ngodeai", "/Users/test/.bun/bin");
 
 		expect(method).toBe("bun");
 	});
 
-	it("uses npm update when prioritized omp is inside an npm global bin", () => {
-		const method = resolveUpdateMethodForTest("/Users/test/.npm-global/bin/omp", undefined, {
+	it("uses npm update when prioritized ngodeai is inside an npm global bin", () => {
+		const method = resolveUpdateMethodForTest("/Users/test/.npm-global/bin/ngodeai", undefined, {
 			npmBinDir: "/Users/test/.npm-global/bin",
 		});
 
@@ -222,7 +222,7 @@ describe("update-cli install target detection", () => {
 	});
 
 	it("uses npm update for Windows npm command shims even when no package-manager bin dirs were detected", () => {
-		const method = resolveUpdateMethodForTest("C:\\Users\\test\\AppData\\Roaming\\npm\\omp.cmd", undefined);
+		const method = resolveUpdateMethodForTest("C:\\Users\\test\\AppData\\Roaming\\npm\\ngodeai.cmd", undefined);
 
 		expect(method).toBe("npm");
 	});
@@ -234,9 +234,9 @@ describe("update-cli install target detection", () => {
 		// to overwrite the existing executable. POSIX layout: on Windows an
 		// extensionless launcher is npm's sh shim (covered by the win32 cases).
 		const method = withPlatform("linux", () =>
-			resolveUpdateMethodForTest("/home/u/.local/bin/omp", undefined, {
+			resolveUpdateMethodForTest("/home/u/.local/bin/ngodeai", undefined, {
 				npmBinDir: "/home/u/.local/bin",
-				ompIsRegularFile: true,
+				ngodeIsRegularFile: true,
 			}),
 		);
 
@@ -245,8 +245,8 @@ describe("update-cli install target detection", () => {
 
 	it("uses binary update when a plain file in the bun global bin dir is the standalone binary", () => {
 		const method = withPlatform("linux", () =>
-			resolveUpdateMethodForTest("/home/u/.local/bin/omp", "/home/u/.local/bin", {
-				ompIsRegularFile: true,
+			resolveUpdateMethodForTest("/home/u/.local/bin/ngodeai", "/home/u/.local/bin", {
+				ngodeIsRegularFile: true,
 			}),
 		);
 
@@ -260,8 +260,8 @@ describe("update-cli install target detection", () => {
 		// only a bun-managed launcher has. Paths use forward slashes so the
 		// lexical containment check works on the POSIX host running this suite.
 		const method = withPlatform("win32", () =>
-			resolveUpdateMethodForTest("C:/Users/test/.bun/bin/omp.exe", "C:/Users/test/.bun/bin", {
-				ompIsRegularFile: true,
+			resolveUpdateMethodForTest("C:/Users/test/.bun/bin/ngodeai.exe", "C:/Users/test/.bun/bin", {
+				ngodeIsRegularFile: true,
 				bunShimMarker: true,
 			}),
 		);
@@ -276,8 +276,8 @@ describe("update-cli install target detection", () => {
 		// running .exe — bun tolerates that EBUSY — so the install stayed pinned
 		// to the old version with no way forward.
 		const method = withPlatform("win32", () =>
-			resolveUpdateMethodForTest("C:/Users/test/.bun/bin/omp.exe", "C:/Users/test/.bun/bin", {
-				ompIsRegularFile: true,
+			resolveUpdateMethodForTest("C:/Users/test/.bun/bin/ngodeai.exe", "C:/Users/test/.bun/bin", {
+				ngodeIsRegularFile: true,
 			}),
 		);
 
@@ -285,9 +285,9 @@ describe("update-cli install target detection", () => {
 	});
 
 	it("still uses npm update when the npm global bin entry is a package-manager symlink, not a plain file", () => {
-		const method = resolveUpdateMethodForTest("/home/u/.local/bin/omp", undefined, {
+		const method = resolveUpdateMethodForTest("/home/u/.local/bin/ngodeai", undefined, {
 			npmBinDir: "/home/u/.local/bin",
-			ompIsRegularFile: false,
+			ngodeIsRegularFile: false,
 		});
 
 		expect(method).toBe("npm");
@@ -296,8 +296,8 @@ describe("update-cli install target detection", () => {
 	it("updates the standalone binary behind a foreign npm-bin alias without replacing the alias", async () => {
 		const dir = await makeTempDir();
 		const npmBinDir = path.join(dir, ".npm-global", "bin");
-		const standalonePath = path.join(dir, ".local", "bin", "omp");
-		const aliasPath = path.join(npmBinDir, "omp");
+		const standalonePath = path.join(dir, ".local", "bin", "ngodeai");
+		const aliasPath = path.join(npmBinDir, "ngodeai");
 		await fs.mkdir(npmBinDir, { recursive: true });
 		await Bun.write(standalonePath, "binary");
 		await fs.symlink(standalonePath, aliasPath);
@@ -320,10 +320,10 @@ describe("update-cli install target detection", () => {
 		const dir = await makeTempDir();
 		const npmPrefix = path.join(dir, ".npm-global");
 		const { binDir: npmBinDir, nodeModulesDir } = npmGlobalLayout(npmPrefix);
-		const packagePath = path.join(nodeModulesDir, "@oh-my-pi", "pi-coding-agent");
+		const packagePath = path.join(nodeModulesDir, "@ngodeai", "pi-coding-agent");
 		const checkoutPath = path.join(dir, "checkout");
 		const checkoutCli = path.join(checkoutPath, "dist", "cli.js");
-		const aliasPath = path.join(npmBinDir, "omp");
+		const aliasPath = path.join(npmBinDir, "ngodeai");
 		await fs.mkdir(npmBinDir, { recursive: true });
 		await fs.mkdir(path.dirname(packagePath), { recursive: true });
 		await Bun.write(checkoutCli, "linked checkout");
@@ -344,8 +344,8 @@ describe("update-cli install target detection", () => {
 		const dir = await makeTempDir();
 		const bunDir = path.join(dir, ".bun");
 		const bunBinDir = path.join(bunDir, "bin");
-		const standalonePath = path.join(bunDir, "custom", "omp");
-		const aliasPath = path.join(bunBinDir, "omp");
+		const standalonePath = path.join(bunDir, "custom", "ngodeai");
+		const aliasPath = path.join(bunBinDir, "ngodeai");
 		await fs.mkdir(bunBinDir, { recursive: true });
 		await Bun.write(standalonePath, "binary");
 		await fs.symlink(path.relative(bunBinDir, standalonePath), aliasPath);
@@ -369,10 +369,10 @@ describe("update-cli install target detection", () => {
 		// beside a root-owned symlink (EACCES) or replaces it with a split-brain
 		// copy that shadows the shared install (#8732).
 		const dir = await makeTempDir();
-		const sharedBinDir = path.join(dir, "opt", "omp", "bin");
-		const standalonePath = path.join(sharedBinDir, "omp");
+		const sharedBinDir = path.join(dir, "opt", "ngodeai", "bin");
+		const standalonePath = path.join(sharedBinDir, "ngodeai");
 		const launcherDir = path.join(dir, "usr", "local", "bin");
-		const launcherPath = path.join(launcherDir, "omp");
+		const launcherPath = path.join(launcherDir, "ngodeai");
 		await fs.mkdir(sharedBinDir, { recursive: true });
 		await fs.mkdir(launcherDir, { recursive: true });
 		await Bun.write(standalonePath, "binary");
@@ -396,7 +396,7 @@ describe("update-cli install target detection", () => {
 		async () => {
 			const dir = await makeTempDir();
 			const dispatcherPath = path.join(dir, "launch");
-			const aliasPath = path.join(dir, "omp");
+			const aliasPath = path.join(dir, "ngodeai");
 			const dispatcher = "#!/bin/sh\necho dispatcher\n";
 			await Bun.write(dispatcherPath, dispatcher);
 			await fs.chmod(dispatcherPath, 0o755);
@@ -420,11 +420,11 @@ describe("update-cli install target detection", () => {
 	);
 
 	it.skipIf(process.platform === "win32")(
-		"refuses a foreign native target that does not report an OMP version",
+		"refuses a foreign native target that does not report an NGODEAI version",
 		async () => {
 			const dir = await makeTempDir();
 			const foreignPath = path.join(dir, "foreign");
-			const aliasPath = path.join(dir, "omp");
+			const aliasPath = path.join(dir, "ngodeai");
 			await fs.copyFile(process.execPath, foreignPath);
 			await fs.chmod(foreignPath, 0o755);
 			await fs.symlink(foreignPath, aliasPath);
@@ -439,7 +439,7 @@ describe("update-cli install target detection", () => {
 					fetchImpl,
 					validateExistingTarget: target.validateExistingTarget,
 				}),
-			).rejects.toThrow("does not report an OMP version when run directly");
+			).rejects.toThrow("does not report an NGODEAI version when run directly");
 			expect(fetchImpl).not.toHaveBeenCalled();
 		},
 	);
@@ -451,8 +451,8 @@ describe("update-cli install target detection", () => {
 		const dir = await makeTempDir();
 		const npmPrefix = path.join(dir, ".npm-global");
 		const { binDir: npmBinDir, nodeModulesDir } = npmGlobalLayout(npmPrefix);
-		const managedBinary = path.join(nodeModulesDir, "@oh-my-pi", "pi-coding-agent", "omp");
-		const aliasPath = path.join(npmBinDir, "omp");
+		const managedBinary = path.join(nodeModulesDir, "@ngodeai", "pi-coding-agent", "ngodeai");
+		const aliasPath = path.join(npmBinDir, "ngodeai");
 		await fs.mkdir(npmBinDir, { recursive: true });
 		await fs.mkdir(path.dirname(managedBinary), { recursive: true });
 		await Bun.write(managedBinary, "binary");
@@ -475,10 +475,10 @@ describe("update-cli install target detection", () => {
 		const dir = await makeTempDir();
 		const bunBinDir = path.join(dir, "bun-bin");
 		const bunGlobalDir = path.join(dir, "bun-global");
-		const packagePath = path.join(bunGlobalDir, "node_modules", "@oh-my-pi", "pi-coding-agent");
+		const packagePath = path.join(bunGlobalDir, "node_modules", "@ngodeai", "pi-coding-agent");
 		const checkoutPath = path.join(dir, "checkout");
 		const checkoutCli = path.join(checkoutPath, "dist", "cli.js");
-		const aliasPath = path.join(bunBinDir, "omp");
+		const aliasPath = path.join(bunBinDir, "ngodeai");
 		await fs.mkdir(bunBinDir, { recursive: true });
 		await fs.mkdir(path.dirname(packagePath), { recursive: true });
 		await Bun.write(checkoutCli, "linked checkout");
@@ -495,48 +495,48 @@ describe("update-cli install target detection", () => {
 		expect(await Bun.file(checkoutCli).text()).toBe("linked checkout");
 	});
 
-	it("uses binary update when prioritized omp is outside bun global bin", () => {
-		const method = resolveUpdateMethodForTest("/Users/test/.local/bin/omp", "/Users/test/.bun/bin");
+	it("uses binary update when prioritized ngodeai is outside bun global bin", () => {
+		const method = resolveUpdateMethodForTest("/Users/test/.local/bin/ngodeai", "/Users/test/.bun/bin");
 
 		expect(method).toBe("binary");
 	});
 
 	it("uses binary update when bun global bin cannot be resolved", () => {
-		const method = resolveUpdateMethodForTest("/Users/test/.local/bin/omp", undefined);
+		const method = resolveUpdateMethodForTest("/Users/test/.local/bin/ngodeai", undefined);
 
 		expect(method).toBe("binary");
 	});
 
-	it("uses Homebrew update when prioritized omp resolves into the Homebrew formula", async () => {
+	it("uses Homebrew update when prioritized ngodeai resolves into the Homebrew formula", async () => {
 		const dir = await makeTempDir();
-		const prefix = path.join(dir, "opt", "omp");
+		const prefix = path.join(dir, "opt", "ngodeai");
 		const linkedBin = path.join(dir, "bin");
 		await fs.mkdir(path.join(prefix, "bin"), { recursive: true });
 		await fs.mkdir(linkedBin, { recursive: true });
-		await Bun.write(path.join(prefix, "bin", "omp"), "binary");
-		await fs.symlink(path.join(prefix, "bin", "omp"), path.join(linkedBin, "omp"));
+		await Bun.write(path.join(prefix, "bin", "ngodeai"), "binary");
+		await fs.symlink(path.join(prefix, "bin", "ngodeai"), path.join(linkedBin, "ngodeai"));
 
-		const method = resolveUpdateMethodForTest(path.join(linkedBin, "omp"), "/Users/test/.bun/bin", {
+		const method = resolveUpdateMethodForTest(path.join(linkedBin, "ngodeai"), "/Users/test/.bun/bin", {
 			homebrewPrefix: prefix,
 		});
 
 		expect(method).toBe("brew");
 	});
 
-	it("uses mise update when prioritized omp is in an active mise bin path", () => {
+	it("uses mise update when prioritized ngodeai is in an active mise bin path", () => {
 		const method = resolveUpdateMethodForTest(
-			"/Users/test/.local/share/mise/installs/github-can1357-oh-my-pi/latest/bin/omp",
+			"/Users/test/.local/share/mise/installs/github-can1357-ngodeai/latest/bin/ngodeai",
 			undefined,
 			{
-				miseBinDirs: ["/Users/test/.local/share/mise/installs/github-can1357-oh-my-pi/latest/bin"],
+				miseBinDirs: ["/Users/test/.local/share/mise/installs/github-can1357-ngodeai/latest/bin"],
 			},
 		);
 
 		expect(method).toBe("mise");
 	});
 
-	it("uses mise update when prioritized omp is a mise shim", () => {
-		const method = resolveUpdateMethodForTest("/Users/test/.local/share/mise/shims/omp", undefined, {
+	it("uses mise update when prioritized ngodeai is a mise shim", () => {
+		const method = resolveUpdateMethodForTest("/Users/test/.local/share/mise/shims/ngodeai", undefined, {
 			miseDataDir: "/Users/test/.local/share/mise",
 		});
 
@@ -546,18 +546,18 @@ describe("update-cli install target detection", () => {
 
 describe("update-cli package manager commands", () => {
 	it("targets the Homebrew tap formula and switches to reinstall for forced updates", () => {
-		expect(buildHomebrewUpdateArgs(false)).toEqual(["upgrade", "can1357/tap/omp"]);
-		expect(buildHomebrewUpdateArgs(true)).toEqual(["reinstall", "can1357/tap/omp"]);
+		expect(buildHomebrewUpdateArgs(false)).toEqual(["upgrade", "can1357/tap/ngodeai"]);
+		expect(buildHomebrewUpdateArgs(true)).toEqual(["reinstall", "can1357/tap/ngodeai"]);
 	});
 
 	it("targets the mise GitHub backend and overrides release-age settings for attended updates", () => {
-		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:can1357/oh-my-pi", "--bump", "--before", "0s"]);
-		expect(buildMiseUpgradeArgs(false)).toEqual(["upgrade", "github:can1357/oh-my-pi", "--bump"]);
+		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:can1357/ngodeai", "--bump", "--before", "0s"]);
+		expect(buildMiseUpgradeArgs(false)).toEqual(["upgrade", "github:can1357/ngodeai", "--bump"]);
 		expect(buildMiseUpdateEnv({ PATH: "/bin", MISE_MINIMUM_RELEASE_AGE: "24h" })).toEqual({
 			PATH: "/bin",
 			MISE_MINIMUM_RELEASE_AGE: "0s",
 		});
-		expect(buildMiseForceInstallArgs("15.10.5")).toEqual(["install", "--force", "github:can1357/oh-my-pi@15.10.5"]);
+		expect(buildMiseForceInstallArgs("15.10.5")).toEqual(["install", "--force", "github:can1357/ngodeai@15.10.5"]);
 	});
 
 	it.skipIf(!miseBinary)("overrides per-tool release age during actual mise upgrade resolution", async () => {
@@ -581,7 +581,7 @@ describe("update-cli package manager commands", () => {
 			await Bun.write(
 				path.join(root, "mise.toml"),
 				`[tools]
-"github:can1357/oh-my-pi" = { version = "1", minimum_release_age = "999y", api_url = "${server.url}" }
+"github:can1357/ngodeai" = { version = "1", minimum_release_age = "999y", api_url = "${server.url}" }
 `,
 			);
 			const env = {
@@ -612,11 +612,11 @@ describe("update-cli package manager commands", () => {
 				return stdout + stderr;
 			};
 
-			const blocked = await run(["upgrade", "github:can1357/oh-my-pi", "--bump", "--dry-run"]);
-			expect(blocked).not.toContain("Would install github:can1357/oh-my-pi@2.0.0");
+			const blocked = await run(["upgrade", "github:can1357/ngodeai", "--bump", "--dry-run"]);
+			expect(blocked).not.toContain("Would install github:can1357/ngodeai@2.0.0");
 
 			const allowed = await run([...buildMiseUpgradeArgs(), "--dry-run"]);
-			expect(allowed).toContain("Would install github:can1357/oh-my-pi@2.0.0");
+			expect(allowed).toContain("Would install github:can1357/ngodeai@2.0.0");
 		} finally {
 			server.stop(true);
 		}
@@ -667,12 +667,12 @@ describe("update-cli package manager commands", () => {
 			const now = new Date().toISOString();
 			const old = "2020-01-01T00:00:00.000Z";
 			const version = (v: string) => ({
-				name: "omp-age-gate-probe",
+				name: "ngode-age-gate-probe",
 				version: v,
 				dist: { tarball: "http://127.0.0.1/never-fetched.tgz" },
 			});
 			const packument = {
-				name: "omp-age-gate-probe",
+				name: "ngode-age-gate-probe",
 				"dist-tags": { latest: "2.0.0" },
 				versions: { "1.0.0": version("1.0.0"), "2.0.0": version("2.0.0") },
 				time: { created: old, modified: now, "1.0.0": old, "2.0.0": now },
@@ -682,7 +682,7 @@ describe("update-cli package manager commands", () => {
 				port: 0,
 				fetch(request) {
 					const pathname = new URL(request.url).pathname;
-					if (pathname.endsWith("/omp-age-gate-probe")) return Response.json(packument);
+					if (pathname.endsWith("/ngode-age-gate-probe")) return Response.json(packument);
 					return new Response("not found", { status: 404 });
 				},
 			});
@@ -716,7 +716,7 @@ describe("update-cli package manager commands", () => {
 				};
 				const run = async (extraEnv: Record<string, string | undefined>) => {
 					const proc = Bun.spawn(
-						[npmBinary, "install", "-g", "--dry-run", `--registry=${server.url}`, "omp-age-gate-probe@2.0.0"],
+						[npmBinary, "install", "-g", "--dry-run", `--registry=${server.url}`, "ngode-age-gate-probe@2.0.0"],
 						{ env: { ...env, ...extraEnv }, cwd: root, stdin: "ignore", stdout: "pipe", stderr: "pipe" },
 					);
 					const [stdout, stderr, exitCode] = await Promise.all([
@@ -734,7 +734,7 @@ describe("update-cli package manager commands", () => {
 				const overlay = buildNpmUpdateEnv({});
 				const allowed = await run(overlay);
 				expect(allowed.exitCode).toBe(0);
-				expect(allowed.out).toMatch(/add(ed)?\s+\S*omp-age-gate-probe\b[^\n]*2\.0\.0/);
+				expect(allowed.out).toMatch(/add(ed)?\s+\S*ngode-age-gate-probe\b[^\n]*2\.0\.0/);
 			} finally {
 				server.stop(true);
 			}
@@ -743,41 +743,43 @@ describe("update-cli package manager commands", () => {
 });
 
 describe("update-cli npm rename contract", () => {
-	it("parses a well-formed omp.rename pointer and rejects malformed ones", () => {
-		expect(resolveReleaseRename({ omp: { rename: { package: "@new/omp", natives: "@new/natives" } } })).toEqual({
-			pkg: "@new/omp",
+	it("parses a well-formed ngodeai.rename pointer and rejects malformed ones", () => {
+		expect(
+			resolveReleaseRename({ ngodeai: { rename: { package: "@new/ngodeai", natives: "@new/natives" } } }),
+		).toEqual({
+			pkg: "@new/ngodeai",
 			natives: "@new/natives",
 		});
-		expect(resolveReleaseRename({ omp: { rename: { package: "@new/omp" } } })).toEqual({
-			pkg: "@new/omp",
+		expect(resolveReleaseRename({ ngodeai: { rename: { package: "@new/ngodeai" } } })).toEqual({
+			pkg: "@new/ngodeai",
 			natives: undefined,
 		});
-		expect(resolveReleaseRename({ omp: { rename: { package: "" } } })).toBeUndefined();
-		expect(resolveReleaseRename({ omp: { rename: "@new/omp" } })).toBeUndefined();
-		expect(resolveReleaseRename({ omp: {} })).toBeUndefined();
+		expect(resolveReleaseRename({ ngodeai: { rename: { package: "" } } })).toBeUndefined();
+		expect(resolveReleaseRename({ ngodeai: { rename: "@new/ngodeai" } })).toBeUndefined();
+		expect(resolveReleaseRename({ ngodeai: {} })).toBeUndefined();
 		expect(resolveReleaseRename(undefined)).toBeUndefined();
 	});
 
 	it("installs renamed package names in lock-step, with no old-name leftovers in the argv", () => {
-		const packages = { pkg: "@new/omp", natives: "@new/natives" };
+		const packages = { pkg: "@new/ngodeai", natives: "@new/natives" };
 
 		const bunArgs = buildBunInstallArgs("17.0.0", "linux-x64", packages);
-		expect(bunArgs).toContain("@new/omp@17.0.0");
+		expect(bunArgs).toContain("@new/ngodeai@17.0.0");
 		expect(bunArgs).toContain("@new/natives@17.0.0");
 		expect(bunArgs).toContain("@new/natives-linux-x64@17.0.0");
-		expect(bunArgs.some(arg => arg.startsWith("@oh-my-pi/"))).toBe(false);
+		expect(bunArgs.some(arg => arg.startsWith("@ngodeai/"))).toBe(false);
 
-		expect(buildNpmInstallArgs("17.0.0", "linux-x64", packages)).toContain("@new/omp@17.0.0");
+		expect(buildNpmInstallArgs("17.0.0", "linux-x64", packages)).toContain("@new/ngodeai@17.0.0");
 	});
 
 	it("adds --force to npm argv only for rename migrations so the old package's bin can be clobbered", () => {
-		const packages = { pkg: "@new/omp", natives: "@new/natives" };
+		const packages = { pkg: "@new/ngodeai", natives: "@new/natives" };
 		expect(buildNpmInstallArgs("17.0.0", "linux-x64", packages, { force: true })).toContain("--force");
 		expect(buildNpmInstallArgs("16.3.15", "win32-x64")).not.toContain("--force");
 	});
 
 	it("removes the old agent package and its natives companions when both names moved", () => {
-		const packages = { pkg: "@new/omp", natives: "@new/natives" };
+		const packages = { pkg: "@new/ngodeai", natives: "@new/natives" };
 		expect(buildRenameCleanupPackages(packages, "darwin-arm64")).toEqual([
 			"@ngodeai/coding-agent",
 			"@ngodeai/natives",
@@ -787,7 +789,7 @@ describe("update-cli npm rename contract", () => {
 	});
 
 	it("keeps the natives packages on an agent-only rename so cleanup cannot strip the addon the new install pinned", () => {
-		const packages = { pkg: "@new/omp", natives: "@ngodeai/natives" };
+		const packages = { pkg: "@new/ngodeai", natives: "@ngodeai/natives" };
 		expect(buildRenameCleanupPackages(packages, "darwin-arm64")).toEqual(["@ngodeai/coding-agent"]);
 		expect(buildRenameCleanupPackages(packages, "linux-arm")).toEqual(["@ngodeai/coding-agent"]);
 	});
@@ -797,7 +799,7 @@ describe("migrateRenamedInstall transaction", () => {
 	const release: ReleaseInfo = {
 		tag: "v999.1.0",
 		version: "999.1.0",
-		packages: { pkg: "@new/omp", natives: "@new/natives" },
+		packages: { pkg: "@new/ngodeai", natives: "@new/natives" },
 		registry: "https://registry.npmjs.org/",
 	};
 
@@ -822,8 +824,8 @@ describe("migrateRenamedInstall transaction", () => {
 				async verify() {
 					calls.push("verify");
 					return script.verify[verifies++]
-						? { ok: true, actual: "999.1.0", path: "/bin/omp" }
-						: { ok: false, path: "/bin/omp" };
+						? { ok: true, actual: "999.1.0", path: "/bin/ngodeai" }
+						: { ok: false, path: "/bin/ngodeai" };
 				},
 			},
 		};
@@ -870,7 +872,7 @@ describe("migrateRenamedInstall transaction", () => {
 		const { steps, calls } = scriptedSteps({ install: [0, 0], verify: [false, false] });
 
 		await withPlatformAsync("linux", async () => {
-			await expect(migrateRenamedInstall(release, steps)).rejects.toThrow("curl -fsSL https://omp.sh/install");
+			await expect(migrateRenamedInstall(release, steps)).rejects.toThrow("curl -fsSL https://ngodeai.net/install");
 		});
 		expect(calls).toEqual(["install", "removeOld", "verify", "install", "verify"]);
 	});
@@ -883,7 +885,7 @@ describe("migrateRenamedInstall transaction", () => {
 		try {
 			const { steps } = scriptedSteps({ install: [0, 0], verify: [false, false] });
 			const promise = migrateRenamedInstall(release, steps);
-			await expect(promise).rejects.toThrow("irm https://omp.sh/install.ps1");
+			await expect(promise).rejects.toThrow("irm https://ngodeai.net/install.ps1");
 			await expect(promise).rejects.not.toThrow("| sh");
 		} finally {
 			Object.defineProperty(process, "platform", platformDescriptor);
@@ -893,14 +895,14 @@ describe("migrateRenamedInstall transaction", () => {
 
 describe("update-cli bun install command", () => {
 	it("pins the official npm registry and bypasses the manifest cache so a stale mirror or snapshot cannot mask a freshly published version", () => {
-		// Regression: omp queries https://registry.npmjs.org/<pkg>/latest directly.
+		// Regression: ngodeai queries https://registry.npmjs.org/<pkg>/latest directly.
 		// The install MUST hit the same registry, otherwise:
 		//   - a lagging mirror (corp proxy, Taobao, …) rejects the version with
 		//     `No version matching "X" (but package exists)`,
 		//   - or bun's local manifest snapshot does the same when the user's bun
 		//     is already pointed at the official registry but its cache predates
 		//     the release.
-		// See https://github.com/can1357/oh-my-pi/issues/1686.
+		// See https://github.com/can1357/ngodeai/issues/1686.
 		const args = buildBunInstallArgs("15.7.6", "linux-x64");
 		expect(args.slice(0, 6)).toEqual([
 			"install",
@@ -918,7 +920,7 @@ describe("update-cli bun install command", () => {
 		// at their previous version. The next launch then loaded a stale .node
 		// file and aborted at validateLoadedBindings with `The .node file on
 		// disk is from a different release than this loader`. See
-		// https://github.com/can1357/oh-my-pi/issues/1824.
+		// https://github.com/can1357/ngodeai/issues/1824.
 		for (const tag of ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64", "win32-x64", "win32-arm64"]) {
 			const args = buildBunInstallArgs("15.9.0", tag);
 			expect(args).toContain("@ngodeai/natives@15.9.0");
@@ -970,14 +972,14 @@ describe("update-cli bun cache pruning", () => {
 			path.join(dir, "react@19.2.6@@@1", "package.json"),
 			JSON.stringify({ name: "react", version: "19.2.6" }),
 		);
-		await Bun.write(path.join(dir, "@oh-my-pi", "pi-utils", "15.7.6@@@1"), "");
-		await Bun.write(path.join(dir, "@oh-my-pi", "pi-utils", "15.8.0@@@1"), "");
+		await Bun.write(path.join(dir, "@ngodeai", "pi-utils", "15.7.6@@@1"), "");
+		await Bun.write(path.join(dir, "@ngodeai", "pi-utils", "15.8.0@@@1"), "");
 		await Bun.write(
-			path.join(dir, "@oh-my-pi", "pi-utils@15.7.6@@@1", "package.json"),
+			path.join(dir, "@ngodeai", "pi-utils@15.7.6@@@1", "package.json"),
 			JSON.stringify({ name: "@ngodeai/utils", version: "15.7.6" }),
 		);
 		await Bun.write(
-			path.join(dir, "@oh-my-pi", "pi-utils@15.8.0@@@1", "package.json"),
+			path.join(dir, "@ngodeai", "pi-utils@15.8.0@@@1", "package.json"),
 			JSON.stringify({ name: "@ngodeai/utils", version: "15.8.0" }),
 		);
 		await Bun.write(path.join(dir, "chalk", "4.1.2@@@1"), "");
@@ -998,10 +1000,10 @@ describe("update-cli bun cache pruning", () => {
 		expect(await Bun.file(path.join(dir, "react@18.3.1@@@1", "package.json")).exists()).toBe(false);
 		expect(await Bun.file(path.join(dir, "react", "19.2.6@@@1")).exists()).toBe(true);
 		expect(await Bun.file(path.join(dir, "react@19.2.6@@@1", "package.json")).exists()).toBe(true);
-		expect(await Bun.file(path.join(dir, "@oh-my-pi", "pi-utils", "15.7.6@@@1")).exists()).toBe(false);
-		expect(await Bun.file(path.join(dir, "@oh-my-pi", "pi-utils@15.7.6@@@1", "package.json")).exists()).toBe(false);
-		expect(await Bun.file(path.join(dir, "@oh-my-pi", "pi-utils", "15.8.0@@@1")).exists()).toBe(true);
-		expect(await Bun.file(path.join(dir, "@oh-my-pi", "pi-utils@15.8.0@@@1", "package.json")).exists()).toBe(true);
+		expect(await Bun.file(path.join(dir, "@ngodeai", "pi-utils", "15.7.6@@@1")).exists()).toBe(false);
+		expect(await Bun.file(path.join(dir, "@ngodeai", "pi-utils@15.7.6@@@1", "package.json")).exists()).toBe(false);
+		expect(await Bun.file(path.join(dir, "@ngodeai", "pi-utils", "15.8.0@@@1")).exists()).toBe(true);
+		expect(await Bun.file(path.join(dir, "@ngodeai", "pi-utils@15.8.0@@@1", "package.json")).exists()).toBe(true);
 		expect(await Bun.file(path.join(dir, "chalk", "4.1.2@@@1")).exists()).toBe(true);
 		expect(await Bun.file(path.join(dir, "chalk@4.1.2@@@1", "package.json")).exists()).toBe(true);
 	});
@@ -1069,8 +1071,8 @@ describe("update-cli bun cache pruning", () => {
 });
 
 describe("update-cli release binary integrity", () => {
-	const binaryName = "omp-linux-x64";
-	const url = "https://r2.test/omp-linux-x64";
+	const binaryName = "ngode-linux-x64";
+	const url = "https://r2.test/ngode-linux-x64";
 	const content = "verified binary";
 	const digest = `sha256:${Bun.SHA256.hash(content, "hex")}`;
 
@@ -1175,8 +1177,8 @@ describe("update-cli release binary integrity", () => {
 	it("rejects an altered whole-file download and leaves the installed binary in place", async () => {
 		const dir = await makeTempDir();
 		const targetPath = path.join(dir, binaryName);
-		const installed = "#!/bin/sh\necho omp/17.0.8\n";
-		const altered = "#!/bin/sh\necho omp/17.1.2\n";
+		const installed = "#!/bin/sh\necho ngodeai/17.0.8\n";
+		const altered = "#!/bin/sh\necho ngodeai/17.1.2\n";
 		await Bun.write(targetPath, installed);
 		await fs.chmod(targetPath, 0o755);
 		vi.spyOn(console, "log").mockImplementation(() => {});
@@ -1193,8 +1195,8 @@ describe("update-cli release binary integrity", () => {
 });
 
 describe("update-cli build patches", () => {
-	const installed = "installed omp 18.8.8";
-	const next = "omp 18.8.9, rebuilt from the patch";
+	const installed = "installed ngodeai 18.8.8";
+	const next = "ngodeai 18.8.9, rebuilt from the patch";
 	const patchBytes = "HDIFFSF20 patch from 18.8.8 to 18.8.9";
 	const patchUrl = "https://r2.test/patches/18.8.8-18.8.9";
 
@@ -1219,7 +1221,7 @@ describe("update-cli build patches", () => {
 	): Promise<{ dir: string; targetPath: string; requested: string[] }> {
 		vi.spyOn(console, "log").mockImplementation(() => {});
 		const dir = await makeTempDir();
-		const targetPath = path.join(dir, "omp");
+		const targetPath = path.join(dir, "ngodeai");
 		await Bun.write(targetPath, installed);
 		const requested: string[] = [];
 		const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
@@ -1295,7 +1297,7 @@ describe("update-cli build patches", () => {
 describe("update-cli binary replacement", () => {
 	it("restores the previous binary when the replacement fails verification", async () => {
 		const dir = await makeTempDir();
-		const targetPath = path.join(dir, "omp");
+		const targetPath = path.join(dir, "ngodeai");
 		const tempPath = `${targetPath}.new`;
 		const backupPath = `${targetPath}.bak`;
 		await Bun.write(targetPath, "old binary");
@@ -1309,7 +1311,7 @@ describe("update-cli binary replacement", () => {
 				expectedVersion: "15.1.8",
 				verifyInstalledVersion: async () => ({ ok: false, path: targetPath }),
 			}),
-		).rejects.toThrow("restored previous omp binary");
+		).rejects.toThrow("restored previous ngodeai binary");
 
 		expect(await Bun.file(targetPath).text()).toBe("old binary");
 		expect(await Bun.file(tempPath).exists()).toBe(false);
@@ -1318,7 +1320,7 @@ describe("update-cli binary replacement", () => {
 
 	it("keeps the replacement only after it reports the expected version", async () => {
 		const dir = await makeTempDir();
-		const targetPath = path.join(dir, "omp");
+		const targetPath = path.join(dir, "ngodeai");
 		const tempPath = `${targetPath}.new`;
 		const backupPath = `${targetPath}.bak`;
 		await Bun.write(targetPath, "old binary");
@@ -1341,7 +1343,7 @@ describe("update-cli binary replacement", () => {
 		// is nothing to move aside, so the swap must still land instead of
 		// aborting on ENOENT and leaving the user without a launcher.
 		const dir = await makeTempDir();
-		const targetPath = path.join(dir, "omp");
+		const targetPath = path.join(dir, "ngodeai");
 		const tempPath = `${targetPath}.new`;
 		const backupPath = `${targetPath}.bak`;
 		await Bun.write(tempPath, "new binary");
@@ -1458,7 +1460,7 @@ describe.skipIf(process.platform !== "darwin")("update-cli macOS live backup ima
 	// macOS when executed from a new path, so they cannot serve here.)
 	it("retains a backup whose image a live process runs across cleanup and sweep, then reclaims it after the process exits", async () => {
 		const dir = await makeTempDir();
-		const targetPath = path.join(dir, "omp");
+		const targetPath = path.join(dir, "ngodeai");
 		await fs.copyFile(process.execPath, targetPath);
 		const live = Bun.spawn([targetPath, "-e", "await Bun.sleep(30000)"], { stdout: "ignore", stderr: "ignore" });
 		try {
@@ -1515,18 +1517,18 @@ describe.skipIf(process.platform !== "darwin")("update-cli macOS live backup ima
 });
 
 describe("update-cli binary-only release gating", () => {
-	it("honors an explicit omp.dist field from the registry manifest", () => {
-		expect(resolveReleaseDist({ omp: { dist: "binary" } })).toBe("binary");
-		expect(resolveReleaseDist({ omp: { dist: "npm" } })).toBe("npm");
+	it("honors an explicit ngodeai.dist field from the registry manifest", () => {
+		expect(resolveReleaseDist({ ngodeai: { dist: "binary" } })).toBe("binary");
+		expect(resolveReleaseDist({ ngodeai: { dist: "npm" } })).toBe("npm");
 	});
 
 	it("treats unknown dist values as binary-only", () => {
-		expect(resolveReleaseDist({ omp: { dist: "cargo" } })).toBe("binary");
+		expect(resolveReleaseDist({ ngodeai: { dist: "cargo" } })).toBe("binary");
 	});
 
 	it("returns undefined when the manifest carries no dist field", () => {
 		expect(resolveReleaseDist({ version: "1.2.3" })).toBeUndefined();
-		expect(resolveReleaseDist({ omp: {} })).toBeUndefined();
+		expect(resolveReleaseDist({ ngodeai: {} })).toBeUndefined();
 		expect(resolveReleaseDist(undefined)).toBeUndefined();
 	});
 
@@ -1559,9 +1561,9 @@ describe("update-cli script-shim takeover", () => {
 	}
 
 	const shims: Record<string, string> = {
-		omp: "#!/bin/sh\nnode omp.js\n",
-		"ngodeai.cmd": "@node omp.js %*\n",
-		"ngodeai.ps1": "node omp.js @args\n",
+		ngodeai: "#!/bin/sh\nnode ngodeai.js\n",
+		"ngodeai.cmd": "@node ngodeai.js %*\n",
+		"ngodeai.ps1": "node ngodeai.js @args\n",
 	};
 
 	async function writeShims(dir: string): Promise<void> {
@@ -1584,13 +1586,13 @@ describe("update-cli script-shim takeover", () => {
 				}
 			: undefined;
 
-	it("installs omp.exe beside the shims and retires them", async () => {
+	it("installs ngodeai.exe beside the shims and retires them", async () => {
 		const dir = await makeTempDir();
 		await writeShims(dir);
 		// Real executable, no injected verifier: the takeover must verify the
 		// exe by explicit path — $which cached the shim path before it was
 		// renamed away, so a PATH re-resolution would fail here.
-		const exe = `#!/bin/sh\necho omp/${version}\n`;
+		const exe = `#!/bin/sh\necho ngodeai/${version}\n`;
 
 		const { build, fetchImpl } = offer(exe);
 
@@ -1614,7 +1616,7 @@ describe("update-cli script-shim takeover", () => {
 		const marker = path.join(dir, "ngodeai.bunx");
 		await Bun.write(targetPath, "bun shim");
 		await Bun.write(marker, "bun launcher metadata");
-		const exe = `#!/bin/sh\necho omp/${version}\n`;
+		const exe = `#!/bin/sh\necho ngodeai/${version}\n`;
 		const { build, fetchImpl } = offer(exe);
 
 		await updateViaBinaryAt(targetPath, build, {
@@ -1628,8 +1630,8 @@ describe("update-cli script-shim takeover", () => {
 
 	it.skipIf(process.platform === "win32")("reports the physical binary path verified after an update", async () => {
 		const dir = await makeTempDir();
-		const targetPath = path.join(dir, "omp");
-		const exe = `#!/bin/sh\necho omp/${version}\n`;
+		const targetPath = path.join(dir, "ngodeai");
+		const exe = `#!/bin/sh\necho ngodeai/${version}\n`;
 		await Bun.write(targetPath, "old binary");
 		const logSpy = spyOn(console, "log").mockImplementation(() => {});
 
@@ -1648,12 +1650,12 @@ describe("update-cli script-shim takeover", () => {
 		const dir = await makeTempDir();
 		await writeShims(dir);
 		// Executable runs but reports the previous version -> full rollback.
-		const exe = "#!/bin/sh\necho omp/17.2.12\n";
+		const exe = "#!/bin/sh\necho ngodeai/17.2.12\n";
 		const { build, fetchImpl } = offer(exe);
 
 		await expect(
 			updateViaShimTakeover(path.join(dir, "ngodeai.cmd"), build, { fetchImpl, verifyBinary }),
-		).rejects.toThrow(/still reports 17\.2\.12 \(expected 18\.0\.0\); restored previous omp launcher/);
+		).rejects.toThrow(/still reports 17\.2\.12 \(expected 18\.0\.0\); restored previous ngodeai launcher/);
 
 		expect(await Bun.file(path.join(dir, "ngodeai.exe")).exists()).toBe(false);
 		for (const name in shims) {
@@ -1676,7 +1678,7 @@ describe("update-cli script-shim takeover", () => {
 	it("rewrites an immovable precedence-winning shim as a forwarder to the exe", async () => {
 		const dir = await makeTempDir();
 		await writeShims(dir);
-		const exe = `#!/bin/sh\necho omp/${version}\n`;
+		const exe = `#!/bin/sh\necho ngodeai/${version}\n`;
 		const renameSpy = renameLockingPs1();
 		const { build, fetchImpl } = offer(exe);
 		try {
@@ -1686,23 +1688,23 @@ describe("update-cli script-shim takeover", () => {
 		}
 
 		expect(await Bun.file(path.join(dir, "ngodeai.exe")).text()).toBe(exe);
-		expect(await Bun.file(path.join(dir, "omp")).exists()).toBe(false);
+		expect(await Bun.file(path.join(dir, "ngodeai")).exists()).toBe(false);
 		expect(await Bun.file(path.join(dir, "ngodeai.cmd")).exists()).toBe(false);
 		// PowerShell resolves .ps1 before .exe: the locked shim must now exec
 		// the new binary instead of keeping its old body.
-		expect(await Bun.file(path.join(dir, "ngodeai.ps1")).text()).toContain('& "$PSScriptRoot\\omp.exe" @args');
+		expect(await Bun.file(path.join(dir, "ngodeai.ps1")).text()).toContain('& "$PSScriptRoot\\ngodeai.exe" @args');
 	});
 
 	it("restores a forwarded shim's original body when verification fails", async () => {
 		const dir = await makeTempDir();
 		await writeShims(dir);
-		const exe = "#!/bin/sh\necho omp/17.2.12\n";
+		const exe = "#!/bin/sh\necho ngodeai/17.2.12\n";
 		const renameSpy = renameLockingPs1();
 		const { build, fetchImpl } = offer(exe);
 		try {
 			await expect(
 				updateViaShimTakeover(path.join(dir, "ngodeai.cmd"), build, { fetchImpl, verifyBinary }),
-			).rejects.toThrow("restored previous omp launcher");
+			).rejects.toThrow("restored previous ngodeai launcher");
 		} finally {
 			renameSpy.mockRestore();
 		}
@@ -1728,12 +1730,12 @@ describe("update-cli concurrent binary updates", () => {
 		setThemeInstance(loadedTheme);
 		vi.spyOn(console, "log").mockImplementation(() => {});
 		const dir = await makeTempDir();
-		const targetPath = path.join(dir, "omp");
+		const targetPath = path.join(dir, "ngodeai");
 		await Bun.write(targetPath, "old binary");
 		return { dir, targetPath };
 	}
 
-	// Regression for #8434: two overlapping `omp update` runs must not share a
+	// Regression for #8434: two overlapping `ngodeai update` runs must not share a
 	// temp path. Run A downloads slowly and only finishes after run B has fully
 	// installed. With the old fixed `<binary>.new` temp name, B's pre-download
 	// unlink deleted A's temp file, so A's chmod failed with ENOENT even though
@@ -1817,7 +1819,7 @@ describe("managedInstallName", () => {
 		const root = await makeTempDir();
 		await fs.mkdir(path.join(root, "versions"));
 		await fs.mkdir(path.join(root, "bin"));
-		await Bun.write(path.join(root, "versions", "1.0.0"), "omp");
+		await Bun.write(path.join(root, "versions", "1.0.0"), "ngodeai");
 		await Bun.write(path.join(root, "manager.json"), JSON.stringify({ manager: "tern", name: "Tern" }));
 		return root;
 	}
@@ -1826,9 +1828,9 @@ describe("managedInstallName", () => {
 		"names the manager through the launcher symlink and a link outside the root",
 		async () => {
 			const root = await managedRoot();
-			const launcher = path.join(root, "bin", "omp");
+			const launcher = path.join(root, "bin", "ngodeai");
 			await fs.symlink(path.join("..", "versions", "1.0.0"), launcher);
-			const outside = path.join(await makeTempDir(), "omp");
+			const outside = path.join(await makeTempDir(), "ngodeai");
 			await fs.symlink(launcher, outside);
 
 			expect(await managedInstallName(launcher)).toBe("Tern");
@@ -1839,14 +1841,14 @@ describe("managedInstallName", () => {
 	it("names the manager of a copied launcher (Windows layout)", async () => {
 		const root = await managedRoot();
 		const copy = path.join(root, "bin", "ngodeai.exe");
-		await Bun.write(copy, "omp");
+		await Bun.write(copy, "ngodeai");
 
 		expect(await managedInstallName(copy)).toBe("Tern");
 	});
 
 	it("treats a binary without a readable manifest as unmanaged", async () => {
-		const plain = path.join(await makeTempDir(), "bin", "omp");
-		await Bun.write(plain, "omp");
+		const plain = path.join(await makeTempDir(), "bin", "ngodeai");
+		await Bun.write(plain, "ngodeai");
 		expect(await managedInstallName(plain)).toBeUndefined();
 
 		const root = await managedRoot();
@@ -1862,7 +1864,7 @@ describe("update-cli manager update recovery", () => {
 		packages: { pkg: "@ngodeai/coding-agent", natives: "@ngodeai/natives" },
 		registry: "https://registry.npmjs.org/",
 	};
-	const launcherPath = "C:/Users/test/AppData/Roaming/npm/omp.cmd";
+	const launcherPath = "C:/Users/test/AppData/Roaming/npm/ngodeai.cmd";
 
 	function scriptedSteps(script: {
 		install: InstalledVersionVerification | Error | undefined;
@@ -1894,7 +1896,7 @@ describe("update-cli manager update recovery", () => {
 	it("takes the launcher over when the manager install left nothing on PATH", async () => {
 		// npm retires the global bin shims before unpacking and restores them
 		// only if its own rollback succeeds; a locked file (the loaded native
-		// addon on Windows) can leave the user with no `omp` at all.
+		// addon on Windows) can leave the user with no `ngodeai` at all.
 		vi.spyOn(console, "log").mockImplementation(() => {});
 		const { steps, calls } = scriptedSteps({ install: new Error("npm install failed with exit code 1") });
 

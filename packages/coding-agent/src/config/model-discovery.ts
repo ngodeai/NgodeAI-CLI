@@ -460,7 +460,7 @@ export function discoverModelsByProviderType(
 
 /**
  * Offers Apple's on-device model when the in-process bridge reports it usable;
- * an ineligible device, disabled Apple Intelligence, or an omp build without
+ * an ineligible device, disabled Apple Intelligence, or an ngodeai build without
  * the bridge yields no models.
  */
 async function discoverAppleFoundationModels(providerConfig: DiscoveryProviderConfig): Promise<Model<Api>[]> {
@@ -892,10 +892,10 @@ function extractOpenAIModelsListOutputTask(item: {
 	}
 }
 /**
- * Reasoning tiers omp can send as `reasoning_effort` on OpenAI-compatible
+ * Reasoning tiers ngodeai can send as `reasoning_effort` on OpenAI-compatible
  * chat routes. `none` is the wire off-switch rather than an effort tier,
  * `minimal` is rejected upstream by the GPT-6 generation, and `ultra` has no
- * omp effort equivalent (it fans out to subagents), so all three are dropped
+ * ngodeai effort equivalent (it fans out to subagents), so all three are dropped
  * from server-advertised ladders.
  */
 const ADVERTISED_REASONING_EFFORTS: readonly Effort[] = [

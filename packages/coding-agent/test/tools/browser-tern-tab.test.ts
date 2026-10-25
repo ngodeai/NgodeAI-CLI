@@ -83,7 +83,7 @@ function capture(message: Record<string, unknown>): Record<string, unknown> {
 		world: "page",
 		main: true,
 		url: "https://example.test/",
-		body: JSON.stringify({ omp: "tern", ts: 1, ...message }),
+		body: JSON.stringify({ ngodeai: "tern", ts: 1, ...message }),
 	};
 }
 
@@ -251,10 +251,10 @@ describe("TernTab", () => {
 		});
 		const tab = await openTab(fake);
 		expect(await tab.dialog()).toEqual({ open: true, type: "prompt", message: "Name?", defaultValue: "x" });
-		await tab.handleDialog({ accept: true, text: "omp" });
+		await tab.handleDialog({ accept: true, text: "ngodeai" });
 		expect(fake.requests.find(request => request.op.op === "dialog")!.op).toMatchObject({
 			accept: true,
-			text: "omp",
+			text: "ngodeai",
 		});
 		expect(await tab.dialog()).toEqual({ open: false });
 	});

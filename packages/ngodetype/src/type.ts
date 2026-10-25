@@ -8,10 +8,10 @@
  *   swaps it in; hot schemas validate in tens of nanoseconds
  *
  * A schema is a callable: `schema(data)` returns the (possibly morphed)
- * output, or an `OmpErrors` on failure (`result instanceof type.errors`).
+ * output, or an `NgodeErrors` on failure (`result instanceof type.errors`).
  */
 import { compile, compileAllows } from "./compile";
-import { type ErrorConfig, OmpErrors, OmpTypeError, TraversalError } from "./errors";
+import { type ErrorConfig, NgodeErrors, NgodeTypeError, TraversalError } from "./errors";
 import type { InferDef, InferDefIn, InferObjectLiteral, InferObjectLiteralIn, InferString } from "./infer";
 import { walk } from "./interp";
 import {
@@ -49,9 +49,9 @@ export interface NarrowErrorInput {
 /** Context passed to `.narrow()` / `.pipe()` callbacks. */
 export interface NarrowContext {
 	readonly path: readonly PropertyKey[];
-	error(error: string | NarrowErrorInput): OmpErrors;
+	error(error: string | NarrowErrorInput): NgodeErrors;
 	mustBe(expectation: string): false;
-	reject(problem: string | NarrowErrorInput): OmpErrors | false;
+	reject(problem: string | NarrowErrorInput): NgodeErrors | false;
 }
 
 /** Schema metadata and validation-message overrides accepted by `.configure()`. */
@@ -137,7 +137,7 @@ export interface StandardJsonSchemaOptions {
 
 /** A compiled schema: callable validator plus composition methods. */
 export interface Type<out t = unknown, i = t> {
-	(data: unknown): t | OmpErrors;
+	(data: unknown): t | NgodeErrors;
 	readonly [IR_BRAND]: true;
 	/** Structural IR (base type; runtime steps live in `steps`). */
 	readonly ir: IR;
@@ -226,7 +226,7 @@ type PipeItemOutput<item> =
 	item extends SchemaInference<infer output, unknown>
 		? output
 		: item extends (data: never, ...arguments_: never[]) => infer output
-			? Exclude<output, OmpErrors>
+			? Exclude<output, NgodeErrors>
 			: InferDef<item>;
 type NaryPipeOutput<items extends readonly unknown[]> = items extends readonly [...(readonly unknown[]), infer last]
 	? PipeItemOutput<last>
@@ -289,9 +289,9 @@ interface FluentMethods<t, i> {
 	readonly pipe: PipeMethod<t, i>;
 	to<const def>(def: def): FluentType<InferDef<def>, i>;
 	filter<narrowed extends i>(fn: (data: i, ctx: NarrowContext) => data is narrowed): FluentType<t, narrowed>;
-	filter(fn: (data: i, ctx: NarrowContext) => boolean | OmpErrors): FluentType<t, i>;
+	filter(fn: (data: i, ctx: NarrowContext) => boolean | NgodeErrors): FluentType<t, i>;
 	narrow<narrowed extends t>(fn: (data: t, ctx: NarrowContext) => data is narrowed): FluentType<narrowed, i>;
-	narrow(fn: (data: t, ctx: NarrowContext) => boolean | OmpErrors): FluentType<t, i>;
+	narrow(fn: (data: t, ctx: NarrowContext) => boolean | NgodeErrors): FluentType<t, i>;
 	brand<const name extends string>(name: name): FluentType<Brand<t, name>, i>;
 	as<castTo>(): FluentType<castTo, i>;
 	readonly(): FluentType<Readonly<t>, i>;
@@ -306,11 +306,11 @@ interface FluentMethods<t, i> {
 }
 
 interface PipeMethod<t, i> {
-	<r>(fn: (data: t, ctx: NarrowContext) => r): FluentType<Exclude<r, OmpErrors>, i>;
+	<r>(fn: (data: t, ctx: NarrowContext) => r): FluentType<Exclude<r, NgodeErrors>, i>;
 	<r, ri>(schema: SchemaInference<r, ri>): FluentType<r, i>;
 	(...steps: readonly unknown[]): FluentType<unknown, i>;
 	readonly try: {
-		<r>(fn: (data: t, ctx: NarrowContext) => r): FluentType<Exclude<r, OmpErrors>, i>;
+		<r>(fn: (data: t, ctx: NarrowContext) => r): FluentType<Exclude<r, NgodeErrors>, i>;
 		(...steps: readonly unknown[]): FluentType<unknown, i>;
 	};
 }
@@ -510,7 +510,7 @@ function configureSelected(ir: IR, config: SchemaConfig, selector: ConfigureSele
 
 class Ctx implements NarrowContext {
 	expectation: string | undefined;
-	errors: OmpErrors | undefined;
+	errors: NgodeErrors | undefined;
 	readonly path: readonly PropertyKey[];
 	#data: unknown;
 
@@ -519,9 +519,9 @@ class Ctx implements NarrowContext {
 		this.path = path.map(key => (typeof key === "symbol" ? String(key) : key));
 	}
 
-	error(input: string | NarrowErrorInput): OmpErrors {
+	error(input: string | NarrowErrorInput): NgodeErrors {
 		const detail = typeof input === "string" ? { expected: input } : input;
-		const error = OmpErrors.single([...(detail.path ?? detail.relativePath ?? [])], detail.expected, this.#data, {
+		const error = NgodeErrors.single([...(detail.path ?? detail.relativePath ?? [])], detail.expected, this.#data, {
 			preserveActual: true,
 			...(Object.hasOwn(detail, "actual") ? { actual: String(detail.actual) } : {}),
 		});
@@ -535,7 +535,7 @@ class Ctx implements NarrowContext {
 		return false;
 	}
 
-	reject(input: string | NarrowErrorInput): OmpErrors | false {
+	reject(input: string | NarrowErrorInput): NgodeErrors | false {
 		if (typeof input === "string") {
 			this.expectation = input;
 			return false;
@@ -603,7 +603,7 @@ function inheritScope(source: InternalType, target: InternalType): InternalType 
 	Reflect.set(target, "$", source.$);
 	return target;
 }
-function invalidDefault(label: string, errors: OmpErrors): never {
+function invalidDefault(label: string, errors: NgodeErrors): never {
 	const error = errors[0];
 	let heading = label;
 	for (let index = 0; index < error.path.length; index++) {
@@ -617,12 +617,12 @@ function invalidDefault(label: string, errors: OmpErrors): never {
 			heading += `.${String(segment)}`;
 		}
 	}
-	throw new OmpTypeError(`ParseError: ${heading} ${error.problem}`);
+	throw new NgodeTypeError(`ParseError: ${heading} ${error.problem}`);
 }
 
 function rejectMutableStaticDefault(value: unknown): void {
 	if (value !== null && typeof value === "object" && !(value instanceof Date)) {
-		throw new OmpTypeError("ParseError: A mutable default value must be specified as a factory");
+		throw new NgodeTypeError("ParseError: A mutable default value must be specified as a factory");
 	}
 }
 
@@ -644,7 +644,7 @@ function normalizeDefaults(ir: IR, seen = new WeakSet<object>()): void {
 					candidate = prop.def;
 				}
 				const output = walk(prop.val, candidate);
-				if (output instanceof OmpErrors) invalidDefault(`Default for ${String(prop.key)}`, output);
+				if (output instanceof NgodeErrors) invalidDefault(`Default for ${String(prop.key)}`, output);
 				if (!factory) prop.def = output;
 				prop.defValidated = true;
 			}
@@ -672,7 +672,7 @@ function normalizeDefaults(ir: IR, seen = new WeakSet<object>()): void {
 					candidate = item.def;
 				}
 				const output = walk(item.val, candidate);
-				if (output instanceof OmpErrors) invalidDefault(`Default for [${index}]`, output);
+				if (output instanceof NgodeErrors) invalidDefault(`Default for [${index}]`, output);
 				if (!factory) item.def = output;
 				item.defValidated = true;
 			}
@@ -721,7 +721,7 @@ const typeMethods = {
 		if (!factory) rejectMutableStaticDefault(value);
 		const candidate = factory ? value() : value;
 		const output = this.run(candidate);
-		if (output instanceof OmpErrors) invalidDefault("Default", output);
+		if (output instanceof NgodeErrors) invalidDefault("Default", output);
 		return makeType(this.ir, this[kSteps], {
 			...metaOf(this),
 			defaultValue: value,
@@ -762,7 +762,7 @@ const typeMethods = {
 			intersect(embed(this), parseDef(def, this.resolver));
 			return true;
 		} catch (error) {
-			if (error instanceof OmpTypeError) return false;
+			if (error instanceof NgodeTypeError) return false;
 			throw error;
 		}
 	},
@@ -829,8 +829,8 @@ const typeMethods = {
 	},
 
 	divisibleBy(this: InternalType, divisor: number): InternalType {
-		if (this.ir.k !== "number") throw new OmpTypeError(`cannot apply divisibility to ${this.ir.k}`);
-		if (!Number.isFinite(divisor) || divisor === 0) throw new OmpTypeError("divisor must be non-zero");
+		if (this.ir.k !== "number") throw new NgodeTypeError(`cannot apply divisibility to ${this.ir.k}`);
+		if (!Number.isFinite(divisor) || divisor === 0) throw new NgodeTypeError("divisor must be non-zero");
 		return makeType({ ...this.ir, divisor }, this[kSteps], metaOf(this));
 	},
 
@@ -973,7 +973,7 @@ const typeMethods = {
 					if (!sharedRequired) {
 						const leftExpression = expressionOf(objects[left]).replace(/ }$/, ", + (undeclared): delete }");
 						const rightExpression = expressionOf(objects[right]).replace(/ }$/, ", + (undeclared): delete }");
-						throw new OmpTypeError(
+						throw new NgodeTypeError(
 							`ParseError: An unordered union of a type including a morph and a type with overlapping input is indeterminate:\nLeft: ${leftExpression}\nRight: ${rightExpression}`,
 						);
 					}
@@ -1006,7 +1006,7 @@ const typeMethods = {
 			if (step.kind === "filter" && !step.fn(data, new Ctx(data))) return false;
 		}
 		const out = this[kBase](data);
-		if (out instanceof OmpErrors) return false;
+		if (out instanceof NgodeErrors) return false;
 		for (const step of steps) {
 			if (step.kind === "narrow" && !step.fn(out, new Ctx(out))) return false;
 		}
@@ -1015,13 +1015,13 @@ const typeMethods = {
 
 	assert(this: InternalType, data: unknown): unknown {
 		const out = this.run(data);
-		if (out instanceof OmpErrors) throw new TraversalError(out);
+		if (out instanceof NgodeErrors) throw new TraversalError(out);
 		return out;
 	},
 
 	from(this: InternalType, data: unknown): unknown {
 		const out = this.run(data);
-		if (out instanceof OmpErrors) throw new TraversalError(out);
+		if (out instanceof NgodeErrors) throw new TraversalError(out);
 		return out;
 	},
 
@@ -1060,7 +1060,7 @@ Object.defineProperty(typeMethods, "~standard", {
 	get(this: InternalType): StandardSchemaV1.Props {
 		const jsonSchema = (io: "input" | "output", options: StandardJsonSchemaOptions) => {
 			if (options.target !== "draft-2020-12" && options.target !== "draft-07") {
-				throw new OmpTypeError(
+				throw new NgodeTypeError(
 					`JSONSchema target '${options.target}' is not supported (must be "draft-2020-12" or "draft-07")`,
 				);
 			}
@@ -1071,7 +1071,7 @@ Object.defineProperty(typeMethods, "~standard", {
 			vendor: "ngodetype",
 			validate: (value: unknown): StandardSchemaV1.Result<unknown> => {
 				const out = this.run(value);
-				return out instanceof OmpErrors
+				return out instanceof NgodeErrors
 					? { issues: out as unknown as readonly StandardSchemaV1.Issue[] }
 					: { value: out };
 			},
@@ -1174,17 +1174,17 @@ function makeType(ir: IR, steps: Step[], meta: TypeMeta): unknown {
 			: (data: unknown, contextPath: readonly PropertyKey[] = []): unknown => {
 					if (filterInput !== undefined) {
 						const inputResult = walk(filterInput, data);
-						if (inputResult instanceof OmpErrors) return inputResult;
+						if (inputResult instanceof NgodeErrors) return inputResult;
 					}
 					for (const step of steps) {
 						if (step.kind !== "filter") continue;
 						const ctx = new Ctx(data, contextPath);
 						const result = step.fn(data, ctx);
-						if (result instanceof OmpErrors)
+						if (result instanceof NgodeErrors)
 							return errorConfig === undefined ? result : result.configure(errorConfig);
 						if (ctx.errors) return errorConfig === undefined ? ctx.errors : ctx.errors.configure(errorConfig);
 						if (!result) {
-							return OmpErrors.single(
+							return NgodeErrors.single(
 								[],
 								ctx.expectation ??
 									(step.fn.name ? `valid according to ${step.fn.name}` : "valid (input predicate failed)"),
@@ -1194,18 +1194,18 @@ function makeType(ir: IR, steps: Step[], meta: TypeMeta): unknown {
 						}
 					}
 					let out = base(data);
-					if (out instanceof OmpErrors) return out;
+					if (out instanceof NgodeErrors) return out;
 					for (const step of steps) {
 						if (step.kind === "filter") continue;
 						const ctx = new Ctx(out, contextPath);
 						if (step.kind === "narrow") {
 							const result = step.fn(out, ctx);
-							if (result instanceof OmpErrors) {
+							if (result instanceof NgodeErrors) {
 								return errorConfig === undefined ? result : result.configure(errorConfig);
 							}
 							if (ctx.errors) return errorConfig === undefined ? ctx.errors : ctx.errors.configure(errorConfig);
 							if (!result) {
-								return OmpErrors.single(
+								return NgodeErrors.single(
 									[],
 									ctx.expectation ??
 										(step.fn.name ? `valid according to ${step.fn.name}` : "valid (narrow predicate failed)"),
@@ -1219,9 +1219,9 @@ function makeType(ir: IR, steps: Step[], meta: TypeMeta): unknown {
 							} catch (error) {
 								if (!step.try) throw error;
 								const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-								return OmpErrors.single([], `valid (morph threw ${detail})`, out, errorConfig);
+								return NgodeErrors.single([], `valid (morph threw ${detail})`, out, errorConfig);
 							}
-							if (out instanceof OmpErrors) {
+							if (out instanceof NgodeErrors) {
 								return errorConfig === undefined ? out : out.configure(errorConfig);
 							}
 						}
@@ -1236,7 +1236,7 @@ function makeType(ir: IR, steps: Step[], meta: TypeMeta): unknown {
 			callable = (data: unknown, path?: readonly PropertyKey[]): unknown => {
 				const out = validate(data, path);
 				if (
-					out instanceof OmpErrors ||
+					out instanceof NgodeErrors ||
 					out === data ||
 					typeof data !== "object" ||
 					data === null ||
@@ -1333,7 +1333,7 @@ function appendPipes(
 			);
 			continue;
 		}
-		if (typeof candidate !== "function") throw new OmpTypeError("pipe operands must be functions or Types");
+		if (typeof candidate !== "function") throw new NgodeTypeError("pipe operands must be functions or Types");
 		schema = makeType(
 			schema.ir,
 			[...schema[kSteps], { kind: "pipe", fn: candidate as Step["fn"], try: catchErrors }],
@@ -1484,10 +1484,10 @@ function assertDeterminateMorphUnions(ir: IR, seen = new Set<IR>()): void {
 				try {
 					intersect(leftInput, rightInput);
 				} catch (error) {
-					if (error instanceof OmpTypeError) continue;
+					if (error instanceof NgodeTypeError) continue;
 					throw error;
 				}
-				throw new OmpTypeError("an unordered union with overlapping morph inputs is indeterminate");
+				throw new NgodeTypeError("an unordered union with overlapping morph inputs is indeterminate");
 			}
 		}
 	}
@@ -1535,14 +1535,14 @@ function getPathIR(ir: IR, requestedKey: unknown): IR {
 			const arrayIndex: unknown = type.arrayIndex;
 			if (keySchema === arrayIndex) key = 0;
 			else {
-				throw new OmpTypeError(
+				throw new NgodeTypeError(
 					`${keySchema.expression} is not allowed as an array or object index; use a concrete property key`,
 				);
 			}
 		}
 	}
 	if (typeof key !== "string" && typeof key !== "number" && typeof key !== "symbol") {
-		throw new OmpTypeError(`get keys must be strings, numbers, or symbols`);
+		throw new NgodeTypeError(`get keys must be strings, numbers, or symbols`);
 	}
 	if (ir.k === "alias") return getPathIR(ir.resolve(), key);
 	if (ir.k === "sub") return getPathIR(ir.schema.ir, key);
@@ -1551,21 +1551,21 @@ function getPathIR(ir: IR, requestedKey: unknown): IR {
 	}
 	if (ir.k === "array") {
 		const index = typeof key === "number" ? key : typeof key === "string" && /^\d+$/.test(key) ? Number(key) : -1;
-		if (!Number.isSafeInteger(index) || index < 0) throw new OmpTypeError(`key ${String(key)} is not declared`);
+		if (!Number.isSafeInteger(index) || index < 0) throw new NgodeTypeError(`key ${String(key)} is not declared`);
 		return unionOf([ir.el, { k: "undefined" }]);
 	}
 	if (ir.k === "tuple") {
 		const index = typeof key === "number" ? key : typeof key === "string" && /^\d+$/.test(key) ? Number(key) : -1;
-		if (!Number.isSafeInteger(index) || index < 0) throw new OmpTypeError(`key ${String(key)} is not declared`);
+		if (!Number.isSafeInteger(index) || index < 0) throw new NgodeTypeError(`key ${String(key)} is not declared`);
 		if (index < ir.prefix.length) {
 			const item = ir.prefix[index];
 			return item.opt ? unionOf([{ k: "undefined" }, item.val]) : item.val;
 		}
-		if (ir.variadic === undefined) throw new OmpTypeError(`key ${String(key)} is not declared`);
+		if (ir.variadic === undefined) throw new NgodeTypeError(`key ${String(key)} is not declared`);
 		return unionOf([{ k: "undefined" }, ir.variadic, ...ir.postfix]);
 	}
 	if (ir.k === "undefined") return ir;
-	if (ir.k !== "object") throw new OmpTypeError("get requires an object schema");
+	if (ir.k !== "object") throw new NgodeTypeError("get requires an object schema");
 
 	const matches: IR[] = [];
 	const prop = ir.props.find(candidate => candidate.key === String(key));
@@ -1573,12 +1573,12 @@ function getPathIR(ir: IR, requestedKey: unknown): IR {
 	if (typeof key === "string") {
 		if (ir.index !== undefined) matches.push(ir.index);
 		for (const index of ir.patternIndexes ?? []) {
-			if (!(walk(index.key, key) instanceof OmpErrors)) matches.push(index.val);
+			if (!(walk(index.key, key) instanceof NgodeErrors)) matches.push(index.val);
 		}
 	} else if (typeof key === "symbol" && ir.symbolIndex !== undefined) {
 		matches.push(ir.symbolIndex);
 	}
-	if (matches.length === 0) throw new OmpTypeError(`key ${String(key)} is not declared`);
+	if (matches.length === 0) throw new NgodeTypeError(`key ${String(key)} is not declared`);
 	const value = matches.reduce((left, right) => intersect(left, right));
 	return prop !== undefined && !prop.opt ? value : unionOf([value, { k: "undefined" }]);
 }
@@ -1718,14 +1718,14 @@ function arkJsonOf(ir: IR, ancestors = new Set<IR>()): unknown {
 type ObjectIR = Extract<IR, { k: "object" }>;
 
 function requireObject(ir: IR, operation: string): ObjectIR {
-	if (ir.k !== "object") throw new OmpTypeError(`${operation} requires an object schema`);
+	if (ir.k !== "object") throw new NgodeTypeError(`${operation} requires an object schema`);
 	return ir;
 }
 function selectObjectProps(ir: IR, keys: readonly PropertyKey[], keepSelected: boolean, operation: string): ObjectIR {
 	const object = requireObject(ir, operation);
 	const selected = new Set(keys);
 	for (const key of selected) {
-		if (!object.props.some(prop => prop.key === key)) throw new OmpTypeError(`key ${String(key)} does not exist`);
+		if (!object.props.some(prop => prop.key === key)) throw new NgodeTypeError(`key ${String(key)} does not exist`);
 	}
 	return { ...object, props: object.props.filter(prop => selected.has(prop.key) === keepSelected) };
 }
@@ -1751,10 +1751,10 @@ function propertyFromIR(prop: PropIR): TypeProperty {
 
 function propertyToIR(property: TypeProperty): PropIR {
 	if (property.kind !== "required" && property.kind !== "optional") {
-		throw new OmpTypeError(`mapped property ${String(property.key)} has invalid kind`);
+		throw new NgodeTypeError(`mapped property ${String(property.key)} has invalid kind`);
 	}
 	if (!(IR_BRAND in property.value)) {
-		throw new OmpTypeError(`mapped property ${String(property.key)} must contain a schema value`);
+		throw new NgodeTypeError(`mapped property ${String(property.key)} must contain a schema value`);
 	}
 	const hasDefault = Object.hasOwn(property, "default");
 	return {
@@ -1780,8 +1780,8 @@ function dateRefinement(
 	relation: string,
 	predicate: (value: number) => boolean,
 ): InternalType {
-	if (!Number.isFinite(timestamp)) throw new OmpTypeError("date bound must be valid");
-	if (!acceptsDateIR(schema.ir)) throw new OmpTypeError("date bounds require a Date type");
+	if (!Number.isFinite(timestamp)) throw new NgodeTypeError("date bound must be valid");
+	if (!acceptsDateIR(schema.ir)) throw new NgodeTypeError("date bounds require a Date type");
 	const bound = new Date(timestamp);
 	return makeType(
 		{
@@ -1871,7 +1871,7 @@ function withShallowExtras(ir: IR, extras: ObjectIR["extras"]): IR {
 	if (ir.k === "object") return { ...ir, extras };
 	if (ir.k === "union") return { ...ir, members: ir.members.map(member => withShallowExtras(member, extras)) };
 	if (ir.k === "alias") return withShallowExtras(ir.resolve(), extras);
-	throw new OmpTypeError("onUndeclaredKey requires an object schema");
+	throw new NgodeTypeError("onUndeclaredKey requires an object schema");
 }
 
 function withDeepExtras(ir: IR, extras: ObjectIR["extras"]): IR {
@@ -1940,7 +1940,7 @@ function intersectTuples(left: TupleIR, right: TupleIR): IR {
 	const leftMaximum = left.variadic === undefined ? left.prefix.length : Number.POSITIVE_INFINITY;
 	const rightMaximum = right.variadic === undefined ? right.prefix.length : Number.POSITIVE_INFINITY;
 	const maximum = Math.min(leftMaximum, rightMaximum);
-	if (minimum > maximum) throw new OmpTypeError("tuple length intersection is unsatisfiable");
+	if (minimum > maximum) throw new NgodeTypeError("tuple length intersection is unsatisfiable");
 
 	const prefixLength = Number.isFinite(maximum) ? maximum : Math.max(left.prefix.length, right.prefix.length);
 	const prefix: TupleIR["prefix"] = [];
@@ -1954,7 +1954,7 @@ function intersectTuples(left: TupleIR, right: TupleIR): IR {
 		try {
 			prefix.push({ val: intersect(leftNode, rightNode), opt: !required });
 		} catch (error) {
-			if (required || !(error instanceof OmpTypeError)) throw error;
+			if (required || !(error instanceof NgodeTypeError)) throw error;
 			break;
 		}
 	}
@@ -1997,13 +1997,13 @@ function intersect(a: IR, b: IR): IR {
 }
 
 function intersectResolved(a: IR, b: IR): IR {
-	if (a.k === "never" || b.k === "never") throw new OmpTypeError("intersection with never is unsatisfiable");
+	if (a.k === "never" || b.k === "never") throw new NgodeTypeError("intersection with never is unsatisfiable");
 	if (a.k === "unknown") return b;
 	if (b.k === "unknown") return a;
 	if (a === b) return a;
 	if (a.k === "morph" && b.k === "morph") {
 		if (a.fn !== b.fn || a.out !== b.out) {
-			throw new OmpTypeError("intersection of distinct morphs is indeterminate");
+			throw new NgodeTypeError("intersection of distinct morphs is indeterminate");
 		}
 		return { ...a, input: intersect(a.input, b.input) };
 	}
@@ -2012,7 +2012,7 @@ function intersectResolved(a: IR, b: IR): IR {
 	if (a.k === "sub" && a.schema.hasSteps) {
 		if (b.k === "sub" && b.schema.hasSteps) {
 			if (a.schema === b.schema) return a;
-			throw new OmpTypeError("intersection of distinct morphs is indeterminate");
+			throw new NgodeTypeError("intersection of distinct morphs is indeterminate");
 		}
 		const schema = a.schema as InternalType;
 		return embed(makeType(intersect(schema.ir, b), schema[kSteps], metaOf(schema)));
@@ -2020,7 +2020,7 @@ function intersectResolved(a: IR, b: IR): IR {
 	if (b.k === "sub" && b.schema.hasSteps) return intersect(b, a);
 	if (a.k === "union" || b.k === "union") {
 		const union = a.k === "union" ? a : b.k === "union" ? b : undefined;
-		if (union === undefined) throw new OmpTypeError("union intersection invariant failed");
+		if (union === undefined) throw new NgodeTypeError("union intersection invariant failed");
 		const branches = union.members;
 		const other = a.k === "union" ? b : a;
 		const members: IR[] = [];
@@ -2028,14 +2028,14 @@ function intersectResolved(a: IR, b: IR): IR {
 			try {
 				members.push(intersect(branch, other));
 			} catch (error) {
-				if (!(error instanceof OmpTypeError)) throw error;
+				if (!(error instanceof NgodeTypeError)) throw error;
 			}
 		}
-		if (members.length === 0) throw new OmpTypeError("intersection has no satisfiable branches");
+		if (members.length === 0) throw new NgodeTypeError("intersection has no satisfiable branches");
 		return members.length === 1 ? members[0] : { k: "union", members };
 	}
 	if (a.k === "lit") {
-		if (walk(b, a.v) instanceof OmpErrors) throw new OmpTypeError("literal is excluded by the intersection");
+		if (walk(b, a.v) instanceof NgodeErrors) throw new NgodeTypeError("literal is excluded by the intersection");
 		return a;
 	}
 	if (b.k === "lit") return intersect(b, a);
@@ -2048,7 +2048,7 @@ function intersectResolved(a: IR, b: IR): IR {
 				const ap = props[index];
 				const required = (!ap.opt && !ap.hasDefault) || (!bp.opt && !bp.hasDefault);
 				if (ap.hasDefault && bp.hasDefault && !Object.is(ap.def, bp.def)) {
-					throw new OmpTypeError(
+					throw new NgodeTypeError(
 						`ParseError: Invalid intersection of default values ${String(ap.def)} & ${String(bp.def)}`,
 					);
 				}
@@ -2081,7 +2081,7 @@ function intersectResolved(a: IR, b: IR): IR {
 		const min = maxOf(a.min, b.min);
 		const max = minOf(a.max, b.max);
 		if (min !== undefined && max !== undefined && min > max) {
-			throw new OmpTypeError("string length intersection is unsatisfiable");
+			throw new NgodeTypeError("string length intersection is unsatisfiable");
 		}
 		return { k: "string", min, max, url: a.url || b.url };
 	}
@@ -2091,7 +2091,7 @@ function intersectResolved(a: IR, b: IR): IR {
 		const xmin = min !== undefined && ((a.min === min && a.xmin === true) || (b.min === min && b.xmin === true));
 		const xmax = max !== undefined && ((a.max === max && a.xmax === true) || (b.max === max && b.xmax === true));
 		if (min !== undefined && max !== undefined && (min > max || (min === max && (xmin || xmax)))) {
-			throw new OmpTypeError("numeric range intersection is unsatisfiable");
+			throw new NgodeTypeError("numeric range intersection is unsatisfiable");
 		}
 		if (a.divisor !== undefined && b.divisor !== undefined && a.divisor !== b.divisor) {
 			return { k: "intersection", members: [a, b] };
@@ -2110,7 +2110,7 @@ function intersectResolved(a: IR, b: IR): IR {
 		const min = maxOf(a.min, b.min);
 		const max = minOf(a.max, b.max);
 		if (min !== undefined && max !== undefined && min > max) {
-			throw new OmpTypeError("array length intersection is unsatisfiable");
+			throw new NgodeTypeError("array length intersection is unsatisfiable");
 		}
 		return { k: "array", el: intersect(a.el, b.el), min, max };
 	}
@@ -2120,7 +2120,7 @@ function intersectResolved(a: IR, b: IR): IR {
 	if (a.k === "instance" && b.k === "instance") {
 		if (a.ctor === b.ctor || a.ctor.prototype instanceof b.ctor) return a;
 		if (b.ctor.prototype instanceof a.ctor) return b;
-		throw new OmpTypeError(`intersection of ${a.expected} and ${b.expected} is unsatisfiable`);
+		throw new NgodeTypeError(`intersection of ${a.expected} and ${b.expected} is unsatisfiable`);
 	}
 	if (a.k === b.k && ["null", "undefined", "boolean", "bigint", "symbol", "anyobject"].includes(a.k)) return a;
 	if (
@@ -2132,7 +2132,7 @@ function intersectResolved(a: IR, b: IR): IR {
 	const leftDomain = domainOf(a);
 	const rightDomain = domainOf(b);
 	if (leftDomain !== undefined && rightDomain !== undefined && leftDomain !== rightDomain) {
-		throw new OmpTypeError(`intersection of ${leftDomain} and ${rightDomain} is unsatisfiable`);
+		throw new NgodeTypeError(`intersection of ${leftDomain} and ${rightDomain} is unsatisfiable`);
 	}
 	if (a.k === "anyobject" && rightDomain === "object") return b;
 	if (b.k === "anyobject" && leftDomain === "object") return a;
@@ -2359,7 +2359,7 @@ function isSubtype(source: IR, target: IR, seen = new WeakMap<IR, Set<IR>>()): b
 	if (target.k === "union") return target.members.some(member => isSubtype(source, member, seen));
 	if (target.k === "intersection") return target.members.every(member => isSubtype(source, member, seen));
 	if (source.k === "intersection") return source.members.some(member => isSubtype(member, target, seen));
-	if (source.k === "lit") return !(walk(target, source.v) instanceof OmpErrors);
+	if (source.k === "lit") return !(walk(target, source.v) instanceof NgodeErrors);
 	if (source.k === "refine") return isSubtype(source.base, target, seen);
 	if (source.k === "morph") return isSubtype(source.out ?? source.input, target, seen);
 	if (source.k === "sub") return isSubtype(source.schema.ir, target, seen);
@@ -2457,18 +2457,18 @@ function withLengthBound(ir: IR, side: "min" | "max", bound: number): IR {
 	if (ir.k === "array" || ir.k === "string") {
 		return side === "min" ? { ...ir, min: bound } : { ...ir, max: bound };
 	}
-	throw new OmpTypeError(`cannot apply length bound to ${ir.k}`);
+	throw new NgodeTypeError(`cannot apply length bound to ${ir.k}`);
 }
 
 function withNumericBound(ir: IR, side: "min" | "max", bound: number, exclusive = false): IR {
-	if (!Number.isFinite(bound)) throw new OmpTypeError("numeric bound must be finite");
+	if (!Number.isFinite(bound)) throw new NgodeTypeError("numeric bound must be finite");
 	if (ir.k === "number") {
 		return side === "min" ? { ...ir, min: bound, xmin: exclusive } : { ...ir, max: bound, xmax: exclusive };
 	}
 	if (ir.k === "union") {
 		return { ...ir, members: ir.members.map(member => withNumericBound(member, side, bound, exclusive)) };
 	}
-	throw new OmpTypeError(`cannot apply numeric bound to ${ir.k}`);
+	throw new NgodeTypeError(`cannot apply numeric bound to ${ir.k}`);
 }
 interface GenericParameter {
 	readonly name: string;
@@ -2503,12 +2503,12 @@ function validateGenericParameters(parameters: readonly GenericParameter[]): voi
 	const names = new Set<string>();
 	for (const parameter of parameters) {
 		if (!/^[A-Za-z_$]\w*$/.test(parameter.name)) {
-			throw new OmpTypeError(`invalid generic parameter "${parameter.name}"`);
+			throw new NgodeTypeError(`invalid generic parameter "${parameter.name}"`);
 		}
-		if (names.has(parameter.name)) throw new OmpTypeError(`duplicate generic parameter "${parameter.name}"`);
+		if (names.has(parameter.name)) throw new NgodeTypeError(`duplicate generic parameter "${parameter.name}"`);
 		names.add(parameter.name);
 	}
-	if (parameters.length === 0) throw new OmpTypeError("generic declarations require at least one parameter");
+	if (parameters.length === 0) throw new NgodeTypeError("generic declarations require at least one parameter");
 }
 
 function parseGenericParameters(source: string): GenericParameter[] {
@@ -2569,7 +2569,7 @@ function parseGenericArgument(definition: unknown, outer?: AliasResolver): IR {
 		try {
 			return parseDef(definition);
 		} catch (error) {
-			if (!(error instanceof OmpTypeError) || !error.message.includes('unknown keyword "this"')) throw error;
+			if (!(error instanceof NgodeTypeError) || !error.message.includes('unknown keyword "this"')) throw error;
 		}
 	}
 	const root: { current?: IR } = {};
@@ -2578,7 +2578,7 @@ function parseGenericArgument(definition: unknown, outer?: AliasResolver): IR {
 		name: "this",
 		resolve: () => {
 			if (root.current === undefined || root.current === self)
-				throw new OmpTypeError('"this" cannot be used as a root definition');
+				throw new NgodeTypeError('"this" cannot be used as a root definition');
 			return root.current;
 		},
 	};
@@ -2592,7 +2592,7 @@ function parseGenericArgument(definition: unknown, outer?: AliasResolver): IR {
 		markThisOnlyResolver(resolve);
 	}
 	root.current = parseDef(definition, resolve);
-	if (root.current === self) throw new OmpTypeError('"this" cannot be used as a root definition');
+	if (root.current === self) throw new NgodeTypeError('"this" cannot be used as a root definition');
 	return root.current;
 }
 
@@ -2637,14 +2637,14 @@ function createRuntimeGeneric(
 		parameters,
 		instantiateIR(arguments_) {
 			if (arguments_.length !== parameters.length) {
-				throw new OmpTypeError(`generic expects ${parameters.length} arguments (received ${arguments_.length})`);
+				throw new NgodeTypeError(`generic expects ${parameters.length} arguments (received ${arguments_.length})`);
 			}
 			for (let index = 0; index < parameters.length; index++) {
 				const parameter = parameters[index];
 				if (parameter.constraintDef === undefined) continue;
 				const constraint = parseDef(parameter.constraintDef, constraintResolve);
 				if (!isSubtype(arguments_[index], constraint)) {
-					throw new OmpTypeError(`${parameter.name} must be assignable to its constraint`);
+					throw new NgodeTypeError(`${parameter.name} must be assignable to its constraint`);
 				}
 			}
 			return genericBodyIR(parameters, definition, arguments_, outer);
@@ -2669,7 +2669,7 @@ export function type<input, output>(
 	def: SchemaInference<input> | string,
 	operator: "=>",
 	morph: (data: input, ctx: NarrowContext) => output,
-): FluentType<Exclude<output, OmpErrors>, input>;
+): FluentType<Exclude<output, NgodeErrors>, input>;
 export function type<const input, const output>(
 	def: input,
 	operator: "|>",
@@ -2787,7 +2787,7 @@ type Constructed<ctor> = ctor extends abstract new (...args: never[]) => infer i
 
 function keywordSchema<output = string, input = output>(name: string): FluentType<output, input> {
 	const ir = keywordIR(name);
-	if (ir === undefined) throw new OmpTypeError(`missing built-in keyword ${name}`);
+	if (ir === undefined) throw new NgodeTypeError(`missing built-in keyword ${name}`);
 	return makeType<output, input>(ir, [], {});
 }
 
@@ -2815,7 +2815,7 @@ type MatchCaseOutput<cases> = {
 
 /** A finalized matcher. Like a schema, it returns structured errors unless finalized with `"assert"`. */
 export type Matcher<input = unknown, output = unknown> = FluentType<output, input> &
-	(<const value extends input>(value: value, ...args: readonly unknown[]) => output | OmpErrors);
+	(<const value extends input>(value: value, ...args: readonly unknown[]) => output | NgodeErrors);
 
 /** Fluent first-match parser exposed as `match` and `type.match`. */
 export interface MatchParser<input = unknown, output = never> {
@@ -2856,7 +2856,7 @@ interface MatchState {
 }
 
 function caseResolver(value: unknown): (input: unknown, ...args: readonly unknown[]) => unknown {
-	if (typeof value !== "function") throw new OmpTypeError("match case values must be functions");
+	if (typeof value !== "function") throw new NgodeTypeError("match case values must be functions");
 	return (input, ...args) => Reflect.apply(value, undefined, [input, ...args]);
 }
 
@@ -2881,13 +2881,13 @@ function publicMatcher<input, output>(
 				: state.parse({ [state.key]: "never" });
 	} else {
 		const first = state.branches[0].schema.ir;
-		if (first.k !== "object") throw new OmpTypeError("match.at cases must define object schemas");
+		if (first.k !== "object") throw new NgodeTypeError("match.at cases must define object schemas");
 		const propertyKey = String(state.key);
 		const values: IR[] = [];
 		for (const branch of state.branches) {
-			if (branch.schema.ir.k !== "object") throw new OmpTypeError("match.at cases must define object schemas");
+			if (branch.schema.ir.k !== "object") throw new NgodeTypeError("match.at cases must define object schemas");
 			const property = branch.schema.ir.props.find(candidate => candidate.key === propertyKey);
-			if (property === undefined) throw new OmpTypeError(`match.at case is missing ${propertyKey}`);
+			if (property === undefined) throw new NgodeTypeError(`match.at case is missing ${propertyKey}`);
 			values.push(property.val);
 		}
 		const value = values.length === 1 ? values[0] : { k: "union" as const, members: values };
@@ -2904,12 +2904,12 @@ function publicMatcher<input, output>(
 		let matchedInput = input;
 		if (state.input !== undefined) {
 			const validated = state.input.run(input);
-			if (validated instanceof OmpErrors) return validated;
+			if (validated instanceof NgodeErrors) return validated;
 			matchedInput = validated;
 		}
 		for (const branch of state.branches) {
 			const matched = branch.schema.run(matchedInput);
-			if (!(matched instanceof OmpErrors)) return branch.resolve(matched, ...args);
+			if (!(matched instanceof NgodeErrors)) return branch.resolve(matched, ...args);
 		}
 		if (fallbackResolver !== undefined) return fallbackResolver(matchedInput, ...args);
 		return casesSchema.run(matchedInput);
@@ -2917,7 +2917,7 @@ function publicMatcher<input, output>(
 	const schema = makeType({ k: "unknown" }, [{ kind: "pipe", fn: input => execute(input, []) }], EMPTY_META);
 	const callable = ((value: unknown, ...args: readonly unknown[]): unknown => {
 		const result = execute(value, args);
-		if ((fallback === "assert" || fallback === "never") && result instanceof OmpErrors) {
+		if ((fallback === "assert" || fallback === "never") && result instanceof NgodeErrors) {
 			throw new TraversalError(result);
 		}
 		return result;
@@ -2934,7 +2934,7 @@ function addMatchCases(state: MatchState, cases: Record<PropertyKey, unknown>): 
 		const value = Reflect.get(cases, rawDefinition);
 		if (rawDefinition === "default") {
 			if (value !== "assert" && value !== "never" && value !== "reject" && typeof value !== "function") {
-				throw new OmpTypeError('match default must be "assert", "never", "reject" or a function');
+				throw new NgodeTypeError('match default must be "assert", "never", "reject" or a function');
 			}
 			fallback = value as MatchDefault;
 			continue;
@@ -2975,13 +2975,13 @@ function createMatchParser(state: MatchState): MatchParser {
 		cases: cases,
 	): MatchParser<unknown, MatchCaseOutput<cases>> | Matcher<unknown, MatchCaseOutput<cases>>;
 	function at(key: PropertyKey, cases?: Record<PropertyKey, unknown>): unknown {
-		if (state.key !== undefined) throw new OmpTypeError("match.at may only be specified once");
+		if (state.key !== undefined) throw new NgodeTypeError("match.at may only be specified once");
 		const next = createMatchParser({ ...state, key });
 		return cases === undefined ? next : next.match(cases);
 	}
 	parser.at = at;
 	parser.strings = cases => {
-		if (state.key === undefined) throw new OmpTypeError("match.strings requires match.at(key)");
+		if (state.key === undefined) throw new NgodeTypeError("match.strings requires match.at(key)");
 		const definitions: Record<PropertyKey, unknown> = {};
 		for (const key of Reflect.ownKeys(cases)) {
 			definitions[key === "default" ? key : JSON.stringify(String(key))] = Reflect.get(cases, key);
@@ -2989,7 +2989,7 @@ function createMatchParser(state: MatchState): MatchParser {
 		return addMatchCases(state, definitions);
 	};
 	parser.in = (...args: unknown[]) => {
-		if (state.input !== undefined) throw new OmpTypeError("match.in may only be specified once");
+		if (state.input !== undefined) throw new NgodeTypeError("match.in may only be specified once");
 		return createMatchParser({
 			...state,
 			...(args.length === 0 ? {} : { input: state.parse(args[0]) }),
@@ -3089,7 +3089,7 @@ function makeFn(resolve?: AliasResolver): FnParser {
 	function parser(...definitions: readonly unknown[]): unknown {
 		const marker = definitions.indexOf(":");
 		if (marker !== -1 && (marker !== definitions.length - 2 || definitions.lastIndexOf(":") !== marker)) {
-			throw new OmpTypeError(
+			throw new NgodeTypeError(
 				'":" must be followed by exactly one return type e.g:\nfn("string", ":", "number")(s => s.length)',
 			);
 		}
@@ -3105,16 +3105,16 @@ function makeFn(resolve?: AliasResolver): FnParser {
 					element => typeof element === "string" && (element.endsWith("?") || element.includes("=")),
 				)
 			) {
-				throw new OmpTypeError("An optional element may not follow a variadic element");
+				throw new NgodeTypeError("An optional element may not follow a variadic element");
 			}
-			throw new OmpTypeError("A tuple may have at most one variadic element");
+			throw new NgodeTypeError("A tuple may have at most one variadic element");
 		}
 		if (spreadIndexes.length === 1 && spreadIndexes[0] + 2 < (marker === -1 ? definitions.length : marker)) {
 			const preceding = definitions.slice(0, spreadIndexes[0]);
 			if (
 				preceding.some(element => typeof element === "string" && (element.endsWith("?") || /\s=\s/.test(element)))
 			) {
-				throw new OmpTypeError("A postfix required element cannot follow an optional or defaultable element");
+				throw new NgodeTypeError("A postfix required element cannot follow an optional or defaultable element");
 			}
 		}
 		const parameterDefinitions = (marker === -1 ? definitions : definitions.slice(0, marker)).map(
@@ -3128,7 +3128,8 @@ function makeFn(resolve?: AliasResolver): FnParser {
 		const parameterExpression = fnExpression(params.ir);
 		const returnsExpression = fnExpression(returns.ir);
 		return (implementation: (...arguments_: readonly unknown[]) => unknown) => {
-			if (typeof implementation !== "function") throw new OmpTypeError("type.fn requires a function implementation");
+			if (typeof implementation !== "function")
+				throw new NgodeTypeError("type.fn requires a function implementation");
 			const raw = (...arguments_: readonly unknown[]): unknown => {
 				const validatedArguments = params.assert(arguments_);
 				const result = Reflect.apply(implementation, undefined, validatedArguments);
@@ -3237,7 +3238,7 @@ function buildAnd(definitions: readonly unknown[], resolve?: AliasResolver): Int
 
 function requireNaryObject(ir: IR): ObjectIR {
 	const resolved = resolveAlias(ir);
-	if (resolved.k !== "object") throw new OmpTypeError("merge requires an object schema");
+	if (resolved.k !== "object") throw new NgodeTypeError("merge requires an object schema");
 	return resolved;
 }
 
@@ -3287,8 +3288,8 @@ function naryStatics(resolve?: AliasResolver) {
 
 export namespace type {
 	/** Error aggregate returned by failed validations (`result instanceof type.errors`). */
-	export const errors = OmpErrors;
-	export type errors = OmpErrors;
+	export const errors = NgodeErrors;
+	export type errors = NgodeErrors;
 
 	/** Build a union from zero or more definitions. */
 	export function or<const definitions extends readonly unknown[]>(
@@ -3486,7 +3487,7 @@ export namespace type {
 		> {
 			const keyIR = parseDef(key);
 			if (keyIR.k !== "string" && keyIR.k !== "symbol") {
-				throw new OmpTypeError("Record key must be assignable to string or symbol");
+				throw new NgodeTypeError("Record key must be assignable to string or symbol");
 			}
 			const valueIR = parseDef(value);
 			const ir: IR =
@@ -3566,7 +3567,7 @@ export namespace type {
 	/** Validate instances of `ctor`. */
 	export function instanceOf<const ctor extends Constructor>(ctor: ctor): FluentType<Constructed<ctor>> {
 		if (typeof ctor !== "function" || ctor.prototype === undefined) {
-			throw new OmpTypeError("instanceof operands must be constructors");
+			throw new NgodeTypeError("instanceof operands must be constructors");
 		}
 		const name = Reflect.get(ctor, "name");
 		const expected =
@@ -3656,7 +3657,7 @@ export namespace type {
 			if (Array.isArray(parameter) && typeof parameter[0] === "string") {
 				return { name: parameter[0].trim(), constraintDef: parameter[1] };
 			}
-			throw new OmpTypeError("generic parameters must be names or [name, constraint] pairs");
+			throw new NgodeTypeError("generic parameters must be names or [name, constraint] pairs");
 		});
 		validateGenericParameters(parameters);
 		return (definition: unknown) => createRuntimeGeneric(parameters, definition);
@@ -3685,7 +3686,7 @@ export namespace type {
 	export function withJsonSchema<t, i = t>(schema: Type<t, i>, json: Record<string, unknown>): Type<t, i> {
 		const internal = schema as unknown as InternalType;
 		if (internal.hasDefault || hasMorph(internal.ir) || internal[kSteps].some(step => step.kind === "pipe")) {
-			throw new OmpTypeError("type.withJsonSchema cannot wrap schemas with defaults or output-changing morphs");
+			throw new NgodeTypeError("type.withJsonSchema cannot wrap schemas with defaults or output-changing morphs");
 		}
 		return makeType<t, i>(
 			{
@@ -3693,7 +3694,7 @@ export namespace type {
 				base: { k: "unknown" },
 				pred: value => {
 					const result = schema(value);
-					return result instanceof OmpErrors ? result : true;
+					return result instanceof NgodeErrors ? result : true;
 				},
 				expected: schema.expression,
 				json: { ...json },
@@ -3779,7 +3780,7 @@ function buildScope(aliases: Record<string, unknown>, options?: ScopeOptions): T
 		const declaration = parseGenericDeclaration(visibleName);
 		const external = isRuntimeGeneric(aliases[sourceName]) ? aliases[sourceName] : undefined;
 		const name = declaration?.name ?? visibleName;
-		if (entries.has(name)) throw new OmpTypeError(`alias "${name}" is declared as both public and private`);
+		if (entries.has(name)) throw new NgodeTypeError(`alias "${name}" is declared as both public and private`);
 		entries.set(name, {
 			name,
 			sourceName,
@@ -3853,7 +3854,7 @@ function buildScope(aliases: Record<string, unknown>, options?: ScopeOptions): T
 	const genericFor = (entry: ScopeAlias): RuntimeGeneric => {
 		if (entry.generic !== undefined) return entry.generic;
 		const parameters = entry.genericParameters;
-		if (parameters === undefined) throw new OmpTypeError(`alias "${entry.name}" is not generic`);
+		if (parameters === undefined) throw new NgodeTypeError(`alias "${entry.name}" is not generic`);
 		entry.generic = createRuntimeGeneric(parameters, entry.definition, resolve, false);
 		return entry.generic;
 	};
@@ -3898,7 +3899,7 @@ function buildScope(aliases: Record<string, unknown>, options?: ScopeOptions): T
 
 	const targetFor = (name: string): IR => {
 		const resolved = resolve(name);
-		if (resolved === undefined) throw new OmpTypeError(`unknown alias "${name}"`);
+		if (resolved === undefined) throw new NgodeTypeError(`unknown alias "${name}"`);
 		return resolved.k === "alias" ? resolved.resolve() : resolved;
 	};
 	const schemaFor = (name: string): BaseType =>
@@ -3935,7 +3936,7 @@ function buildScope(aliases: Record<string, unknown>, options?: ScopeOptions): T
 					? [...entries.values()].filter(entry => !entry.private)
 					: names.map(name => {
 							const entry = entries.get(name);
-							if (entry === undefined) throw new OmpTypeError(`unknown alias "${name}"`);
+							if (entry === undefined) throw new NgodeTypeError(`unknown alias "${name}"`);
 							return entry;
 						});
 			const imported: Record<string, unknown> = {};

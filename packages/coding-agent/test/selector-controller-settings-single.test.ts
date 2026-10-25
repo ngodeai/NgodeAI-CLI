@@ -299,7 +299,7 @@ describe("single-instance menus", () => {
 
 	it("selects a seance source without resuming", async () => {
 		const session: SessionInfo = {
-			path: "/repo/.omp/sessions/source.jsonl",
+			path: "/repo/.ngodeai/sessions/source.jsonl",
 			id: "source",
 			cwd: "/repo",
 			created: new Date(1),
@@ -317,7 +317,7 @@ describe("single-instance menus", () => {
 			session: { switchSession: vi.fn(async () => true) },
 			sessionManager: {
 				getCwd: () => "/repo",
-				getSessionDir: () => "/repo/.omp/sessions",
+				getSessionDir: () => "/repo/.ngodeai/sessions",
 				getSessionFile: () => undefined,
 			},
 		});

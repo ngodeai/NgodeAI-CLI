@@ -68,7 +68,7 @@ interface TestRelay {
 }
 
 /**
- * Single-room relay mirroring the omp-collab-relay forwarding contract, with
+ * Single-room relay mirroring the ngode-collab-relay forwarding contract, with
  * a configurable `maxPayloadLength` so the test asserts the same close path
  * the public relay (Bun.serve default = 16 MB, proxies often lower) exposes.
  */

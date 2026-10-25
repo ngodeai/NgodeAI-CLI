@@ -1,5 +1,5 @@
-/** Pipeline: `type(def)` compiles lazily; each call returns data or OmpErrors directly. */
-import { OmpErrors, type } from "../../src";
+/** Pipeline: `type(def)` compiles lazily; each call returns data or NgodeErrors directly. */
+import { NgodeErrors, type } from "../../src";
 import type { Candidate } from "../candidate";
 import type { Def } from "../ir";
 
@@ -13,6 +13,6 @@ export const ngodetypeCandidate: Candidate = {
 		const schema = type(def as never);
 		return (value: unknown) => schema.allows(value);
 	},
-	isErrors: result => result instanceof OmpErrors,
-	summary: result => (result instanceof OmpErrors ? result.summary : ""),
+	isErrors: result => result instanceof NgodeErrors,
+	summary: result => (result instanceof NgodeErrors ? result.summary : ""),
 };

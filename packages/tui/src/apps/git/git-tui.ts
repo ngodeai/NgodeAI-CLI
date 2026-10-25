@@ -1,5 +1,5 @@
 /**
- * `omp git` — fullscreen repository TUI.
+ * `ngodeai git` — fullscreen repository TUI.
  *
  * Layout: header (file path, encoding, stage-file button, close), toolbar
  * (scope chip, file/diff toggle, hunk navigation, hunk/inline/split view
@@ -119,7 +119,7 @@ type StatusTone = "success" | "warning" | "error" | "accent" | "dim";
 /** Columns below which the native layout stacks the changes under the diff. */
 const NARROW_COLS = 100;
 
-/** The views of the native segmented control, in omp's `1`–`4` order. */
+/** The views of the native segmented control, in ngodeai's `1`–`4` order. */
 const VIEW_TABS: readonly { id: ViewMode; label: string }[] = [
 	{ id: "file", label: "File" },
 	{ id: "split", label: "Split" },
@@ -1307,7 +1307,7 @@ export async function showGitOverlay(ui: TUI, host: GitTuiHost): Promise<void> {
 	}
 }
 
-/** Run the fullscreen git TUI standalone (`omp git`) until the user quits. */
+/** Run the fullscreen git TUI standalone (`ngodeai git`) until the user quits. */
 export async function runGitTui(host: GitTuiHost): Promise<void> {
 	const ui = new TUI(new ProcessTerminal());
 	ui.start();

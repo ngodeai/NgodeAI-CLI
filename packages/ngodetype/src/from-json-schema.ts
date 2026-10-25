@@ -11,7 +11,7 @@
  * behavior: the result validates every constraint the schema can express in
  * ngodetype IR and passes the rest through.
  */
-import { OmpTypeError } from "./errors";
+import { NgodeTypeError } from "./errors";
 import { parseLocalRefPointer } from "./local-ref";
 import { type EmbeddableSchema, type IR, IR_BRAND, type PropIR, type TupleItemIR } from "./ir";
 import { keywordIR, patternIR } from "./keywords";
@@ -48,10 +48,10 @@ class Importer {
 		} else {
 			const pointer = parseLocalRefPointer(ref);
 			if (pointer === undefined || pointer.length !== 2 || (pointer[0] !== "$defs" && pointer[0] !== "definitions"))
-				throw new OmpTypeError(`unsupported $ref: ${ref}`);
+				throw new NgodeTypeError(`unsupported $ref: ${ref}`);
 			const defs = this.#root[pointer[0]];
 			target = typeof defs === "object" && defs !== null ? (defs as JsonSchema)[pointer[1]!] : undefined;
-			if (target === undefined) throw new OmpTypeError(`unresolved $ref: ${ref}`);
+			if (target === undefined) throw new NgodeTypeError(`unresolved $ref: ${ref}`);
 		}
 
 		// Register the alias before lowering so recursive references resolve
@@ -73,7 +73,7 @@ class Importer {
 		if (schema === true) return { k: "unknown" };
 		if (schema === false) return { k: "never" };
 		if (typeof schema !== "object" || schema === null) {
-			throw new OmpTypeError("JSON Schema nodes must be booleans or objects");
+			throw new NgodeTypeError("JSON Schema nodes must be booleans or objects");
 		}
 		const node = schema as JsonSchema;
 		const desc = typeof node.description === "string" ? node.description : undefined;
@@ -144,7 +144,7 @@ class Importer {
 			case "array":
 				return this.#lowerArray(node);
 			default:
-				throw new OmpTypeError(`unsupported JSON Schema type: ${kind}`);
+				throw new NgodeTypeError(`unsupported JSON Schema type: ${kind}`);
 		}
 	}
 
@@ -217,7 +217,7 @@ class Importer {
  * Build a callable ngodetype schema from a JSON Schema document.
  *
  * # Errors
- * Throws {@link OmpTypeError} on malformed nodes, unresolvable `$ref`s, or
+ * Throws {@link NgodeTypeError} on malformed nodes, unresolvable `$ref`s, or
  * types ngodetype cannot represent.
  */
 export function fromJsonSchema(schema: unknown): BaseType {

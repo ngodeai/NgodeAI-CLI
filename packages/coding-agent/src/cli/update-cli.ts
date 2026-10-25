@@ -388,7 +388,7 @@ function tryRealpath(p: string): string | undefined {
 }
 
 /**
- * Whether this omp runs from a source checkout (the dev launcher or a `bun link` of
+ * Whether this ngodeai runs from a source checkout (the dev launcher or a `bun link` of
  * `src/cli.ts`) rather than a compiled binary or a package-manager install, which
  * always lives under `node_modules`. Checkouts update through git, so update
  * prompts are noise there.
@@ -398,11 +398,11 @@ export function isSourceCheckout(): boolean {
 }
 
 /**
- * Name of the app that manages the omp at `binaryPath`, or undefined when none does.
+ * Name of the app that manages the ngodeai at `binaryPath`, or undefined when none does.
  *
  * A manager (Tern) keeps `manager.json` (`{"manager": "tern", "name": "Tern"}`) two
  * directories above every binary it installs (`<root>/versions/<version>`,
- * `<root>/bin/omp.exe`) and updates them itself, so `ngodeai update` must leave them alone.
+ * `<root>/bin/ngodeai.exe`) and updates them itself, so `ngodeai update` must leave them alone.
  * A missing or unreadable manifest means unmanaged.
  */
 export async function managedInstallName(binaryPath: string): Promise<string | undefined> {
@@ -453,10 +453,10 @@ function isPathInDirectory(filePath: string, directoryPath: string): boolean {
 	if (isPathInDirectoryLexical(filePath, directoryPath)) return true;
 	// Layer realpath resolution on top of the lexical guard. On Windows, ~/.bun
 	// is a junction when Bun is installed via Scoop, so `bun pm bin -g` and the
-	// PATH-resolved omp path can refer to the same directory through different
+	// PATH-resolved ngodeai path can refer to the same directory through different
 	// strings. path.resolve does not traverse junctions/symlinks; realpath does.
 	// Resolve both the file and its parent directory: the file catches manager
-	// links like Homebrew's `bin/omp -> Cellar/.../bin/omp`; the parent fallback
+	// links like Homebrew's `bin/ngodeai -> Cellar/.../bin/ngodeai`; the parent fallback
 	// still tolerates fresh install paths where the file does not exist yet.
 	const dirReal = tryRealpath(path.resolve(directoryPath));
 	if (!dirReal) return false;
@@ -499,17 +499,17 @@ interface UpdateMethodResolutionOptions {
 	/** Bun's configured global package directory, independent of its bin directory. */
 	bunGlobalDir?: string;
 	/**
-	 * Whether the resolved omp path is a plain file (the standalone binary)
+	 * Whether the resolved ngodeai path is a plain file (the standalone binary)
 	 * rather than a package-manager symlink. Stops a binary install from being
 	 * misrouted to npm/bun when the global bin dir overlaps the installer's
 	 * target directory.
 	 */
-	ompIsRegularFile?: boolean;
+	ngodeIsRegularFile?: boolean;
 	/**
 	 * Absolute path named by the bin entry's first symlink hop. This deliberately
 	 * preserves a global package symlink instead of resolving into its checkout.
 	 */
-	ompLinkTarget?: string;
+	ngodeLinkTarget?: string;
 	/**
 	 * Whether bun's launcher metadata (`<name>.bunx`) sits beside the resolved
 	 * launcher. Bun writes that sidecar next to every `.exe` shim it installs, so
@@ -536,7 +536,7 @@ type UpdateTarget =
 	| { method: "binary"; path: string; replacesSymlink: boolean; validateExistingTarget: boolean };
 
 function resolveUpdateMethod(
-	ompPath: string,
+	ngodePath: string,
 	bunBinDir: string | undefined,
 	options: UpdateMethodResolutionOptions = {},
 ): UpdateMethod {
@@ -548,15 +548,15 @@ function resolveUpdateMethod(
 		miseBinDirs = [],
 		miseDataDir,
 		npmBinDir,
-		ompIsRegularFile = false,
-		ompLinkTarget,
+		ngodeIsRegularFile = false,
+		ngodeLinkTarget,
 	} = options;
-	const launcherExtension = path.extname(ompPath).toLowerCase();
-	const isWindowsScriptLauncher = isWindowsScriptLauncherPath(ompPath);
-	if (isPathInDirectory(ompPath, NIX_STORE_DIR)) return "nix";
-	if (homebrewPrefix && isPathInDirectory(ompPath, path.join(homebrewPrefix, "bin"))) return "brew";
-	if (miseBinDirs.some(dir => isPathInDirectory(ompPath, dir))) return "mise";
-	if (miseDataDir && isPathInDirectory(ompPath, path.join(miseDataDir, "shims"))) return "mise";
+	const launcherExtension = path.extname(ngodePath).toLowerCase();
+	const isWindowsScriptLauncher = isWindowsScriptLauncherPath(ngodePath);
+	if (isPathInDirectory(ngodePath, NIX_STORE_DIR)) return "nix";
+	if (homebrewPrefix && isPathInDirectory(ngodePath, path.join(homebrewPrefix, "bin"))) return "brew";
+	if (miseBinDirs.some(dir => isPathInDirectory(ngodePath, dir))) return "mise";
+	if (miseDataDir && isPathInDirectory(ngodePath, path.join(miseDataDir, "shims"))) return "mise";
 	// A plain executable file in a package-manager bin dir is the standalone
 	// binary the installer placed there, not an npm/bun-managed install (those
 	// symlink into node_modules on POSIX). When the global bin dir overlaps the
@@ -564,7 +564,7 @@ function resolveUpdateMethod(
 	// a binary install through npm/bun, whose reinstall then collides with the
 	// existing file (npm EEXIST). Fall through to binary replacement instead.
 	// On Windows every launcher is a regular file, so ownership keys off the
-	// manager's own artifacts instead: npm's script shims (`omp`, `ngodeai.cmd`,
+	// manager's own artifacts instead: npm's script shims (`ngodeai`, `ngodeai.cmd`,
 	// `ngodeai.ps1`) and bun's `ngodeai.bunx` sidecar. A bare `.exe` with neither is the
 	// standalone binary a binary-only release installed over the launcher —
 	// routing that back through bun reinstalls a package which no longer owns
@@ -572,7 +572,7 @@ function resolveUpdateMethod(
 	// `.exe` (EBUSY), so the install would stay pinned to the old version.
 	const isWindowsManagedLauncher =
 		process.platform === "win32" && (isWindowsScriptLauncher || launcherExtension === "" || bunShimMarker);
-	const isStandaloneRegularFile = ompIsRegularFile && !isWindowsManagedLauncher;
+	const isStandaloneRegularFile = ngodeIsRegularFile && !isWindowsManagedLauncher;
 	const bunNodeModulesDir = resolveBunGlobalNodeModulesDirFromLocations({
 		globalDir: bunGlobalDir,
 		globalBinDir: bunBinDir,
@@ -580,9 +580,9 @@ function resolveUpdateMethod(
 	if (
 		allowPackageManagers &&
 		bunBinDir &&
-		isPathInDirectory(ompPath, bunBinDir) &&
+		isPathInDirectory(ngodePath, bunBinDir) &&
 		!isStandaloneRegularFile &&
-		isManagerOwnedBinEntry(ompLinkTarget, bunNodeModulesDir)
+		isManagerOwnedBinEntry(ngodeLinkTarget, bunNodeModulesDir)
 	) {
 		return "bun";
 	}
@@ -590,9 +590,9 @@ function resolveUpdateMethod(
 	if (
 		allowPackageManagers &&
 		npmBinDir &&
-		isPathInDirectory(ompPath, npmBinDir) &&
+		isPathInDirectory(ngodePath, npmBinDir) &&
 		!isStandaloneRegularFile &&
-		isManagerOwnedBinEntry(ompLinkTarget, npmNodeModulesDir)
+		isManagerOwnedBinEntry(ngodeLinkTarget, npmNodeModulesDir)
 	) {
 		return "npm";
 	}
@@ -601,41 +601,41 @@ function resolveUpdateMethod(
 }
 
 export function resolveUpdateMethodForTest(
-	ompPath: string,
+	ngodePath: string,
 	bunBinDir: string | undefined,
 	options: UpdateMethodResolutionOptions = {},
 ): UpdateMethod {
-	return resolveUpdateMethod(ompPath, bunBinDir, options);
+	return resolveUpdateMethod(ngodePath, bunBinDir, options);
 }
 
 /** Resolve an update target from the concrete PATH entry selected by the shell. */
 export function resolveUpdateTargetFromPath(
-	ompPath: string,
+	ngodePath: string,
 	bunBinDir: string | undefined,
 	options: UpdateMethodResolutionOptions & { allowPackageManagers: boolean },
 ): UpdateTarget {
-	let ompIsRegularFile = false;
-	let ompIsSymlink = false;
-	let ompLinkTarget: string | undefined;
-	let ompRealpath: string | undefined;
-	const bunShimMarker = process.platform === "win32" && fs.existsSync(bunShimMarkerPath(ompPath));
+	let ngodeIsRegularFile = false;
+	let ngodeIsSymlink = false;
+	let ngodeLinkTarget: string | undefined;
+	let ngodeRealpath: string | undefined;
+	const bunShimMarker = process.platform === "win32" && fs.existsSync(bunShimMarkerPath(ngodePath));
 	try {
-		const stat = fs.lstatSync(ompPath);
-		ompIsRegularFile = stat.isFile() && !stat.isSymbolicLink();
-		ompIsSymlink = stat.isSymbolicLink();
-		if (ompIsSymlink) {
-			const rawTarget = fs.readlinkSync(ompPath);
-			const linkDir = path.dirname(ompPath);
-			ompLinkTarget = path.resolve(tryRealpath(linkDir) ?? linkDir, rawTarget);
-			ompRealpath = tryRealpath(ompPath);
+		const stat = fs.lstatSync(ngodePath);
+		ngodeIsRegularFile = stat.isFile() && !stat.isSymbolicLink();
+		ngodeIsSymlink = stat.isSymbolicLink();
+		if (ngodeIsSymlink) {
+			const rawTarget = fs.readlinkSync(ngodePath);
+			const linkDir = path.dirname(ngodePath);
+			ngodeLinkTarget = path.resolve(tryRealpath(linkDir) ?? linkDir, rawTarget);
+			ngodeRealpath = tryRealpath(ngodePath);
 		}
 	} catch {}
 
-	const method = resolveUpdateMethod(ompPath, bunBinDir, {
+	const method = resolveUpdateMethod(ngodePath, bunBinDir, {
 		...options,
 		bunShimMarker,
-		ompIsRegularFile,
-		ompLinkTarget,
+		ngodeIsRegularFile,
+		ngodeLinkTarget,
 	});
 	if (method === "binary") {
 		// A symlinked launcher created by bun/npm is taken over in place on a
@@ -648,24 +648,24 @@ export function resolveUpdateTargetFromPath(
 		// releases (EACCES on a root-owned link dir, or a stale split-brain copy
 		// of the binary shadowing the shared install).
 		const managerLauncher =
-			ompIsSymlink &&
+			ngodeIsSymlink &&
 			!options.allowPackageManagers &&
-			resolveUpdateMethod(ompPath, bunBinDir, {
+			resolveUpdateMethod(ngodePath, bunBinDir, {
 				...options,
 				allowPackageManagers: true,
 				bunShimMarker,
-				ompIsRegularFile,
-				ompLinkTarget,
+				ngodeIsRegularFile,
+				ngodeLinkTarget,
 			}) !== "binary";
-		const binaryPath = ompIsSymlink && !managerLauncher ? (ompRealpath ?? ompPath) : ompPath;
+		const binaryPath = ngodeIsSymlink && !managerLauncher ? (ngodeRealpath ?? ngodePath) : ngodePath;
 		return {
 			method,
 			path: binaryPath,
-			replacesSymlink: ompIsSymlink && binaryPath === ompPath,
-			validateExistingTarget: ompIsSymlink && !managerLauncher,
+			replacesSymlink: ngodeIsSymlink && binaryPath === ngodePath,
+			validateExistingTarget: ngodeIsSymlink && !managerLauncher,
 		};
 	}
-	if (method === "bun" || method === "npm") return { method, path: ompPath };
+	if (method === "bun" || method === "npm") return { method, path: ngodePath };
 	return { method };
 }
 /**
@@ -684,19 +684,19 @@ async function resolveUpdateTarget(options: { allowPackageManagers: boolean }): 
 	const miseAvailable = $which("mise") !== undefined;
 	const miseBinDirs = miseAvailable ? await getMiseBinDirs() : [];
 	const miseDataDir = miseAvailable ? getMiseDataDir() : undefined;
-	const ompPath = resolveNgodeaiPath();
+	const ngodePath = resolveNgodeaiPath();
 
 	// Binary-only releases skip package-manager routing, but a symlinked
 	// launcher still needs the manager bin dirs to tell a bun/npm launcher
 	// (taken over in place) from a foreign symlink (resolved to its real
 	// binary). A plain-file install never needs the distinction, so the common
 	// case stays probe-free.
-	const probeManagers = options.allowPackageManagers || (ompPath !== undefined && isSymlinkPath(ompPath));
+	const probeManagers = options.allowPackageManagers || (ngodePath !== undefined && isSymlinkPath(ngodePath));
 	const bunBinDir = probeManagers ? await getBunGlobalBinDir() : undefined;
 	const npmBinDir = probeManagers ? await getNpmGlobalBinDir() : undefined;
 
-	if (ompPath) {
-		return resolveUpdateTargetFromPath(ompPath, bunBinDir, {
+	if (ngodePath) {
+		return resolveUpdateTargetFromPath(ngodePath, bunBinDir, {
 			allowPackageManagers: options.allowPackageManagers,
 			bunGlobalDir: probeManagers ? process.env.BUN_INSTALL_GLOBAL_DIR : undefined,
 			homebrewPrefix,
@@ -971,7 +971,7 @@ async function removeCacheEntries(paths: string[]): Promise<number> {
  *
  * Bun stores package cache entries as both a package marker directory
  * (`react/19.2.6@@@1`) and a materialized package directory
- * (`react@19.2.6@@@1`). Global `omp` updates can leave one full copy per
+ * (`react@19.2.6@@@1`). Global `ngodeai` updates can leave one full copy per
  * release. The marker and materialized entries are removed together so the
  * cache stays internally consistent.
  */
@@ -1085,7 +1085,7 @@ function resolveNgodeaiPath(): string | undefined {
 
 /**
  * Parse the version a launcher reports from `ngodeai --version` output
- * (`omp/X.Y.Z`, or a prerelease such as `omp/X.Y.Z-canary.1`).
+ * (`ngodeai/X.Y.Z`, or a prerelease such as `ngodeai/X.Y.Z-canary.1`).
  *
  * The prerelease suffix is preserved so a correctly installed canary build
  * verifies as up to date instead of appearing to report a stale `X.Y.Z` and
@@ -1154,20 +1154,20 @@ async function validateExistingUpdateTarget(targetPath: string): Promise<void> {
 	if (!hasShebang && (await reportedVersionAtPath(targetPath)) !== undefined) return;
 
 	const reason = hasShebang
-		? "is a shebang script, not an OMP binary"
-		: "does not report an OMP version when run directly";
+		? "is a shebang script, not an NGODEAI binary"
+		: "does not report an NGODEAI version when run directly";
 	throw new Error(
-		`Refusing to replace ${targetPath}: the resolved foreign symlink target ${reason}. Point PATH directly at the OMP binary you want to update, or reinstall with: ${installerHint()}`,
+		`Refusing to replace ${targetPath}: the resolved foreign symlink target ${reason}. Point PATH directly at the NGODEAI binary you want to update, or reinstall with: ${installerHint()}`,
 	);
 }
 
 /**
- * Run the PATH-resolved omp binary and check if it reports the expected version.
+ * Run the PATH-resolved ngodeai binary and check if it reports the expected version.
  */
 async function verifyInstalledVersion(expectedVersion: string): Promise<InstalledVersionVerification> {
-	const ompPath = resolveNgodeaiPath();
-	if (!ompPath) return { ok: false };
-	const binaryPath = tryRealpath(ompPath) ?? ompPath;
+	const ngodePath = resolveNgodeaiPath();
+	if (!ngodePath) return { ok: false };
+	const binaryPath = tryRealpath(ngodePath) ?? ngodePath;
 	return await verifyBinaryAtPath(binaryPath, expectedVersion);
 }
 
@@ -1369,7 +1369,7 @@ function buildVersionedPackageInstallArgs(
 }
 
 /**
- * Build the bun argv used to globally install a specific omp version.
+ * Build the bun argv used to globally install a specific ngodeai version.
  *
  * The version is selected by querying the resolved registry in
  * {@link getLatestRelease} ({@link ReleaseInfo.registry}), so the install
@@ -1428,10 +1428,10 @@ export function buildBunInstallArgs(
  * Pins `--registry` to the checked registry for the same reason as
  * {@link buildBunInstallArgs}.
  *
- * `force` is set only for rename migrations: npm refuses to write the `omp`
+ * `force` is set only for rename migrations: npm refuses to write the `ngodeai`
  * bin while the old package still owns it (`EEXIST`), and the migration
  * installs the new package BEFORE removing the old one so a failed install
- * never leaves the user without a working `omp`.
+ * never leaves the user without a working `ngodeai`.
  */
 export function buildNpmInstallArgs(
 	expectedVersion: string,
@@ -1519,11 +1519,11 @@ export function buildRenameCleanupPackages(
 
 /** Injectable shell steps for {@link migrateRenamedInstall}; commands return process exit codes. */
 export interface RenameMigrationSteps {
-	/** Globally install the new package names. MUST be idempotent: re-running re-links the `omp` bin. */
+	/** Globally install the new package names. MUST be idempotent: re-running re-links the `ngodeai` bin. */
 	install(): Promise<number>;
 	/** Remove the old-name globals. */
 	removeOld(): Promise<number>;
-	/** Check the PATH-resolved `omp` against the expected version. */
+	/** Check the PATH-resolved `ngodeai` against the expected version. */
 	verify(): Promise<InstalledVersionVerification>;
 }
 
@@ -1567,13 +1567,13 @@ function packageManagerMigrationSteps(manager: "bun" | "npm", release: ReleaseIn
 
 /**
  * Migrate a package-manager install across an `ngodeai.rename` hop without a
- * window where no working `omp` exists:
+ * window where no working `ngodeai` exists:
  *
  * 1. Install the new package FIRST. Nothing has been removed yet, so a
  *    failure here leaves the old install fully functional.
  * 2. Remove the old-name globals. Failure is non-fatal: a stale package
  *    wastes disk, but the bin already points at the new install.
- * 3. Verify the PATH-resolved `omp`. If the removal deleted the shared bin
+ * 3. Verify the PATH-resolved `ngodeai`. If the removal deleted the shared bin
  *    link (manager-dependent), re-run the idempotent install to restore it
  *    and verify again; only a repeated failure aborts, with a recovery hint.
  */
@@ -1931,7 +1931,7 @@ export async function updateViaBinaryAt(
 	targetPath: string,
 	build: BuildAnswer,
 	options: BuildDownloadOptions & {
-		/** Refuse replacement unless the existing path is a non-script OMP executable. */
+		/** Refuse replacement unless the existing path is a non-script NGODEAI executable. */
 		validateExistingTarget?: boolean;
 		verifyInstalledVersion?: typeof verifyInstalledVersion;
 	} = {},
@@ -2001,7 +2001,7 @@ const SHIM_FORWARDERS: Record<string, string> = {
  * Take over a Windows script-launcher install for a binary-only release.
  *
  * npm-managed Windows installs are launched through script shims
- * (`omp`/`ngodeai.cmd`/`ngodeai.ps1`) that cannot be overwritten with a native
+ * (`ngodeai`/`ngodeai.cmd`/`ngodeai.ps1`) that cannot be overwritten with a native
  * executable. The release binary is installed as `ngodeai.exe` beside them and
  * the shims are then renamed aside: cmd.exe would already prefer `.exe` via
  * PATHEXT, but PowerShell resolves `.ps1` first, so the takeover only sticks
@@ -2276,7 +2276,7 @@ async function runManagedUpdate(
 		}
 		if (target.method === "nix") {
 			console.log(chalk.yellow("This installation is managed by Nix and cannot update itself."));
-			console.log(chalk.dim("Update the flake input or profile that provides omp, then rebuild."));
+			console.log(chalk.dim("Update the flake input or profile that provides ngodeai, then rebuild."));
 			return;
 		}
 		if (target.method === "brew") {
@@ -2298,7 +2298,7 @@ async function runManagedUpdate(
 /**
  * Run the update command.
  *
- * The installer that owns the PATH `omp` decides where the version comes
+ * The installer that owns the PATH `ngodeai` decides where the version comes
  * from: a standalone binary asks the build service, a package-manager install
  * asks npm. When no target resolves, the running build's kind decides, so
  * `--check` still answers; installing then fails on the unresolved target.
@@ -2308,11 +2308,11 @@ export async function runUpdateCommand(opts: {
 	check: boolean;
 	channel?: UpdateChannel;
 }): Promise<void> {
-	const ompPath = resolveNgodeaiPath();
-	const manager = ompPath ? await managedInstallName(ompPath) : undefined;
+	const ngodePath = resolveNgodeaiPath();
+	const manager = ngodePath ? await managedInstallName(ngodePath) : undefined;
 	if (manager) {
 		console.log(
-			chalk.yellow(`${ompPath} is installed and kept up to date by ${manager}; update it from ${manager}.`),
+			chalk.yellow(`${ngodePath} is installed and kept up to date by ${manager}; update it from ${manager}.`),
 		);
 		return;
 	}

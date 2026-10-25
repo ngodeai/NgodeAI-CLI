@@ -8,7 +8,7 @@ blocks inside `Context` and `AssistantMessageEvent`.
 
 Use this transport when the client already speaks pi-ai and the gateway owns
 provider credentials—for example, a containerized NgodeAI talking to a host
-gateway or a robomp slot talking to its sidecar. OpenAI/Anthropic-compatible
+gateway or a ngodebot slot talking to its sidecar. OpenAI/Anthropic-compatible
 routes translate and can lose pi-specific fields; pi-native sends the
 canonical types directly, preserving service tier, cache markers, thinking
 budgets, tool-choice variants, images, and tool-call IDs.
@@ -54,7 +54,7 @@ The gateway bearer is the resolved model/API key. It is sent as
 forwarded; an explicit `model.headers.Authorization` takes precedence over the
 resolved key.
 
-The client also sends `x-omp-install-id`, `x-omp-hostname`, and `x-omp-app`
+The client also sends `x-ngode-install-id`, `x-ngode-hostname`, and `x-ngode-app`
 for usage attribution. Those identity headers are not forwarded upstream.
 
 `transport` changes only dispatch. Pricing, context window, maximum-token and

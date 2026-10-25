@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@ngodeai/wire",
   "version": "1.0.0",
-  "description": "Shared wire protocol types for omp packages",
+  "description": "Shared wire protocol types for ngodeai packages",
   "homepage": "https://ngodeai.net",
   "author": {
     "name": "NgodeAI",

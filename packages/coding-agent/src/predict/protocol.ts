@@ -3,7 +3,7 @@
  *
  * One daemon per agent directory runs under the `text-predict` global daemon
  * broker (`ngodeai ps --global text-predict`) and serves ghost-text word
- * completion to every omp process over newline-delimited JSON on a native IPC
+ * completion to every ngodeai process over newline-delimited JSON on a native IPC
  * endpoint (`ipcEndpoint`). Each request carries a numeric `id` echoed by its
  * response; responses may arrive out of order.
  */
@@ -15,10 +15,10 @@ export { TEXT_PREDICT_WORKER_ARG } from "../cli/worker-selectors";
 export const TEXT_PREDICT_BROKER_SCOPE = "text-predict";
 
 /** Environment key carrying the endpoint the daemon listens on. */
-export const TEXT_PREDICT_SOCKET_ENV = "OMP_TEXT_PREDICT_SOCKET";
+export const TEXT_PREDICT_SOCKET_ENV = "NGODEAI_TEXT_PREDICT_SOCKET";
 
 /** Environment key carrying the agent directory whose history and state the daemon serves. */
-export const TEXT_PREDICT_AGENT_DIR_ENV = "OMP_TEXT_PREDICT_AGENT_DIR";
+export const TEXT_PREDICT_AGENT_DIR_ENV = "NGODEAI_TEXT_PREDICT_AGENT_DIR";
 
 /** Broker readiness regex matched against {@link textPredictReadyBanner}. */
 export const TEXT_PREDICT_READY_PATTERN = String.raw`ngodeai text-predict listening on \S+`;
@@ -56,7 +56,7 @@ export type TextPredictRequest =
 	  }
 	/** Ingest history rows newer than each open engine's cursor. */
 	| { id: number; op: "sync" }
-	/** Persist and exit (a client found a daemon from an older omp version). */
+	/** Persist and exit (a client found a daemon from an older ngodeai version). */
 	| { id: number; op: "shutdown" };
 
 /** Daemon → client response. */

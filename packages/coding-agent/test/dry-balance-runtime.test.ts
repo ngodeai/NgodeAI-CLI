@@ -8,8 +8,8 @@ import { getModelDbPath, TempDir } from "@ngodeai/utils";
 
 const cliEntry = path.join(import.meta.dir, "..", "src", "cli.ts");
 
-test("omp dry-balance resolves credential-scoped models from the model cache", async () => {
-	const tempDir = TempDir.createSync("@omp-dry-balance-runtime-");
+test("ngodeai dry-balance resolves credential-scoped models from the model cache", async () => {
+	const tempDir = TempDir.createSync("@ngode-dry-balance-runtime-");
 	const apiKey = "dry-balance-cache-test-key";
 	const modelId = "cached-dry-balance-model";
 	const cacheDbPath = getModelDbPath(tempDir.path());

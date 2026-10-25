@@ -67,10 +67,10 @@ describe("copyToClipboard local backend order", () => {
 		const calls: SpawnCall[] = [];
 		captureSpawns(calls, () => fakeProcess(0));
 
-		await copyToClipboard("omp-clipboard-order-probe");
+		await copyToClipboard("ngode-clipboard-order-probe");
 
 		expect(calls.map(call => call.cmd[0])).toEqual(["pbcopy"]);
-		expect(calls[0]?.stdin).toBe("omp-clipboard-order-probe");
+		expect(calls[0]?.stdin).toBe("ngode-clipboard-order-probe");
 		expect(nativeCopy).not.toHaveBeenCalled();
 	});
 

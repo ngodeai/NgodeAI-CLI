@@ -74,7 +74,7 @@ it("keeps the previous process's request as the resumed request prefix", async (
 	if (!file) throw new Error("Expected a persisted session");
 
 	/**
-	 * One `omp -p --continue` process: reopen the file, prompt once, optionally
+	 * One `ngodeai -p --continue` process: reopen the file, prompt once, optionally
 	 * record an eval call, and return the last provider request.
 	 */
 	const runProcess = async (text: string, evalCallId?: string): Promise<Message[]> => {

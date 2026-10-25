@@ -104,7 +104,10 @@ describe("native composer", () => {
 		const busy = editor.describe(cx);
 		expect(busy.p).toMatchObject({ tone: "pending" });
 		expect(byRole(busy, "ngodeai.composer.send")).toBeUndefined();
-		expect(byRole(busy, "ngodeai.composer.stop")?.p).toMatchObject({ actions: { click: "interrupt" }, tone: "error" });
+		expect(byRole(busy, "ngodeai.composer.stop")?.p).toMatchObject({
+			actions: { click: "interrupt" },
+			tone: "error",
+		});
 
 		editor.handleNativeEvent({ type: "action", key: "bar/effort", act: "thinking.cycle", mods: [] });
 		editor.handleNativeEvent({ type: "action", key: "bar/stop", act: "interrupt", mods: [] });
@@ -360,7 +363,12 @@ describe("native composer", () => {
 			(root.c ?? []).filter(isNode).map(n => (n.p !== undefined && "role" in n.p ? n.p.role : n.key));
 
 		const reading = bar();
-		expect(slots(reading)).toEqual(["ngodeai.composer.effort", "ngodeai.composer.rate", "gap", "ngodeai.composer.send"]);
+		expect(slots(reading)).toEqual([
+			"ngodeai.composer.effort",
+			"ngodeai.composer.rate",
+			"gap",
+			"ngodeai.composer.send",
+		]);
 		expect(byRole(reading, "ngodeai.composer.rate")?.p).toEqual({
 			value: 31.8,
 			unit: "tok/s",

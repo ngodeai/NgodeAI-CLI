@@ -30,7 +30,7 @@ async function runCliProcess(args: string[], env: NodeJS.ProcessEnv): Promise<Cl
 
 beforeEach(() => {
 	resetSettingsForTest();
-	testAgentDir = TempDir.createSync("@omp-config-cli-");
+	testAgentDir = TempDir.createSync("@ngode-config-cli-");
 	setAgentDir(testAgentDir.path());
 });
 

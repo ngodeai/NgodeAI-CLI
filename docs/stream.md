@@ -1,6 +1,6 @@
 # Stream: Livestream Your Terminal
 
-`ngodeai stream` broadcasts your NgodeAI sessions to `live.omp.sh/<username>` — a Twitch-style page with the live terminal and a chat column. Viewers see exactly what your terminal shows (minus secrets); they cannot type into the session.
+`ngodeai stream` broadcasts your NgodeAI sessions to `live.ngodeai.net/<username>` — a Twitch-style page with the live terminal and a chat column. Viewers see exactly what your terminal shows (minus secrets); they cannot type into the session.
 
 Stream is independent from [Collab](collab.md). Collab replicates the session itself (entries, events, prompts) to guests who can drive the agent; Stream sends only rendered screen rows, one way, to an audience.
 
@@ -19,7 +19,7 @@ ngodeai stream --title "Refactoring the parser"
 prints
 
 ```
-● live.omp.sh/your_username  "Refactoring the parser"
+● live.ngodeai.net/your_username  "Refactoring the parser"
   waiting for sessions in /work/proj …
 ```
 
@@ -51,7 +51,7 @@ On a terminal, `ngodeai stream` is a full-screen chat console: header with the l
 | `--server <url>`          | Stream server base (default: `stream.serverUrl`)                                 |
 | `--no-tui`                | Line-log console instead of the full-screen chat                                 |
 | `STENCIL_API_KEY`         | Bearer token override; otherwise the `/login` Stencil credential is used         |
-| `stream.serverUrl`        | Default server, `https://live.omp.sh`                                            |
+| `stream.serverUrl`        | Default server, `https://live.ngodeai.net`                                            |
 | `stream.redactPatterns`   | Extra regular expressions masked from every streamed row                         |
 
 ## What leaves the machine
@@ -84,7 +84,7 @@ Redaction cannot know about secrets it has never seen: a token pasted from elsew
 
 `/record` in any interactive session captures that one session's screen through the same pipeline — normalized, redacted rows, viewport patches, scrollback commits — into a local file instead of a socket. No account or streamer is needed, and it works alongside a live stream. The footer shows `● REC` while recording; `/record` again stops it and prints the path.
 
-Recordings are written to `<tmpdir>/omp-recordings/<utc-time>-<session>.ompcast`, a JSON Lines file similar to asciicast: a header line `{"ompcast":1,"cols":…,"rows":…,"title":…,"createdAt":…}`, then one `[ms, frame]` line per screen frame (`reset`, `history`, `resize`, `viewport`, `patch`).
+Recordings are written to `<tmpdir>/ngode-recordings/<utc-time>-<session>.ngodecast`, a JSON Lines file similar to asciicast: a header line `{"ngodecast":1,"cols":…,"rows":…,"title":…,"createdAt":…}`, then one `[ms, frame]` line per screen frame (`reset`, `history`, `resize`, `viewport`, `patch`).
 
 ```
 ngodeai play                      # newest recording
@@ -100,10 +100,10 @@ ngodeai clip                                          # newest recording
 ngodeai clip <file> -t "Streaming the lexer" -d "…"   # title and description
 ```
 
-`ngodeai clip` uploads a recording to `live.omp.sh` with the same Stencil credential as `ngodeai stream` and prints its page, `live.omp.sh/c/<id>`. `--server <url>` overrides `stream.serverUrl`; titles are limited to 120 characters and descriptions to 5000. The page plays the clip in the live viewer's terminal pane, with the title, description, and a comment thread underneath; signing in with Stencil lets viewers comment and the owner edit the title and description. Rows were already redacted when recorded; nothing is re-read from your machine at upload time.
+`ngodeai clip` uploads a recording to `live.ngodeai.net` with the same Stencil credential as `ngodeai stream` and prints its page, `live.ngodeai.net/c/<id>`. `--server <url>` overrides `stream.serverUrl`; titles are limited to 120 characters and descriptions to 5000. The page plays the clip in the live viewer's terminal pane, with the title, description, and a comment thread underneath; signing in with Stencil lets viewers comment and the owner edit the title and description. Rows were already redacted when recorded; nothing is re-read from your machine at upload time.
 
 ## Server
 
-`live.omp.sh` is a small Go service (stencil `apps/live`): channel directory (`GET /api/channels`, `GET /api/channels/<name>`), homepage previews (`GET /api/channels/<name>/preview` — the first pane's viewport, never counted as a viewer), an identity-derived host socket (`/ws/host`), viewer sockets (`/ws/watch/<name>`), chat with per-viewer rate limiting, and the web UI (terminal rows render in the full Berkeley Mono Nerd Font served from `/fonts/`). Wire shapes live in `@ngodeai/wire/stream`.
+`live.ngodeai.net` is a small Go service (stencil `apps/live`): channel directory (`GET /api/channels`, `GET /api/channels/<name>`), homepage previews (`GET /api/channels/<name>/preview` — the first pane's viewport, never counted as a viewer), an identity-derived host socket (`/ws/host`), viewer sockets (`/ws/watch/<name>`), chat with per-viewer rate limiting, and the web UI (terminal rows render in the full Berkeley Mono Nerd Font served from `/fonts/`). Wire shapes live in `@ngodeai/wire/stream`.
 
-Hosts authenticate with the stencil.so bearer (`Authorization: Bearer …` on the host socket); the server verifies it against the issuer's JWKS (`LIVE_ISSUER`, `LIVE_TOKEN_AUDIENCE`) or, for local development, a static `LIVE_DEBUG_TOKENS` list paired with `STENCIL_API_KEY`. It derives each host channel directly from the authenticated Stencil username, so viewers always find an account at `live.omp.sh/<username>`. Viewers stay anonymous.
+Hosts authenticate with the stencil.so bearer (`Authorization: Bearer …` on the host socket); the server verifies it against the issuer's JWKS (`LIVE_ISSUER`, `LIVE_TOKEN_AUDIENCE`) or, for local development, a static `LIVE_DEBUG_TOKENS` list paired with `STENCIL_API_KEY`. It derives each host channel directly from the authenticated Stencil username, so viewers always find an account at `live.ngodeai.net/<username>`. Viewers stay anonymous.

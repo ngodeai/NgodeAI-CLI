@@ -75,7 +75,7 @@ Project-level bases:
 
 ## Profiles
 
-A named profile (`ngodeai --profile <name>`, `NGODEAI_PROFILE`, or the legacy fallbacks `OMP_PROFILE`/`PI_PROFILE`) relocates the NgodeAI user base. `NGODEAI_PROFILE` wins when it is defined, including when it is explicitly empty; `default`, empty, or whitespace selects the default profile. When a profile is active, every NgodeAI-native user-level path written here as `~/.ngodeai/agent/...` normally resolves to `~/.ngodeai/profiles/<name>/agent/...`. `--alias <command>` does not select a profile by itself: paired with `--profile`, it creates a shell shortcut for that profile.
+A named profile (`ngodeai --profile <name>`, `NGODEAI_PROFILE`, or the legacy fallbacks `NGODEAI_PROFILE`/`PI_PROFILE`) relocates the NgodeAI user base. `NGODEAI_PROFILE` wins when it is defined, including when it is explicitly empty; `default`, empty, or whitespace selects the default profile. When a profile is active, every NgodeAI-native user-level path written here as `~/.ngodeai/agent/...` normally resolves to `~/.ngodeai/profiles/<name>/agent/...`. `--alias <command>` does not select a profile by itself: paired with `--profile`, it creates a shell shortcut for that profile.
 
 While a named profile is active, the status line's `pi` segment tags the brand with the profile name (`π-work`, or `⠋-work 12s` while a turn runs) so sessions from different profiles are distinguishable at a glance. The default profile shows the bare glyph. Set `statusLine.segmentOptions.pi.showProfile: false` to keep the bare glyph under every profile, for example when each profile already has its own theme.
 
@@ -282,7 +282,7 @@ Native provider (`id: native`) reads native config from:
 ### Directory admission rules
 
 - Slash commands, directory rules, prompts, instructions, hooks, tools, extensions, extension modules, and settings use a project/user root only when the root directory exists and is non-empty.
-- Skills scan `<ancestor>/.ngodeai/skills` for each ancestor from the current working directory up to the repo root/home boundary, plus `~/.ngodeai/agent/skills`, without requiring the root `.omp` directory itself to be non-empty.
+- Skills scan `<ancestor>/.ngodeai/skills` for each ancestor from the current working directory up to the repo root/home boundary, plus `~/.ngodeai/agent/skills`, without requiring the root `.ngodeai` directory itself to be non-empty.
 - `SYSTEM.md`, `SYSTEM_TEMPLATE.md`, `RULES.md`, and `.ngodeai/AGENTS.md` read user-level files directly and use the nearest non-empty ancestor `.ngodeai` directory for project files. Project system-prompt entries load before user entries. `RULES.md` becomes an always-apply sticky rule. See [`docs/system-prompt-customization.md`](./system-prompt-customization.md) for the full `SYSTEM.md` / `APPEND_SYSTEM.md` contract.
 - MCP does not use the non-empty-root admission helper. It reads project `.ngodeai/mcp.json` then `.ngodeai/.mcp.json`, followed by user `mcp.json` then `.mcp.json`, directly.
 

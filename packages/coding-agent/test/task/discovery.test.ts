@@ -8,20 +8,20 @@ import { clearAgentPluginRootCache } from "@ngodeai/coding-agent/discovery/agent
 import {
 	clearOmpExtensionCliRoots,
 	injectOmpExtensionCliRoots,
-} from "@ngodeai/coding-agent/discovery/omp-extension-roots";
+} from "@ngodeai/coding-agent/discovery/ngode-extension-roots";
 import { clearClaudePluginRootsCache, injectPluginDirRoots } from "@ngodeai/coding-agent/discovery/helpers";
 import { discoverAgents } from "@ngodeai/coding-agent/task/discovery";
 import { removeWithRetries } from "@ngodeai/utils";
 
-const OMP_AGENT_MD = [
+const NGODEAI_AGENT_MD = [
 	"---",
-	"name: omp-test-agent",
-	"description: OMP-native test agent.",
+	"name: ngode-test-agent",
+	"description: NGODEAI-native test agent.",
 	"---",
-	"You are an OMP task agent.",
+	"You are an NGODEAI task agent.",
 ].join("\n");
 
-const OMP_PLUGIN_AGENT_MD = [
+const NGODEAI_PLUGIN_AGENT_MD = [
 	"---",
 	"name: loom-verify-spec",
 	"description: Plugin-shipped verification agent.",
@@ -41,40 +41,40 @@ const CLAUDE_AGENT_MD = [
 ].join("\n");
 
 async function writeOmpPluginAgent(home: string): Promise<void> {
-	const userPluginsRoot = path.join(home, ".omp", "plugins");
+	const userPluginsRoot = path.join(home, ".ngodeai", "plugins");
 	const pluginRoot = path.join(userPluginsRoot, "node_modules", "loom");
 	await fs.mkdir(path.join(pluginRoot, "agents"), { recursive: true });
 	await fs.writeFile(
 		path.join(pluginRoot, "package.json"),
-		JSON.stringify({ name: "loom", version: "1.0.0", omp: { version: "1.0.0" } }),
+		JSON.stringify({ name: "loom", version: "1.0.0", ngodeai: { version: "1.0.0" } }),
 	);
 	await fs.writeFile(
 		path.join(userPluginsRoot, "package.json"),
 		JSON.stringify({
-			name: "omp-plugins-root",
+			name: "ngode-plugins-root",
 			version: "0.0.0",
 			dependencies: { loom: "1.0.0" },
 		}),
 	);
-	await fs.writeFile(path.join(pluginRoot, "agents", "loom-verify-spec.md"), OMP_PLUGIN_AGENT_MD);
+	await fs.writeFile(path.join(pluginRoot, "agents", "loom-verify-spec.md"), NGODEAI_PLUGIN_AGENT_MD);
 }
 
 function agentMd(name: string, model: string): string {
 	return ["---", `name: ${name}`, `description: ${name} probe.`, `model: ${model}`, "---", `body ${name}`].join("\n");
 }
 
-// Register an omp-installed marketplace plugin via the OMP plugin registry
-// (`~/.omp/plugins/installed_plugins.json`), the path listClaudePluginRoots
-// reads as origin "omp" — distinct from the node_modules path above. `manifest`
-// controls the declared plugin dialect: `.omp-plugin/plugin.json` (OMP-native),
-// `.claude-plugin/plugin.json` (Claude Code), `both` (OMP wins by precedence),
+// Register an ngode-installed marketplace plugin via the NGODEAI plugin registry
+// (`~/.ngodeai/plugins/installed_plugins.json`), the path listClaudePluginRoots
+// reads as origin "ngodeai" — distinct from the node_modules path above. `manifest`
+// controls the declared plugin dialect: `.ngode-plugin/plugin.json` (NGODEAI-native),
+// `.claude-plugin/plugin.json` (Claude Code), `both` (NGODEAI wins by precedence),
 // or `none` (bare directory).
 async function writeOmpMarketplacePlugin(
 	home: string,
 	options: {
 		agentName: string;
 		model: string;
-		manifest: "omp" | "claude" | "both" | "none";
+		manifest: "ngodeai" | "claude" | "both" | "none";
 	},
 ): Promise<void> {
 	const pluginRoot = path.join(home, "marketplace-cache", options.agentName);
@@ -84,12 +84,12 @@ async function writeOmpMarketplacePlugin(
 		agentMd(options.agentName, options.model),
 	);
 
-	const wantsOmp = options.manifest === "omp" || options.manifest === "both";
+	const wantsOmp = options.manifest === "ngodeai" || options.manifest === "both";
 	const wantsClaude = options.manifest === "claude" || options.manifest === "both";
 	if (wantsOmp) {
-		await fs.mkdir(path.join(pluginRoot, ".omp-plugin"), { recursive: true });
+		await fs.mkdir(path.join(pluginRoot, ".ngode-plugin"), { recursive: true });
 		await fs.writeFile(
-			path.join(pluginRoot, ".omp-plugin", "plugin.json"),
+			path.join(pluginRoot, ".ngode-plugin", "plugin.json"),
 			JSON.stringify({ name: options.agentName }),
 		);
 	}
@@ -101,7 +101,7 @@ async function writeOmpMarketplacePlugin(
 		);
 	}
 
-	const registryDir = path.join(home, ".omp", "plugins");
+	const registryDir = path.join(home, ".ngodeai", "plugins");
 	await fs.mkdir(registryDir, { recursive: true });
 	await fs.writeFile(
 		path.join(registryDir, "installed_plugins.json"),
@@ -121,13 +121,13 @@ describe("discoverAgents", () => {
 	let projectDir: string;
 
 	beforeEach(async () => {
-		tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "omp-task-agent-discovery-"));
+		tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-task-agent-discovery-"));
 		projectDir = path.join(tempHome, "project");
 		await fs.mkdir(projectDir, { recursive: true });
 	});
 
 	afterEach(async () => {
-		enableProvider("omp-plugins");
+		enableProvider("ngode-plugins");
 		clearOmpExtensionCliRoots();
 		await injectPluginDirRoots(tempHome, []);
 		clearClaudePluginRootsCache();
@@ -136,9 +136,9 @@ describe("discoverAgents", () => {
 		await removeWithRetries(tempHome);
 	});
 
-	test("loads OMP agents but skips Claude Code custom agents", async () => {
-		await fs.mkdir(path.join(projectDir, ".omp", "agents"), { recursive: true });
-		await fs.writeFile(path.join(projectDir, ".omp", "agents", "omp-test-agent.md"), OMP_AGENT_MD);
+	test("loads NGODEAI agents but skips Claude Code custom agents", async () => {
+		await fs.mkdir(path.join(projectDir, ".ngodeai", "agents"), { recursive: true });
+		await fs.writeFile(path.join(projectDir, ".ngodeai", "agents", "ngode-test-agent.md"), NGODEAI_AGENT_MD);
 
 		await fs.mkdir(path.join(tempHome, ".claude", "agents"), { recursive: true });
 		await fs.writeFile(path.join(tempHome, ".claude", "agents", "user-cc-test-agent.md"), CLAUDE_AGENT_MD);
@@ -148,12 +148,12 @@ describe("discoverAgents", () => {
 		const { agents, projectAgentsDir } = await discoverAgents(projectDir, tempHome);
 		const names = agents.map(agent => agent.name);
 
-		expect(names).toContain("omp-test-agent");
+		expect(names).toContain("ngode-test-agent");
 		expect(names).not.toContain("cc-test-agent");
-		expect(projectAgentsDir).toBe(path.join(projectDir, ".omp", "agents"));
+		expect(projectAgentsDir).toBe(path.join(projectDir, ".ngodeai", "agents"));
 	});
 
-	test("loads agents from OMP npm plugins under <home>/.omp/plugins/node_modules", async () => {
+	test("loads agents from NGODEAI npm plugins under <home>/.ngodeai/plugins/node_modules", async () => {
 		await writeOmpPluginAgent(tempHome);
 
 		const { agents } = await discoverAgents(projectDir, tempHome);
@@ -162,9 +162,9 @@ describe("discoverAgents", () => {
 		expect(names).toContain("loom-verify-spec");
 	});
 
-	test("excludes OMP npm plugin agents when omp-plugins is disabled", async () => {
+	test("excludes NGODEAI npm plugin agents when ngode-plugins is disabled", async () => {
 		await writeOmpPluginAgent(tempHome);
-		disableProvider("omp-plugins");
+		disableProvider("ngode-plugins");
 
 		const { agents } = await discoverAgents(projectDir, tempHome);
 		const names = agents.map(agent => agent.name);
@@ -176,7 +176,7 @@ describe("discoverAgents", () => {
 		// listOmpExtensionRoots returns roots in source-precedence order
 		// (CLI > project settings > user settings > installed plugins). Agents
 		// must honor that order so the `task` surface dedups identically to
-		// the skills/hooks/tools surface in discovery/omp-plugins.ts.
+		// the skills/hooks/tools surface in discovery/ngode-plugins.ts.
 		const cliExt = path.join(tempHome, "cli-ext");
 		const projectExt = path.join(tempHome, "project-ext");
 		await fs.mkdir(path.join(cliExt, "agents"), { recursive: true });
@@ -190,8 +190,11 @@ describe("discoverAgents", () => {
 			["---", "name: collide", "description: from-project-settings", "---", "project body"].join("\n"),
 		);
 
-		await fs.mkdir(path.join(projectDir, ".omp"), { recursive: true });
-		await fs.writeFile(path.join(projectDir, ".omp", "settings.json"), JSON.stringify({ extensions: [projectExt] }));
+		await fs.mkdir(path.join(projectDir, ".ngodeai"), { recursive: true });
+		await fs.writeFile(
+			path.join(projectDir, ".ngodeai", "settings.json"),
+			JSON.stringify({ extensions: [projectExt] }),
+		);
 		injectOmpExtensionCliRoots([cliExt], tempHome, projectDir);
 
 		const { agents } = await discoverAgents(projectDir, tempHome);
@@ -217,8 +220,11 @@ describe("discoverAgents", () => {
 				["---", `name: ${name}`, `description: ${name}`, "---", `${name} body`].join("\n"),
 			);
 		}
-		await fs.mkdir(path.join(projectDir, ".omp"), { recursive: true });
-		await fs.writeFile(path.join(projectDir, ".omp", "settings.json"), JSON.stringify({ extensions: [settingsExt] }));
+		await fs.mkdir(path.join(projectDir, ".ngodeai"), { recursive: true });
+		await fs.writeFile(
+			path.join(projectDir, ".ngodeai", "settings.json"),
+			JSON.stringify({ extensions: [settingsExt] }),
+		);
 		await writeOmpPluginAgent(tempHome);
 
 		injectOmpExtensionCliRoots([staleExt], tempHome, projectDir);
@@ -254,27 +260,27 @@ describe("discoverAgents", () => {
 		expect(names).toContain("plugin-dir-agent");
 	});
 
-	test("honors model frontmatter of OMP-native omp-installed marketplace plugin agents (#12028)", async () => {
-		// omp-installed marketplace plugins ride the shared plugin registry as
-		// origin "omp" roots. An OMP-native package (no Claude manifest) uses OMP
+	test("honors model frontmatter of NGODEAI-native ngode-installed marketplace plugin agents (#12028)", async () => {
+		// ngode-installed marketplace plugins ride the shared plugin registry as
+		// origin "ngodeai" roots. An NGODEAI-native package (no Claude manifest) uses NGODEAI
 		// model selectors, so `model:` must survive discovery.
 		enableProvider("claude-plugins");
 		await writeOmpMarketplacePlugin(tempHome, {
-			agentName: "omp-probe",
+			agentName: "ngode-probe",
 			model: '["@advisor", "@smol"]',
 			manifest: "none",
 		});
 
 		const { agents } = await discoverAgents(projectDir, tempHome);
-		const agent = agents.find(candidate => candidate.name === "omp-probe");
+		const agent = agents.find(candidate => candidate.name === "ngode-probe");
 
 		expect(agent).toBeDefined();
 		expect(agent?.model).toEqual(["@advisor", "@smol"]);
 	});
 
-	test("drops model frontmatter of a Claude-format plugin installed via the OMP registry (#12031 review)", async () => {
-		// origin "omp" but a `.claude-plugin` package: its `model: sonnet` is a
-		// Claude alias, not an OMP selector, so it must still be stripped.
+	test("drops model frontmatter of a Claude-format plugin installed via the NGODEAI registry (#12031 review)", async () => {
+		// origin "ngodeai" but a `.claude-plugin` package: its `model: sonnet` is a
+		// Claude alias, not an NGODEAI selector, so it must still be stripped.
 		enableProvider("claude-plugins");
 		await writeOmpMarketplacePlugin(tempHome, {
 			agentName: "claude-probe",
@@ -289,9 +295,9 @@ describe("discoverAgents", () => {
 		expect(agent?.model).toBeUndefined();
 	});
 
-	test("honors model frontmatter when a plugin declares both OMP and Claude manifests (#12031 review)", async () => {
-		// `.omp-plugin/plugin.json` wins over a sibling `.claude-plugin/plugin.json`,
-		// mirroring the MCP-config precedence, so OMP selectors survive.
+	test("honors model frontmatter when a plugin declares both NGODEAI and Claude manifests (#12031 review)", async () => {
+		// `.ngode-plugin/plugin.json` wins over a sibling `.claude-plugin/plugin.json`,
+		// mirroring the MCP-config precedence, so NGODEAI selectors survive.
 		enableProvider("claude-plugins");
 		await writeOmpMarketplacePlugin(tempHome, {
 			agentName: "hybrid-probe",

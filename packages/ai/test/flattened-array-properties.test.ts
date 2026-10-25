@@ -6,7 +6,7 @@ import { validateToolArguments } from "@ngodeai/ai/utils/validation";
 // Issue #8886 — some providers (notably Gemini) serialize array arguments as
 // flattened property paths (`questions[0].id`) instead of a nested array.
 
-// Mirrors the shape of OMP's `ask` tool (`packages/coding-agent/src/tools/ask.ts`).
+// Mirrors the shape of NGODEAI's `ask` tool (`packages/coding-agent/src/tools/ask.ts`).
 const questionItem = type({
 	id: type("string"),
 	question: type("string"),

@@ -1,5 +1,5 @@
 {
-  description = "OMP coding agent and development environment";
+  description = "NGODEAI coding agent and development environment";
 
   nixConfig = {
     extra-substituters = [ "https://nix-community.cachix.org" ];

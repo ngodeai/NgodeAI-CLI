@@ -105,7 +105,7 @@ describe("formatUsageRow turn elapsed", () => {
 
 	it("rounds fractional elapsed so the label never prints a raw float", () => {
 		// `message.duration` comes from performance.now(); the combined value must
-		// not leak the fraction into the label (roboomp: unstable oversized text).
+		// not leak the fraction into the label (ngodebot: unstable oversized text).
 		const row = formatUsageRow(
 			assistantMessage().usage as Usage,
 			undefined,

@@ -2001,7 +2001,7 @@
     url = "https://registry.npmjs.org/roarr/-/roarr-2.15.4.tgz";
     hash = "sha512-CHhPh+UNHD2GTXNYhPWLnU8ONHdI+5DI+4EYIAOaiD63rHeYlZvyh8P+in5999TTSFgUYuKUAjzRI4mdh/p+2A==";
   };
-  "robomp-web" = copyPathToStore ../python/robomp/web;
+  "ngodebot-web" = copyPathToStore ../python/ngodebot/web;
   "rolldown@1.2.9" = fetchurl {
     url = "https://registry.npmjs.org/rolldown/-/rolldown-1.2.9.tgz";
     hash = "sha512-hx/Pv0N1haXRb11qkfnK5MXB/iqr7i0yjWQqmO9uHqZpBgQSqzc8UsSnEpalsh+j1I8qQ2CkXAkJC8Br3dKSlg==";

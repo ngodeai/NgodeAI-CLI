@@ -3,7 +3,7 @@
  *
  * One mux daemon runs per project scope (launched through the same daemon
  * broker that owns the shared Chromium and `bash` services). It assigns
- * each concurrent OMP link its own language-server process, then retains idle
+ * each concurrent NGODEAI link its own language-server process, then retains idle
  * processes briefly for reuse by later links. The link speaks plain
  * Content-Length-framed LSP JSON-RPC after a one-request handshake
  * ({@link MUX_CONNECT_METHOD}); everything below is shared by the worker
@@ -14,10 +14,10 @@ import { stableStringifyJson } from "@ngodeai/utils";
 export { LSP_MUX_WORKER_ARG } from "../../cli/worker-selectors";
 
 /** Environment key carrying the socket endpoint the mux must listen on. */
-export const LSP_MUX_SOCKET_ENV = "OMP_LSP_MUX_SOCKET";
+export const LSP_MUX_SOCKET_ENV = "NGODEAI_LSP_MUX_SOCKET";
 
 /** Environment key carrying the canonical project directory the mux serves. */
-export const LSP_MUX_PROJECT_DIR_ENV = "OMP_LSP_MUX_PROJECT_DIR";
+export const LSP_MUX_PROJECT_DIR_ENV = "NGODEAI_LSP_MUX_PROJECT_DIR";
 
 /** Stable broker daemon name for the shared LSP mux. */
 export const LSP_MUX_DAEMON_NAME = "ngodeai.lsp.mux";
@@ -40,13 +40,13 @@ export function lspMuxReadyBanner(endpoint: string): string {
  * result: {@link MuxConnectResult}. After the response the link carries
  * ordinary LSP traffic for that server.
  */
-export const MUX_CONNECT_METHOD = "omp/muxConnect";
+export const MUX_CONNECT_METHOD = "ngodeai/muxConnect";
 
 /**
  * Liveness probe answered with {@link MUX_PING_RESULT} without binding the
  * link to a server. Used by the smoke probe and the ensure loop.
  */
-export const MUX_PING_METHOD = "omp/muxPing";
+export const MUX_PING_METHOD = "ngodeai/muxPing";
 export const MUX_PING_RESULT = "pong";
 
 /**
@@ -55,7 +55,7 @@ export const MUX_PING_RESULT = "pong";
  * a plain per-session `shutdown`/`exit` is intercepted by the mux so the
  * process can linger for reuse.
  */
-export const MUX_RESTART_METHOD = "omp/muxRestartServer";
+export const MUX_RESTART_METHOD = "ngodeai/muxRestartServer";
 
 /** Handshake parameters identifying a reusable server process. */
 export interface MuxConnectParams {

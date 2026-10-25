@@ -3,10 +3,10 @@
 DeepSeek-V3, V3-0324, R1, R1-0528, and V3.1 use a distinctive chat envelope built from
 **fullwidth-pipe** tokens such as `<｜begin▁of▁sentence｜>` and `<｜User｜>`. Their tool
 calls use dedicated markers (`<｜tool▁calls▁begin｜>` … `<｜tool▁calls▁end｜>`) around JSON
-arguments. This document centers on the **V3.1** convention emitted by OMP's `deepseek`
+arguments. This document centers on the **V3.1** convention emitted by NGODEAI's `deepseek`
 dialect, distinguishes the older **V3-0324 / R1-0528** encoding, and covers the newer
 XML-style [DSML envelope](#dsml-envelope-newer-deepseek-models) accepted by the scanner.
-The V3.1 reference chat template is not the same as OMP's history/transcript rendering.
+The V3.1 reference chat template is not the same as NGODEAI's history/transcript rendering.
 
 An inference server enables it with a chat template plus a tool-call parser:
 
@@ -363,7 +363,7 @@ reuse the same fullwidth pipe (`｜`, U+FF5C), but the body is an Anthropic-styl
 - An ASCII-pipe variant (`<|DSML|tool_calls>`, `<|DSML|invoke …>`, `<|DSML|parameter …>`) occurs
   on the wire alongside the fullwidth form.
 - OpenAI-compatible hosts can leak this envelope into visible `content` instead of returning
-  structured `tool_calls`. OMP's native healing is separate from selecting the owned
+  structured `tool_calls`. NGODEAI's native healing is separate from selecting the owned
   `deepseek` dialect; its compatibility policy determines whether DSML recovery is enabled.
 
 ## NgodeAI / pi converter behavior

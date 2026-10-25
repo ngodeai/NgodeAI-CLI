@@ -22,7 +22,7 @@ const mcpTool: CustomTool = {
 describe("/tan prompt-cache tool presentation", () => {
 	for (const xdev of [true, false]) {
 		it(`preserves the parent's request tools with xd:// ${xdev ? "enabled" : "disabled"}`, async () => {
-			using dir = TempDir.createSync("@omp-tan-tools-");
+			using dir = TempDir.createSync("@ngode-tan-tools-");
 			const cwd = dir.path();
 			const settings = Settings.isolated({ "tools.xdev": xdev, "marketplace.autoUpdate": "off" });
 			const base = {

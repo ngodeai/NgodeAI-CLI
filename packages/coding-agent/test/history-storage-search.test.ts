@@ -5,7 +5,7 @@ import { TempDir } from "@ngodeai/utils";
 let tempDir: TempDir | null = null;
 
 async function freshStorage(): Promise<HistoryStorage> {
-	tempDir = TempDir.createSync("@omp-history-search-");
+	tempDir = TempDir.createSync("@ngode-history-search-");
 	HistoryStorage.close();
 	return HistoryStorage.open(tempDir.join("history.db"));
 }

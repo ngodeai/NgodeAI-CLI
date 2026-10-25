@@ -3334,7 +3334,7 @@ pub struct AvailableSlashCommand {
 	pub subcommands: Option<Vec<SlashSubcommand>>,
 }
 
-/// OMP-native session entries in append order.
+/// NGODEAI-native session entries in append order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SessionEntries {
 	pub entries: Vec<Map<String, Value>>,
@@ -4033,7 +4033,7 @@ impl PromptStatus {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PromptError {
 	pub message: String,
-	/// Transient: resubmitting later may succeed (omp's own retries are exhausted).
+	/// Transient: resubmitting later may succeed (ngodeai's own retries are exhausted).
 	pub retryable: bool,
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub provider: Option<String>,

@@ -1,6 +1,6 @@
-# Build context for the pi-root `Dockerfile` (oh-my-pi/pi:dev). Shadows
-# .dockerignore for this file only. Robomp uses Dockerfile.robomp +
-# Dockerfile.robomp.dockerignore alongside.
+# Build context for the pi-root `Dockerfile` (ngodeai/pi:dev). Shadows
+# .dockerignore for this file only. ngodebot uses Dockerfile.ngodebot +
+# Dockerfile.ngodebot.dockerignore alongside.
 
 # Heavy build outputs — must never reach the build context. Patterns are
 # depth-agnostic (`**/`) to match .gitignore semantics: dockerignore anchors
@@ -64,10 +64,10 @@ packages/natives/native/.build/
 **/*.node
 packages/ai/test/.temp-images/
 sdk/python/ngodeai-rpc/src/ngodeai_rpc.egg-info/
-python/robomp/data/
-python/robomp/.cache/
-python/robomp/src/robomp/static/
-python/robomp/web/dist/
+python/ngodebot/data/
+python/ngodebot/.cache/
+python/ngodebot/src/ngodebot/static/
+python/ngodebot/web/dist/
 
 # Scratch files the repo creates ad-hoc.
 syntax.jsonl
@@ -79,5 +79,5 @@ pi-*.html
 **/.venv/
 
 # Secrets. Should never be in the image regardless. Depth-agnostic: a bare
-# `.env` misses `python/robomp/.env`, which `COPY . /pi/` would bake in.
+# `.env` misses `python/ngodebot/.env`, which `COPY . /pi/` would bake in.
 **/.env

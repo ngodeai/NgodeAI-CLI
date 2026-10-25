@@ -19,7 +19,7 @@ describe.skipIf(process.platform === "win32")("session index across a peer's sto
 	const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 
 	beforeEach(() => {
-		testAgentDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-index-quarantine-"));
+		testAgentDir = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-index-quarantine-"));
 		setAgentDir(testAgentDir);
 		closeSessionIndex();
 	});

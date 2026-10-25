@@ -1,5 +1,5 @@
 /**
- * OMP Browser Relay — MV3 service worker.
+ * NGODEAI Browser Relay — MV3 service worker.
  *
  * Dumb pipe by design: all CDP orchestration lives in the relay server. This
  * worker (1) keeps a websocket to the relay, (2) executes its RPCs against
@@ -44,7 +44,7 @@ async function ensureInstanceId(): Promise<string> {
 /**
  * Identity of this browser run, in `chrome.storage.session`. Chrome clears it on restart, when it also reuses tab
  * ids, so the relay retires the previous run's targets instead of resolving an old target id to a new tab. An
- * extension reload clears it too: omp then loses its handles to the tabs it opened, which stay open.
+ * extension reload clears it too: ngodeai then loses its handles to the tabs it opened, which stay open.
  */
 let browserSession: Promise<string> | null = null;
 function ensureBrowserSession(): Promise<string> {
@@ -88,13 +88,13 @@ function snapshot(tab: ChromeTab): TabSnapshot | null {
 	};
 }
 
-/** Title of the omp tab group; mirrored to session storage so a restarted service worker can still dissolve it. */
-let ompGroupTitle: string | null = null;
+/** Title of the ngodeai tab group; mirrored to session storage so a restarted service worker can still dissolve it. */
+let ngodeGroupTitle: string | null = null;
 
 /**
  * Serialize group mutations. Chrome's query→group→set-title sequence is not
  * atomic: two concurrent runs both miss the not-yet-titled group and mint
- * duplicate "omp" groups in the same window.
+ * duplicate "ngodeai" groups in the same window.
  */
 let groupOps: Promise<unknown> = Promise.resolve();
 function enqueueGroupOp<T>(fn: () => Promise<T>): Promise<T> {
@@ -103,10 +103,10 @@ function enqueueGroupOp<T>(fn: () => Promise<T>): Promise<T> {
 	return result;
 }
 
-/** Move tabs into the per-window omp group, creating or reusing it by title. */
+/** Move tabs into the per-window ngodeai group, creating or reusing it by title. */
 async function groupTabs(tabIds: number[], title: string, color: string): Promise<{ grouped: Record<string, number> }> {
-	ompGroupTitle = title;
-	void chrome.storage.session.set({ ompGroupTitle: title });
+	ngodeGroupTitle = title;
+	void chrome.storage.session.set({ ngodeGroupTitle: title });
 	const byWindow = new Map<number, number[]>();
 	for (const tabId of tabIds) {
 		try {
@@ -142,15 +142,15 @@ async function groupTabs(tabIds: number[], title: string, color: string): Promis
 	return { grouped };
 }
 
-/** Dissolve every omp-titled group (relay disconnected or asked us to release tabs). */
+/** Dissolve every ngode-titled group (relay disconnected or asked us to release tabs). */
 async function restoreGroups(): Promise<void> {
-	if (!ompGroupTitle) {
+	if (!ngodeGroupTitle) {
 		// Service worker restarted since the last group op; recover the title.
-		const stored = await chrome.storage.session.get({ ompGroupTitle: "" }).catch(() => ({ ompGroupTitle: "" }));
-		ompGroupTitle = typeof stored.ompGroupTitle === "string" && stored.ompGroupTitle ? stored.ompGroupTitle : null;
+		const stored = await chrome.storage.session.get({ ngodeGroupTitle: "" }).catch(() => ({ ngodeGroupTitle: "" }));
+		ngodeGroupTitle = typeof stored.ngodeGroupTitle === "string" && stored.ngodeGroupTitle ? stored.ngodeGroupTitle : null;
 	}
-	if (!ompGroupTitle) return;
-	const groups = await chrome.tabGroups.query({ title: ompGroupTitle }).catch(() => []);
+	if (!ngodeGroupTitle) return;
+	const groups = await chrome.tabGroups.query({ title: ngodeGroupTitle }).catch(() => []);
 	for (const group of groups) {
 		const tabs = await chrome.tabs.query({ groupId: group.id }).catch(() => []);
 		const ids = tabs.map(tab => tab.id).filter(id => id !== undefined);
@@ -354,9 +354,9 @@ chrome.tabs.onRemoved.addListener(tabId => {
 
 // ---- lifecycle ----------------------------------------------------------------
 
-chrome.alarms.create("omp-relay-keepalive", { periodInMinutes: 0.5 });
+chrome.alarms.create("ngode-relay-keepalive", { periodInMinutes: 0.5 });
 chrome.alarms.onAlarm.addListener(alarm => {
-	if (alarm.name === "omp-relay-keepalive") void connect();
+	if (alarm.name === "ngode-relay-keepalive") void connect();
 });
 
 chrome.storage.onChanged.addListener((_changes, areaName) => {

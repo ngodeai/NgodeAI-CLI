@@ -5,8 +5,8 @@ import { TempDir } from "@ngodeai/utils";
 
 const cliEntry = path.join(import.meta.dir, "..", "src", "cli.ts");
 
-test("omp dry-balance routes by account policies from a --config overlay", async () => {
-	const agentDir = TempDir.createSync("@omp-dry-balance-config-");
+test("ngodeai dry-balance routes by account policies from a --config overlay", async () => {
+	const agentDir = TempDir.createSync("@ngode-dry-balance-config-");
 	try {
 		await Bun.write(
 			path.join(agentDir.path(), "models.yml"),

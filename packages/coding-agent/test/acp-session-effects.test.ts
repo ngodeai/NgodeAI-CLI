@@ -44,7 +44,7 @@ describe("concurrent ACP sessions", () => {
 	it("redact each session's requests per its own project's secrets.enabled", async () => {
 		using launchDir = TempDir.createSync("@pi-acp-effects-launch-");
 		using projectDir = TempDir.createSync("@pi-acp-effects-project-");
-		await Bun.write(projectDir.join(".omp/config.yml"), "secrets:\n  enabled: true\n");
+		await Bun.write(projectDir.join(".ngodeai/config.yml"), "secrets:\n  enabled: true\n");
 		// What the provider's credential-redaction pass does to a token in each request it builds.
 		const requests: Array<{ context: string; credential: string }> = [];
 		registerCustomApi(API, (_model, context) => {
@@ -66,7 +66,7 @@ describe("concurrent ACP sessions", () => {
 			cwd: launchDir.path(),
 			agentDir: launchDir.join("agent"),
 		});
-		// `omp acp` binds its launch settings the way `Settings.init` does.
+		// `ngodeai acp` binds its launch settings the way `Settings.init` does.
 		const releaseLaunch = bindEffects(launchSettings);
 		const factory = createAcpSessionFactory({
 			baseOptions: {

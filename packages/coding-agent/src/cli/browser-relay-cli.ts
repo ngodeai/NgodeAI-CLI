@@ -24,7 +24,7 @@ export interface BrowserRelayCommandArgs {
 	token?: string;
 	/** Install target directory; defaults to ~/.ngodeai/browser-relay/extension. */
 	dir?: string;
-	/** Gather tabs the agent actively drives into an 'omp' Chrome tab group (default true). */
+	/** Gather tabs the agent actively drives into an 'ngodeai' Chrome tab group (default true). */
 	group?: boolean;
 	verbose?: boolean;
 }
@@ -54,14 +54,14 @@ async function runInstall(dirOverride: string | undefined): Promise<void> {
 	for (const name in EXTENSION_FILES) {
 		await Bun.write(path.join(dir, name), EXTENSION_FILES[name]!);
 	}
-	console.log(`Installed the OMP Browser Relay extension to ${dir}`);
+	console.log(`Installed the NGODEAI Browser Relay extension to ${dir}`);
 	console.log("");
 	console.log("Finish setup in Chrome:");
 	console.log("  1. Open chrome://extensions and enable Developer mode.");
 	console.log(`  2. Click "Load unpacked" and select: ${dir}`);
-	console.log("  3. Enable the mode:  omp config set browser.relay true");
+	console.log("  3. Enable the mode:  ngodeai config set browser.relay true");
 	console.log("");
-	console.log("omp starts the relay automatically when the browser prelude needs it;");
+	console.log("ngodeai starts the relay automatically when the browser prelude needs it;");
 	console.log("run `ngodeai browser-relay` yourself only for --token or --no-group.");
 	console.log("The extension badge shows 'on' once it reaches a relay.");
 	console.log(
@@ -86,7 +86,7 @@ async function runServe(args: BrowserRelayCommandArgs): Promise<void> {
 				console.log(`ngodeai browser relay already running on http://127.0.0.1:${args.port}; nothing to do.`);
 				return;
 			}
-			console.error(`Port ${args.port} is in use by something that is not an omp browser relay.`);
+			console.error(`Port ${args.port} is in use by something that is not an ngodeai browser relay.`);
 			process.exit(1);
 		}
 		throw err;
@@ -95,19 +95,19 @@ async function runServe(args: BrowserRelayCommandArgs): Promise<void> {
 	console.log(`ngodeai browser relay listening on http://127.0.0.1:${args.port}`);
 	console.log(`  extension endpoint  ws://127.0.0.1:${args.port}/ext${args.token ? "?token=***" : ""}`);
 	if (args.port === DEFAULT_RELAY_PORT) {
-		console.log("  enable with         omp config set browser.relay true");
+		console.log("  enable with         ngodeai config set browser.relay true");
 	} else {
 		console.log(
-			`  enable with         omp config set browser.relay true && omp config set browser.relayUrl http://127.0.0.1:${args.port}`,
+			`  enable with         ngodeai config set browser.relay true && ngodeai config set browser.relayUrl http://127.0.0.1:${args.port}`,
 		);
 	}
-	console.log("Waiting for the OMP Browser Relay extension to connect (omp browser-relay install)...");
+	console.log("Waiting for the NGODEAI Browser Relay extension to connect (ngodeai browser-relay install)...");
 
 	let announced = false;
 	const readiness = setInterval(() => {
 		if (relay.bridge.ready && !announced) {
 			announced = true;
-			console.log("Extension connected. The omp browser prelude can now drive your tabs.");
+			console.log("Extension connected. The ngodeai browser prelude can now drive your tabs.");
 		} else if (!relay.bridge.ready && announced) {
 			announced = false;
 			console.log("Extension disconnected; waiting for it to reconnect...");

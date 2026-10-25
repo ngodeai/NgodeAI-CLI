@@ -62,18 +62,18 @@ export default class Ttsr extends Command {
 	};
 
 	static examples = [
-		"omp ttsr list",
-		"omp ttsr test 'const x: any = 1'",
-		"omp ttsr test src/foo.ts",
-		"omp ttsr test --file src/foo.ts",
-		"omp ttsr test --file src/foo.ts --source text",
-		"omp ttsr test --rule .ngodeai/rules/no-any.md --source tool --path src/foo.ts 'const x: any = 1'",
-		"omp ttsr test --agent scout 'const x: any = 1'",
-		"echo 'Box::leak(&mut v)' | omp ttsr test --file - --path src/lib.rs",
-		"omp ttsr test --source tool --tool edit --path src/foo.ts 'const x: any = 1'",
-		"omp ttsr scan",
-		"omp ttsr scan src/",
-		"omp ttsr scan -r .ngodeai/rules/no-any.md src/",
+		"ngodeai ttsr list",
+		"ngodeai ttsr test 'const x: any = 1'",
+		"ngodeai ttsr test src/foo.ts",
+		"ngodeai ttsr test --file src/foo.ts",
+		"ngodeai ttsr test --file src/foo.ts --source text",
+		"ngodeai ttsr test --rule .ngodeai/rules/no-any.md --source tool --path src/foo.ts 'const x: any = 1'",
+		"ngodeai ttsr test --agent scout 'const x: any = 1'",
+		"echo 'Box::leak(&mut v)' | ngodeai ttsr test --file - --path src/lib.rs",
+		"ngodeai ttsr test --source tool --tool edit --path src/foo.ts 'const x: any = 1'",
+		"ngodeai ttsr scan",
+		"ngodeai ttsr scan src/",
+		"ngodeai ttsr scan -r .ngodeai/rules/no-any.md src/",
 	];
 
 	async run(): Promise<void> {

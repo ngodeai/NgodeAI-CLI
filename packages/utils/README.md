@@ -1,14 +1,14 @@
 # @ngodeai/utils
 
-Shared utilities for [omp](https://github.com/can1357/oh-my-pi) packages. Zero ceremony, Bun-first.
+Shared utilities for [ngodeai](https://github.com/can1357/ngodeai) packages. Zero ceremony, Bun-first.
 
 ## Notable modules
 
 | Module                                                                                                             | Purpose                                                                                      |
 | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| `logger`                                                                                                           | Centralized logger writing to `~/.omp/logs/` (`bun test`: temp dir), rotating, never stdout  |
+| `logger`                                                                                                           | Centralized logger writing to `~/.ngodeai/logs/` (`bun test`: temp dir), rotating, never stdout  |
 | `prompt`                                                                                                           | Handlebars-based prompt templating and formatting helpers                                    |
-| `dirs`                                                                                                             | Path helpers for omp config directories (`~/.omp`, XDG-aware on Linux)                       |
+| `dirs`                                                                                                             | Path helpers for ngodeai config directories (`~/.ngodeai`, XDG-aware on Linux)                       |
 | `stream`                                                                                                           | `readStream` / `readLines` helpers over `ReadableStream`                                     |
 | `ptree` / `procmgr`                                                                                                | Process trees, `ChildProcess` wrapper, process lifecycle management                          |
 | `postmortem`                                                                                                       | Cleanup callbacks on exit, signals, and fatal exceptions                                     |
@@ -33,5 +33,5 @@ Ships TypeScript source directly (no build step); requires Bun ≥ 1.3.14.
 
 ## References
 
-- [Monorepo README](https://github.com/can1357/oh-my-pi#readme)
+- [Monorepo README](https://github.com/can1357/ngodeai#readme)
 - [CHANGELOG](./CHANGELOG.md)

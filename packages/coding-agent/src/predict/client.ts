@@ -116,7 +116,7 @@ class DaemonConnection {
 }
 
 /**
- * Connect and confirm the daemon speaks this omp version or a newer one;
+ * Connect and confirm the daemon speaks this ngodeai version or a newer one;
  * `undefined` when nothing usable listens.
  */
 async function connectDaemon(endpoint: string): Promise<DaemonConnection | undefined> {
@@ -132,7 +132,7 @@ async function connectDaemon(endpoint: string): Promise<DaemonConnection | undef
 		if (pong.ok && pong.op === "ping" && (pong.version === VERSION || compareVersions(pong.version, VERSION) > 0)) {
 			return connection;
 		}
-		// A daemon from an older omp version: retire it so this version's starts. A newer
+		// A daemon from an older ngodeai version: retire it so this version's starts. A newer
 		// one keeps serving: after an in-place upgrade this process would start that same
 		// newer build again, and retiring it cuts off every process already on it.
 		await connection.request(id => ({ id, op: "shutdown" }), REQUEST_TIMEOUT_MS).catch(() => undefined);
@@ -327,7 +327,7 @@ export function syncTextPrediction(): void {
  * and shut it down.
  */
 export async function smokeTestTextPredictDaemon(): Promise<void> {
-	const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-text-predict-smoke-"));
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-text-predict-smoke-"));
 	const endpoint = ipcEndpoint(root, "text-predict");
 	const spawn = resolveWorkerSpawnCmd(TEXT_PREDICT_WORKER_ARG);
 	const proc = ptree.spawn(spawn.cmd, {

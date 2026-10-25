@@ -67,7 +67,7 @@ function closedByExitRecovery(persisted: Message[]): Message[] {
 	return [...persisted, ...createInterruptedToolResults(branch), abort];
 }
 
-describe("AgentSession.restoreInterruptedTurn (omp --restore)", () => {
+describe("AgentSession.restoreInterruptedTurn (ngodeai --restore)", () => {
 	let tempDir: TempDir;
 	let authStorage: AuthStorage;
 	let modelRegistry: ModelRegistry;

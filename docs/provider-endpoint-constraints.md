@@ -186,7 +186,7 @@ routing, model ids, or usage accounting.
 
 ### ClinePass
 
-- Requests carry the official Cline CLI client identity (`X-CLIENT-TYPE`, `X-CLIENT-VERSION`, `X-PLATFORM`, `X-CORE-VERSION`, `User-Agent`, and related headers). Inference also carries OMP's stable session key as `X-Task-ID`; account and discovery calls omit it. This is the supported identification contract for Cline-gated roster entries.
+- Requests carry the official Cline CLI client identity (`X-CLIENT-TYPE`, `X-CLIENT-VERSION`, `X-PLATFORM`, `X-CORE-VERSION`, `User-Agent`, and related headers). Inference also carries NGODEAI's stable session key as `X-Task-ID`; account and discovery calls omit it. This is the supported identification contract for Cline-gated roster entries.
 - Public catalog ids omit the gateway's `cline-pass/` namespace; Chat Completions adds it on the wire. Free-tier ids retain their full OpenRouter-style namespace because the gateway already receives them in wire form.
 - The public `recommended-models` endpoint is authoritative for membership. The required `clinePass` bucket supplies subscription models and the optional `free` bucket supplies free models. A missing subscription bucket or one with no valid IDs is rejected so the generated fallback survives; invalid individual entries are skipped.
 - Known IDs use a Cline-authored metadata snapshot for exact limits, subscription pricing, input modalities, and reasoning controls. Unknown IDs are enriched from bundled upstream references and live OpenRouter metadata, then fall back to conservative limits without invented reasoning controls.

@@ -91,7 +91,7 @@ env:
    # the SQLite/subprocess-heavy coding-agent suites 1.5-2x slower, which put
    # several cases (model-registry refresh, session fork, credential bridge)
    # over the 30 s default; 120 s still catches a real hang.
-   OMP_TEST_TIMEOUT: "120"
+   NGODEAI_TEST_TIMEOUT: "120"
 
 permissions:
    contents: read
@@ -547,10 +547,10 @@ jobs:
            run: |
               set -euo pipefail
               addon=bazel-bin/natives-darwin-arm64/ngode_natives.darwin-arm64.node
-              # The bridge is embedded as a separate dylib (module OmpAppleFm),
+              # The bridge is embedded as a separate dylib (module NgodeAppleFm),
               # never linked: a linked Swift runtime crashes the addon on load
               # on older macOS.
-              grep -aqF OmpAppleFm "$addon" ||
+              grep -aqF NgodeAppleFm "$addon" ||
                  { echo "::error::Darwin arm64 addon was built without the Apple Foundation Models bridge"; exit 1; }
               dylibs="$(llvm-objdump --macho --dylibs-used "$addon")"
               if grep -E 'libswift|FoundationModels' <<< "$dylibs"; then
@@ -586,7 +586,7 @@ jobs:
       # the longest bucket should not be the one left queued (probe run
       # 36238796966 queued it 1.9 min behind the shorter buckets).
       # No required check keys on this job name (branch protection and
-      # rulesets are off for main/omp2), so the per-shard names are safe.
+      # rulesets are off for main/ngodeai2), so the per-shard names are safe.
       strategy:
          fail-fast: false
          matrix:
@@ -600,8 +600,8 @@ jobs:
               stash: ${{ needs.native_addons.outputs.stash }}
          - name: Test coding-agent native/unit bucket
            env:
-              OMP_TEST_CONCURRENCY: "4"
-              OMP_TEST_SHARD: ${{ matrix.shard }}
+              NGODEAI_TEST_CONCURRENCY: "4"
+              NGODEAI_TEST_SHARD: ${{ matrix.shard }}
            run: bun run ci:test:coding-agent:native
 
    test_workspace:
@@ -619,7 +619,7 @@ jobs:
               stash: ${{ needs.native_addons.outputs.stash }}
          - name: Test workspace packages and repo scripts (TS)
            env:
-              OMP_TEST_CONCURRENCY: "4"
+              NGODEAI_TEST_CONCURRENCY: "4"
            run: |
               bun run ci:test:ts:workspace
               # Not `test:scripts`: scripts/install.test.ts fails on main
@@ -662,7 +662,7 @@ jobs:
            run: bun install --cwd .ngodeai/tools --frozen-lockfile
          - name: Test native/TUI/browser-ish packages (TS)
            env:
-              OMP_TEST_CONCURRENCY: "4"
+              NGODEAI_TEST_CONCURRENCY: "4"
            run: bun run ci:test:ts:native
 
    test_coding_agent_ui:
@@ -680,7 +680,7 @@ jobs:
               stash: ${{ needs.native_addons.outputs.stash }}
          - name: Test coding-agent UI/TUI bucket
            env:
-              OMP_TEST_CONCURRENCY: "2"
+              NGODEAI_TEST_CONCURRENCY: "2"
            run: bun run ci:test:coding-agent:ui
 
    test_coding_agent_runtime:
@@ -700,7 +700,7 @@ jobs:
            # Runtime/session tests import native-backed barrels too; keep this
            # separate for concurrency, not as a native-free guardrail.
            env:
-              OMP_TEST_CONCURRENCY: "4"
+              NGODEAI_TEST_CONCURRENCY: "4"
            run: bun run ci:test:coding-agent:runtime
 
    test_smoke:
@@ -733,7 +733,7 @@ jobs:
               stash: ${{ needs.native_addons.outputs.stash }}
          - name: Install method smoke tests
            env:
-              OMP_INSTALL_TEST_SKIP_NATIVE_BUILD: "1"
+              NGODEAI_INSTALL_TEST_SKIP_NATIVE_BUILD: "1"
            run: bun run ci:test:install-methods
 
    # Aggregates every validation job so publish-side release jobs gate on one
@@ -1131,7 +1131,7 @@ jobs:
               generate_release_notes: true
 
    # Publishes the release binaries to build.stencil.so, which serves them
-   # (with binary patches between releases) to `omp update`, the install
+   # (with binary patches between releases) to `ngodeai update`, the install
    # scripts' binary mode, and the Homebrew formula. Canary tags upload to the
    # canary channel (derived script-side). Not gated on skip_npm: binary
    # clients never read npm.

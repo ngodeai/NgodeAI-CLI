@@ -24,10 +24,10 @@ export interface ProfileAliasProcessOptions {
 }
 
 const DEFAULT_ALIAS_COMMAND: ProfileAliasCommand = {
-	display: "omp",
-	posix: "omp",
-	fish: "omp",
-	powerShell: "omp",
+	display: "ngodeai",
+	posix: "ngodeai",
+	fish: "ngodeai",
+	powerShell: "ngodeai",
 };
 
 export interface ProfileAliasInstallOptions {
@@ -151,8 +151,8 @@ function validateAliasName(aliasName: string, shell: ProfileAliasShell): string 
 	if (!ALIAS_NAME_RE.test(normalized)) {
 		throw new Error(`Invalid alias "${aliasName}". Alias names must match ${ALIAS_NAME_RE.source}.`);
 	}
-	if (normalized.toLowerCase() === "omp") {
-		throw new Error('Invalid alias "omp". Refusing to shadow the base omp command.');
+	if (normalized.toLowerCase() === "ngodeai") {
+		throw new Error('Invalid alias "ngodeai". Refusing to shadow the base ngodeai command.');
 	}
 	if (getReservedAliasNames(shell).has(normalized.toLowerCase())) {
 		throw new Error(`Invalid alias "${aliasName}". Refusing to create a ${shell} reserved word.`);
@@ -262,7 +262,7 @@ function resolveShellConfigPath(
 			// a hard-coded ~/.config would be silently ignored when the user relocates
 			// their XDG config root, leaving the alias unsourced after a restart.
 			const configHome = env.XDG_CONFIG_HOME ? toPosix(env.XDG_CONFIG_HOME) : posixJoinUnc(posixHome, ".config");
-			return posixJoinUnc(configHome, "fish", "conf.d", "omp-profiles.fish");
+			return posixJoinUnc(configHome, "fish", "conf.d", "ngode-profiles.fish");
 		}
 		case "pwsh":
 			return platform === "win32"
@@ -280,13 +280,13 @@ function renderAliasBlock(
 	command: ProfileAliasCommand,
 ): { block: string; command: string } {
 	const profiledCommand = `${command.display} --profile=${profile}`;
-	const start = `# >>> omp profile alias: ${aliasName} >>>`;
-	const end = `# <<< omp profile alias: ${aliasName} <<<`;
+	const start = `# >>> ngodeai profile alias: ${aliasName} >>>`;
+	const end = `# <<< ngodeai profile alias: ${aliasName} <<<`;
 	let body: string;
 	switch (shell) {
 		case "fish":
 			body = [
-				`function ${aliasName} --wraps omp --description 'OMP profile ${profile}'`,
+				`function ${aliasName} --wraps ngodeai --description 'NGODEAI profile ${profile}'`,
 				`    command ${command.fish} --profile=${profile} $argv`,
 				"end",
 			].join("\n");
@@ -303,8 +303,8 @@ function renderAliasBlock(
 }
 
 function upsertBlock(content: string, aliasName: string, block: string): string {
-	const start = `# >>> omp profile alias: ${aliasName} >>>`;
-	const end = `# <<< omp profile alias: ${aliasName} <<<`;
+	const start = `# >>> ngodeai profile alias: ${aliasName} >>>`;
+	const end = `# <<< ngodeai profile alias: ${aliasName} <<<`;
 	const startIndex = content.indexOf(start);
 	if (startIndex !== -1) {
 		const endIndex = content.indexOf(end, startIndex + start.length);

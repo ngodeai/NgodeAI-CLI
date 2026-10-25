@@ -16,10 +16,10 @@ describe("workerEnvFromParent", () => {
 		const previous = process.env.GIT_DIR;
 		process.env.GIT_DIR = "/primary/.git";
 		try {
-			const env = workerEnvFromParent({ GIT_WORK_TREE: "/secondary", OMP_WORKER_ENV_PROBE: "kept" });
+			const env = workerEnvFromParent({ GIT_WORK_TREE: "/secondary", NGODEAI_WORKER_ENV_PROBE: "kept" });
 			expect(env.GIT_DIR).toBeUndefined();
 			expect(env.GIT_WORK_TREE).toBe("/secondary");
-			expect(env.OMP_WORKER_ENV_PROBE).toBe("kept");
+			expect(env.NGODEAI_WORKER_ENV_PROBE).toBe("kept");
 		} finally {
 			if (previous === undefined) delete process.env.GIT_DIR;
 			else process.env.GIT_DIR = previous;
@@ -61,7 +61,7 @@ describe("nativeLibraryPathOverlay", () => {
 	it("appends the advertised dirs after an inherited LD_LIBRARY_PATH", () => {
 		expect(
 			nativeLibraryPathOverlay(
-				{ LD_LIBRARY_PATH: "/inherited", OMP_NATIVE_LIBRARY_PATH: "/store/gcc/lib" },
+				{ LD_LIBRARY_PATH: "/inherited", NGODEAI_NATIVE_LIBRARY_PATH: "/store/gcc/lib" },
 				"linux",
 			),
 		).toEqual({ LD_LIBRARY_PATH: "/inherited:/store/gcc/lib" });
@@ -69,25 +69,25 @@ describe("nativeLibraryPathOverlay", () => {
 
 	it("uses the advertised dirs alone when nothing is inherited", () => {
 		expect(
-			nativeLibraryPathOverlay({ OMP_NATIVE_LIBRARY_PATH: "/store/gcc/lib:/store/libgcc/lib" }, "linux"),
+			nativeLibraryPathOverlay({ NGODEAI_NATIVE_LIBRARY_PATH: "/store/gcc/lib:/store/libgcc/lib" }, "linux"),
 		).toEqual({ LD_LIBRARY_PATH: "/store/gcc/lib:/store/libgcc/lib" });
 	});
 
 	it("stays out of the env on non-Linux platforms", () => {
-		const env = { OMP_NATIVE_LIBRARY_PATH: "/store/gcc/lib" };
+		const env = { NGODEAI_NATIVE_LIBRARY_PATH: "/store/gcc/lib" };
 		expect(nativeLibraryPathOverlay(env, "darwin")).toEqual({});
 		expect(nativeLibraryPathOverlay(env, "win32")).toEqual({});
 	});
 
 	it("stays out of the env on Linux when no dirs are advertised", () => {
 		expect(nativeLibraryPathOverlay({ LD_LIBRARY_PATH: "/inherited" }, "linux")).toEqual({});
-		expect(nativeLibraryPathOverlay({ OMP_NATIVE_LIBRARY_PATH: "" }, "linux")).toEqual({});
+		expect(nativeLibraryPathOverlay({ NGODEAI_NATIVE_LIBRARY_PATH: "" }, "linux")).toEqual({});
 	});
 });
 
 describe("sharedWorkerLogPath", () => {
 	// Regression: the log used to be `${endpoint}.log`, which on Windows turns
-	// the named-pipe endpoint (`\\.\pipe\omp-tiny-…`) into an unopenable file
+	// the named-pipe endpoint (`\\.\pipe\ngode-tiny-…`) into an unopenable file
 	// path and crashed `--smoke-test` with ENOENT.
 	it("stays under the runtime directory instead of deriving from the endpoint", () => {
 		const runtimeDir = "/runtime";

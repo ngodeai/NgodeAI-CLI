@@ -5,9 +5,9 @@ Tool-calling convention of Alibaba's **Qwen3** family (`Qwen/Qwen3-*`: dense `0.
 Verified against: Qwen's canonical function-calling guide (`qwen.readthedocs.io/en/latest/framework/function_call.html`, read in full incl. the Qwen-Agent + vLLM sections), the byte-exact `chat_template` field of `Qwen/Qwen3-8B`'s `tokenizer_config.json` (HF resolve-cache commit `b968826d9c46dd6066d109eabc6255188de91218`, rendered locally with Jinja2 for the raw streams below) and its `added_tokens_decoder` for token IDs, the NousResearch `Hermes-Function-Calling` README, and the vLLM tool-calling docs (`hermes` parser + Qwen models section).
 
 The template/tokenizer details below refer to the Qwen3-8B reference listed
-above, not every later Qwen deployment. OMP's owned converter does not execute
+above, not every later Qwen deployment. NGODEAI's owned converter does not execute
 that template or apply `enable_thinking`; see
-[omp / pi converter behavior](#omp--pi-converter-behavior) for the implemented
+[ngodeai / pi converter behavior](#ngode--pi-converter-behavior) for the implemented
 request and scanner behavior.
 
 ## Special tokens
@@ -214,7 +214,7 @@ simple substring check. The default `tools.format: auto` uses that fallback
 only when the model has `supportsTools: false`; otherwise it keeps native
 tools. For a Coder endpoint requiring its native XML protocol, set
 `tools.format: native`, unset `PI_DIALECT`, and configure the serving endpoint's
-`qwen3_xml` parser. `qwen3_xml` is not an OMP-owned dialect or a valid
+`qwen3_xml` parser. `qwen3_xml` is not an NGODEAI-owned dialect or a valid
 `tools.format` value.
 
 There is a separate `QwenXmlInbandScanner` in

@@ -1,6 +1,6 @@
 # security_scan
 
-> Plan and run OMP-native security reviews, validate stored findings, and explicitly interact with Codex Security cloud scans.
+> Plan and run NGODEAI-native security reviews, validate stored findings, and explicitly interact with Codex Security cloud scans.
 
 ## Availability and prerequisites
 
@@ -155,7 +155,7 @@ Requires `cloud_configuration_id`. It reports the current step and finished/pend
 
 ### `cloud_pull`
 
-Requires `cloud_configuration_id`. It fetches the configuration, status, and all attributed finding details, converts them to OMP's canonical schema, generates a report and SARIF, and persists a completed imported scan.
+Requires `cloud_configuration_id`. It fetches the configuration, status, and all attributed finding details, converts them to NGODEAI's canonical schema, generates a report and SARIF, and persists a completed imported scan.
 
 Import fails closed unless the current project has an `origin` remote whose normalized repository identity matches the cloud configuration URL. Cloud coverage is recorded as `unknown` because the findings API does not expose coverage receipts. `details.importedScan` contains the new scan ID and finding count.
 
@@ -169,7 +169,7 @@ Import fails closed unless the current project has an `origin` remote whose norm
 
 Publication checks cited finding and evidence locations against real files and line counts in the reviewed tree (the pinned head worktree for `ref_diff`). Findings with missing/unreadable paths or out-of-range lines are withheld and reported in `details.droppedFindings`. Grounded paths must be repository-relative and in scope. Repeated findings with the same canonical fingerprint are deduplicated. A second successful publication call fails. If the scan session ends without publication, the scan is persisted as `partial`; a successful publication remains `completed` even if later metrics/output refresh fails.
 
-Canonical state is private and project-keyed under OMP's security state root. A completed native output directory contains:
+Canonical state is private and project-keyed under NGODEAI's security state root. A completed native output directory contains:
 
 - `scan.json` — public scan manifest, written last as the commit marker;
 - `findings.json`;
@@ -218,7 +218,7 @@ Plan an exact revision diff with an external output directory:
   "target_kind": "ref_diff",
   "base_revision": "origin/main",
   "head_revision": "HEAD",
-  "output_root": "/tmp/omp-security-review"
+  "output_root": "/tmp/ngode-security-review"
 }
 ```
 

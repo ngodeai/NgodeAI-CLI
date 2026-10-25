@@ -88,7 +88,7 @@ export interface GenerateBranchSummaryOptions {
 	convertToLlm?: ConvertToLlm;
 	/**
 	 * Optional telemetry handle. When provided, the branch summary LLM call is
-	 * wrapped in an OTEL chat span tagged with `omp.gen_ai.oneshot.kind = "branch_summary"`.
+	 * wrapped in an OTEL chat span tagged with `ngodeai.gen_ai.oneshot.kind = "branch_summary"`.
 	 */
 	telemetry?: AgentTelemetry;
 	/**

@@ -12,7 +12,7 @@ import { SessionManager } from "@ngodeai/coding-agent/session/session-manager";
 import { MemorySessionStorage } from "@ngodeai/coding-agent/session/session-storage";
 
 function freshSession(): SessionManager {
-	const cwd = join("/tmp", `omp-on-disk-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+	const cwd = join("/tmp", `ngode-on-disk-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 	return SessionManager.create(cwd, join(cwd, "sessions"), new MemorySessionStorage());
 }
 

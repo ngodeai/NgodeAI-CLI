@@ -731,7 +731,7 @@ export interface ExtensionContext {
 	/** Identity of the agent this session runs: the top-level session or a subagent. */
 	agent: ExtensionAgentIdentity;
 	/**
-	 * Whether the current project/workspace is trusted. OMP performs no
+	 * Whether the current project/workspace is trusted. NGODEAI performs no
 	 * project-trust gating — project-level settings and extensions load
 	 * unconditionally — so this always returns `true`. Exposed for
 	 * compatibility with extensions authored against upstream Pi, whose
@@ -800,11 +800,11 @@ export interface ExtensionContext {
 	 * here; extensions written against that API (e.g. Plannotator) feature-detect this method to
 	 * decide whether project-local config is safe to load, and warn when it is absent.
 	 *
-	 * OMP has no equivalent per-directory trust gate: `.omp/extensions`, `.ngodeai/config.yml`, and
+	 * NGODEAI has no equivalent per-directory trust gate: `.ngodeai/extensions`, `.ngodeai/config.yml`, and
 	 * other project-local inputs are already discovered and loaded unconditionally (see
 	 * `docs/extension-loading.md`). This method exists for compatibility with that upstream surface
-	 * and always returns `true`, truthfully reflecting that OMP already trusts project-local inputs
-	 * by default -- it does not narrow or widen OMP's own security model.
+	 * and always returns `true`, truthfully reflecting that NGODEAI already trusts project-local inputs
+	 * by default -- it does not narrow or widen NGODEAI's own security model.
 	 */
 	isProjectTrusted(): boolean;
 }

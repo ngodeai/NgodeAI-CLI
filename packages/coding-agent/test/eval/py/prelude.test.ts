@@ -15,7 +15,7 @@ async function runPrelude(
 	const script = `${prelude}\n${code}`;
 	// The full prelude exceeds Windows' ~32k `python -c` command-line limit
 	// (ENAMETOOLONG); a script file behaves identically on every platform.
-	const dir = await TempDir.create("@omp-py-prelude-");
+	const dir = await TempDir.create("@ngode-py-prelude-");
 	try {
 		const scriptPath = dir.join("script.py");
 		await Bun.write(scriptPath, script);
@@ -152,7 +152,7 @@ describe("python prelude", () => {
 	);
 
 	it("reads an artifact from this session's dir; empty for limit <= 0", async () => {
-		using artifacts = TempDir.createSync("@omp-py-prelude-artifacts-");
+		using artifacts = TempDir.createSync("@ngode-py-prelude-artifacts-");
 		await Bun.write(artifacts.join("12.eval.log"), "first\nsecond\nthird\n");
 		const { stdout, stderr, requests } = await runWithReadBridge(
 			[
@@ -169,7 +169,7 @@ describe("python prelude", () => {
 	});
 
 	it("reads an artifact another session holds in full, however large, through the read tool", async () => {
-		using tmp = TempDir.createSync("@omp-py-prelude-artifact-fallback-");
+		using tmp = TempDir.createSync("@ngode-py-prelude-artifact-fallback-");
 		await Bun.write(tmp.join("owner", "7.bash.log"), largeArtifact);
 		await Bun.write(tmp.join("own", "12.eval.log"), "this session's");
 		const out = tmp.join("out.txt");
@@ -194,7 +194,7 @@ describe("python prelude", () => {
 	});
 
 	it("reads an artifact in full through the read tool when no artifacts dir was injected", async () => {
-		using tmp = TempDir.createSync("@omp-py-prelude-artifact-no-root-");
+		using tmp = TempDir.createSync("@ngode-py-prelude-artifact-no-root-");
 		await Bun.write(tmp.join("12.eval.log"), largeArtifact);
 		const out = tmp.join("out.txt");
 		const { stderr, requests } = await runWithReadBridge(

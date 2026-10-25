@@ -5757,13 +5757,13 @@ function resolveCursorRecordReplays(
 /**
  * Cursor AgentService reconstructs the model prompt from `requestContext.rules`,
  * not from the client-supplied `rootPromptMessagesJson` system blobs. Map each
- * OMP system-prompt entry to a global CursorRule so always-apply rules survive
+ * NGODEAI system-prompt entry to a global CursorRule so always-apply rules survive
  * that reconstruction.
  */
 export function buildCursorRequestContextRules(systemPrompt: readonly string[] | undefined): CursorRule[] {
 	return normalizeSystemPrompts(systemPrompt).map((content, index) =>
 		create(CursorRuleSchema, {
-			fullPath: `/omp/system-prompt/${index}.mdc`,
+			fullPath: `/ngodeai/system-prompt/${index}.mdc`,
 			content,
 			source: CursorRuleSource.USER,
 			type: create(CursorRuleTypeSchema, {
@@ -6588,7 +6588,7 @@ function resolveCursorWireModel(
 	}
 	// Fixed per-model parameters come from catalog KDL (`cursor-model-parameter`
 	// in `runtime/behavior.kdl`). A bare `composer-2.5` id resolves to the Fast
-	// variant server-side (can1357/oh-my-pi#9012), so the catalog pins the
+	// variant server-side (can1357/ngodeai#9012), so the catalog pins the
 	// Standard tier with `fast=false`; `-fast` selections keep the Fast lane by
 	// declaring no parameter.
 	const fixedParameters = cursorModelParameters(wireModelId);

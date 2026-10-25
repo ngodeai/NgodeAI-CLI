@@ -42,7 +42,7 @@ describe("startup-deferred extensions", () => {
 	let authStorage: AuthStorage;
 
 	beforeEach(() => {
-		tempDir = TempDir.createSync("@omp-deferred-ext-");
+		tempDir = TempDir.createSync("@ngode-deferred-ext-");
 		authStorage = createInMemoryAuthStorage();
 	});
 

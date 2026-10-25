@@ -573,16 +573,16 @@ describe("buildShareSnapshot", () => {
 
 describe("normalizeShareServerUrl", () => {
 	test("strips trailing slashes and falls back to the default", () => {
-		expect(normalizeShareServerUrl("https://my.omp.sh/s/")).toBe("https://my.omp.sh/s");
+		expect(normalizeShareServerUrl("https://my.ngodeai.net/s/")).toBe("https://my.ngodeai.net/s");
 		expect(normalizeShareServerUrl("https://example.com/s///")).toBe("https://example.com/s");
-		expect(normalizeShareServerUrl(undefined)).toBe("https://my.omp.sh/s");
-		expect(normalizeShareServerUrl("   ")).toBe("https://my.omp.sh/s");
+		expect(normalizeShareServerUrl(undefined)).toBe("https://my.ngodeai.net/s");
+		expect(normalizeShareServerUrl("   ")).toBe("https://my.ngodeai.net/s");
 	});
 });
 
 describe("shareSession", () => {
 	test("omits persisted cache-routing keys from sealed uploads regardless of secret redaction", async () => {
-		using tempDir = TempDir.createSync("@omp-share-cache-keys-");
+		using tempDir = TempDir.createSync("@ngode-share-cache-keys-");
 		const file = path.join(tempDir.path(), "session.jsonl");
 		const header: SessionHeader = {
 			type: "session",
@@ -677,7 +677,7 @@ describe("shareSession", () => {
 
 describe("share command", () => {
 	test("rejects a missing path without creating or uploading a session", async () => {
-		using tempDir = TempDir.createSync("@omp-share-missing-");
+		using tempDir = TempDir.createSync("@ngode-share-missing-");
 		const sessionArg = "./ghost.jsonl";
 		const missingSession = path.join(tempDir.path(), "ghost.jsonl");
 		const proc = Bun.spawn([process.execPath, CLI_ENTRY, "share", sessionArg], {

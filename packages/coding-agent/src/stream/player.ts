@@ -1,5 +1,5 @@
 /**
- * Terminal playback for `.ompcast` session recordings (`ngodeai play`).
+ * Terminal playback for `.ngodecast` session recordings (`ngodeai play`).
  *
  * Plays on the normal screen, like the recorded session itself: the recorded
  * viewport occupies the bottom rows of the terminal and recorded `history`

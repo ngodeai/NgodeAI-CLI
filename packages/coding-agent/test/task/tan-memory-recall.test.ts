@@ -31,7 +31,7 @@ afterEach(() => {
 });
 
 it("sends the parent's recalled system prompt unchanged from a /tan clone", async () => {
-	using dir = TempDir.createSync("@omp-tan-memory-recall-");
+	using dir = TempDir.createSync("@ngode-tan-memory-recall-");
 	const auth = await AuthStorage.create(dir.join("auth.db"));
 	auth.keys.setRuntime("muse-code", "test-key");
 	const sessions: AgentSession[] = [];

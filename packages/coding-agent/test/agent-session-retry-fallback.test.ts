@@ -6669,7 +6669,7 @@ describe("AgentSession retry fallback", () => {
 	}
 
 	it("does not warn at startup for a cached provider whose online refresh supplies the selector", async () => {
-		using dir = TempDir.createSync("@omp-fallback-cached-pending-");
+		using dir = TempDir.createSync("@ngode-fallback-cached-pending-");
 		const auth = await AuthStorage.create(path.join(dir.path(), "auth.db"));
 		try {
 			const { registry, variantSelector, publishVariant } = await hydrateCopilotCacheWithoutVariant(dir, auth);
@@ -6697,7 +6697,7 @@ describe("AgentSession retry fallback", () => {
 	});
 
 	it("warns once, after discovery settles, for a selector the cached provider never supplies", async () => {
-		using dir = TempDir.createSync("@omp-fallback-cached-unknown-");
+		using dir = TempDir.createSync("@ngode-fallback-cached-unknown-");
 		const auth = await AuthStorage.create(path.join(dir.path(), "auth.db"));
 		try {
 			const { registry } = await hydrateCopilotCacheWithoutVariant(dir, auth);
@@ -6730,7 +6730,7 @@ describe("AgentSession retry fallback", () => {
 	it("warns at construction for a cached provider when no background refresh will run", async () => {
 		// An embedder that passes its own registry and manages discovery itself
 		// never starts a background refresh, so nothing would ever lift a deferral.
-		using dir = TempDir.createSync("@omp-fallback-cached-embedder-");
+		using dir = TempDir.createSync("@ngode-fallback-cached-embedder-");
 		const auth = await AuthStorage.create(path.join(dir.path(), "auth.db"));
 		try {
 			const { registry } = await hydrateCopilotCacheWithoutVariant(dir, auth);
@@ -7579,7 +7579,7 @@ describe("AgentSession retry fallback", () => {
 	});
 
 	it("carries attribution across a fork, which continues the conversation under a new id", async () => {
-		using tempDir = TempDir.createSync("@omp-fallback-fork-");
+		using tempDir = TempDir.createSync("@ngode-fallback-fork-");
 		const primaryModel = getBundledModel("anthropic", "claude-sonnet-4-5");
 		const fallbackModel = getBundledModel("openai", "gpt-4o-mini");
 		if (!primaryModel || !fallbackModel) {

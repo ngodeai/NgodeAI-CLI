@@ -1,11 +1,11 @@
-// Package omprpc is a Go client for the omp RPC protocol (`ngodeai --mode rpc`):
+// Package ngodeairpc is a Go client for the ngodeai RPC protocol (`ngodeai --mode rpc`):
 // JSON lines over the server's stdin and stdout.
 //
 // wire.go is generated from the protocol's wire schema by `bun run gen:rpc`;
 // it holds every frame type and one typed method per command on Commands.
 // Client is the transport: it correlates responses, negotiates protocol v2
 // (reassembling rpc_chunk sequences), waits for prompts, and runs host tools.
-package omprpc
+package ngodeairpc
 
 import (
 	"bufio"
@@ -28,7 +28,7 @@ const DefaultTimeout = 30 * time.Second
 
 // ErrClosed is returned by calls made after, or interrupted by, the end of the
 // connection. Err reports why it ended.
-var ErrClosed = errors.New("omprpc: connection closed")
+var ErrClosed = errors.New("ngodeairpc: connection closed")
 
 // CommandError is a failed command response (`success: false`).
 type CommandError struct {
@@ -40,9 +40,9 @@ type CommandError struct {
 
 func (e *CommandError) Error() string {
 	if e.Code != "" {
-		return fmt.Sprintf("omprpc: %s failed (%s): %s", e.Command, e.Code, e.Message)
+		return fmt.Sprintf("ngodeairpc: %s failed (%s): %s", e.Command, e.Code, e.Message)
 	}
-	return fmt.Sprintf("omprpc: %s failed: %s", e.Command, e.Message)
+	return fmt.Sprintf("ngodeairpc: %s failed: %s", e.Command, e.Message)
 }
 
 type requestIDKey struct{}
@@ -70,13 +70,13 @@ func EncodeCommand(id, command string, params any) ([]byte, error) {
 	}
 	body, err := json.Marshal(params)
 	if err != nil {
-		return nil, fmt.Errorf("omprpc: %s params: %w", command, err)
+		return nil, fmt.Errorf("ngodeairpc: %s params: %w", command, err)
 	}
 	if isNull(body) {
 		return head, nil
 	}
 	if len(body) < 2 || body[0] != '{' {
-		return nil, fmt.Errorf("omprpc: %s params must encode to a JSON object", command)
+		return nil, fmt.Errorf("ngodeairpc: %s params must encode to a JSON object", command)
 	}
 	if len(body) == 2 {
 		return head, nil
@@ -100,7 +100,7 @@ type pendingCall struct {
 	reply   chan RpcResponse
 }
 
-// Client is a connection to an omp RPC server. The embedded Commands provides
+// Client is a connection to an ngodeai RPC server. The embedded Commands provides
 // the typed command methods; Client.GetMessages replaces the monolithic
 // command with paging under protocol v2 (Commands.GetMessages remains).
 type Client struct {
@@ -149,7 +149,7 @@ type Client struct {
 	closeErr  error
 }
 
-// Start starts cmd (for example `exec.Command("omp", "--mode", "rpc")`; set
+// Start starts cmd (for example `exec.Command("ngodeai", "--mode", "rpc")`; set
 // its Dir, Env, and Stderr as needed, and leave Stdin and Stdout nil) and
 // connects to it with NewClient. On Unix the server runs in its own process
 // group, so Close also stops the commands its tools started; cmd.WaitDelay
@@ -212,10 +212,10 @@ func (c *Client) handshake(ctx context.Context) error {
 		select {
 		case <-c.readyCh:
 		default:
-			return fmt.Errorf("omprpc: server stopped before ready: %w", c.Err())
+			return fmt.Errorf("ngodeairpc: server stopped before ready: %w", c.Err())
 		}
 	case <-ctx.Done():
-		return fmt.Errorf("omprpc: waiting for ready: %w", ctx.Err())
+		return fmt.Errorf("ngodeairpc: waiting for ready: %w", ctx.Err())
 	}
 	ready := c.ready
 	if slices.Contains(ready.SupportedProtocolVersions, 2) &&
@@ -301,7 +301,7 @@ func (c *Client) Call(ctx context.Context, command string, params any, timeout t
 	}
 	if _, taken := c.pending[id]; taken {
 		c.mu.Unlock()
-		return nil, fmt.Errorf("omprpc: request id %q is already in flight", id)
+		return nil, fmt.Errorf("ngodeairpc: request id %q is already in flight", id)
 	}
 	c.pending[id] = pendingCall{command: command, reply: reply}
 	c.mu.Unlock()
@@ -321,7 +321,7 @@ func (c *Client) Call(ctx context.Context, command string, params any, timeout t
 			return nil, c.Err()
 		}
 	case <-ctx.Done():
-		return nil, fmt.Errorf("omprpc: %s: %w", command, ctx.Err())
+		return nil, fmt.Errorf("ngodeairpc: %s: %w", command, ctx.Err())
 	}
 }
 
@@ -389,7 +389,7 @@ func (c *Client) write(call context.Context, frame []byte) error {
 		if c.closing.Load() {
 			return fmt.Errorf("%w: %w", ErrClosed, err)
 		}
-		return fmt.Errorf("omprpc: write: %w", err)
+		return fmt.Errorf("ngodeairpc: write: %w", err)
 	}
 	return nil
 }

@@ -163,12 +163,12 @@ describe("structured subagent primitive", () => {
 
 	it("rescans agents when a plugin provider is disabled while an earlier discovery is in flight", async () => {
 		const previouslyDisabled = getDisabledProviders();
-		enableProvider("omp-plugins");
+		enableProvider("ngode-plugins");
 		const firstEntered = Promise.withResolvers<void>();
 		const releaseFirst = Promise.withResolvers<void>();
 		let scans = 0;
 		vi.spyOn(discoveryModule, "discoverAgents").mockImplementation(async () => {
-			const pluginsEnabled = isProviderEnabled("omp-plugins");
+			const pluginsEnabled = isProviderEnabled("ngode-plugins");
 			if (++scans === 1) {
 				firstEntered.resolve();
 				await releaseFirst.promise;
@@ -179,7 +179,7 @@ describe("structured subagent primitive", () => {
 		try {
 			const first = resolveEffectiveSubagentPolicy(request({ agent: "plugin-worker" }));
 			await firstEntered.promise;
-			disableProvider("omp-plugins");
+			disableProvider("ngode-plugins");
 			const second = resolveEffectiveSubagentPolicy(request({ agent: "plugin-worker" }));
 			releaseFirst.resolve();
 
@@ -221,7 +221,7 @@ describe("structured subagent primitive", () => {
 		const seanceAgent = getBundledAgent("seance");
 		if (!seanceAgent) throw new Error("Expected the bundled seance agent");
 		mockDiscovery(seanceAgent);
-		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-seance-policy-"));
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-seance-policy-"));
 		const authStorage = await AuthStorage.create(":memory:");
 		authStorage.keys.setRuntime("anthropic", "test-key");
 		const modelRegistry = new ModelRegistry(authStorage);
@@ -282,7 +282,7 @@ describe("structured subagent primitive", () => {
 		const seanceAgent = getBundledAgent("seance");
 		if (!seanceAgent) throw new Error("Expected the bundled seance agent");
 		mockDiscovery(seanceAgent);
-		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-seance-model-fail-"));
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-seance-model-fail-"));
 		const authStorage = await AuthStorage.create(":memory:");
 		const modelRegistry = new ModelRegistry(authStorage);
 		const cwd = path.join(tempDir, "project");
@@ -373,7 +373,7 @@ describe("structured subagent primitive", () => {
 		expect(discover).not.toHaveBeenCalled();
 	});
 	it("reloads project task and retry policy before resolving an agent added during the session", async () => {
-		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-task-hot-reload-"));
+		const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-task-hot-reload-"));
 		const projectDir = path.join(root, "project");
 		const agentDir = path.join(root, "agent");
 		await fs.mkdir(projectDir, { recursive: true });
@@ -390,11 +390,11 @@ describe("structured subagent primitive", () => {
 
 		try {
 			await Bun.write(
-				path.join(projectDir, ".omp", "config.yml"),
+				path.join(projectDir, ".ngodeai", "config.yml"),
 				"task:\n  agentModelOverrides:\n    hot-worker: xai-oauth/grok-4.6:medium\n  enableEffort: false\nretry:\n  modelFallback: false\n",
 			);
 			await Bun.write(
-				path.join(projectDir, ".omp", "agents", "hot-worker.md"),
+				path.join(projectDir, ".ngodeai", "agents", "hot-worker.md"),
 				"---\nname: hot-worker\ndescription: Newly added worker.\nmodel: openai/gpt-4o\n---\n\nInspect the assignment.\n",
 			);
 
@@ -441,10 +441,10 @@ describe("structured subagent primitive", () => {
 	});
 
 	it("reloads persisted per-agent service-tier overrides before each launch", async () => {
-		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-task-tier-reload-"));
+		const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-task-tier-reload-"));
 		const projectDir = path.join(root, "project");
 		const agentDir = path.join(root, "agent");
-		await fs.mkdir(path.join(projectDir, ".omp"), { recursive: true });
+		await fs.mkdir(path.join(projectDir, ".ngodeai"), { recursive: true });
 		await fs.mkdir(agentDir, { recursive: true });
 		const liveSettings = await Settings.loadIsolated({ cwd: projectDir, agentDir });
 		const liveSession = session({ cwd: projectDir, settings: liveSettings });
@@ -700,7 +700,7 @@ describe("structured subagent primitive", () => {
 			mode: "permissive",
 			data: { ok: true },
 		});
-		expect(path.basename(settled.artifactsDir)).toStartWith("omp-task-");
+		expect(path.basename(settled.artifactsDir)).toStartWith("ngode-task-");
 		await fs.rm(settled.artifactsDir, { recursive: true, force: true });
 	});
 
@@ -751,7 +751,7 @@ describe("structured subagent primitive", () => {
 	});
 
 	it("returns a prose answer in one turn when structured task results are disabled", async () => {
-		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-unstructured-forwarding-"));
+		const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-unstructured-forwarding-"));
 		const cwd = path.join(root, "project");
 		await fs.mkdir(cwd, { recursive: true });
 		const authStorage = await AuthStorage.create(":memory:");
@@ -817,7 +817,7 @@ describe("structured subagent primitive", () => {
 	});
 
 	it("runs the remaining permitted scout when a plan-mode task omits its agent", async () => {
-		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-plan-default-scout-"));
+		const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-plan-default-scout-"));
 		const cwd = path.join(root, "project");
 		await fs.mkdir(cwd, { recursive: true });
 		const authStorage = await AuthStorage.create(":memory:");
@@ -934,10 +934,10 @@ describe("structured subagent primitive", () => {
 	});
 
 	it("persists nested patch text with the compatible recovery path and wording", async () => {
-		const artifactsDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-structured-subagent-"));
+		const artifactsDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-structured-subagent-"));
 		const completed = result();
 		completed.patchPath = "/recovery/Worker.patch";
-		completed.branchName = "omp/task/Worker";
+		completed.branchName = "ngodeai/task/Worker";
 		completed.nestedPatches = [{ relativePath: "sub/nested", patch: "diff --git a/file b/file\n" }];
 
 		const hint = await buildStructuredSubagentRecoveryHint(completed, artifactsDir);
@@ -945,7 +945,7 @@ describe("structured subagent primitive", () => {
 
 		expect(hint).toContain("Captured patch preserved at /recovery/Worker.patch.");
 		expect(hint).toContain(`Captured nested patch preserved at ${nestedPath}.`);
-		expect(hint).toContain("Captured branch preserved as omp/task/Worker.");
+		expect(hint).toContain("Captured branch preserved as ngodeai/task/Worker.");
 		expect(await fs.readFile(nestedPath, "utf8")).toBe("diff --git a/file b/file\n");
 		await fs.rm(artifactsDir, { recursive: true, force: true });
 	});
@@ -953,7 +953,7 @@ describe("structured subagent primitive", () => {
 	it("names the failure when nested patches cannot be written as a fallback", async () => {
 		// `Bun.write` creates missing parents, so a genuine failure needs a path
 		// that cannot become a directory: a regular file in its place.
-		const parent = await fs.mkdtemp(path.join(os.tmpdir(), "omp-structured-subagent-unwritable-"));
+		const parent = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-structured-subagent-unwritable-"));
 		const artifactsDir = path.join(parent, "artifacts");
 		await fs.writeFile(artifactsDir, "");
 		const completed = result();
@@ -1211,7 +1211,7 @@ describe("structured subagent primitive", () => {
 		vi.spyOn(isolationRunner, "prepareIsolationContext").mockResolvedValue({ repoRoot: "/tmp" } as never);
 		vi.spyOn(isolationRunner, "runIsolatedSubprocess").mockImplementation(async () => ({
 			...result(),
-			branchName: "omp/task/Worker",
+			branchName: "ngodeai/task/Worker",
 			branchBaseSha: "base",
 			nestedPatches: [{ relativePath: "inner", patch: "diff --git a/b.txt b/b.txt\n" }],
 			error: "Nested patch capture failed: ENOSPC. Isolation workspace retained at /wt/abc.",
@@ -1221,7 +1221,7 @@ describe("structured subagent primitive", () => {
 			request({ session: session({ isolationEnabled: true }), isolation: { requested: true } }),
 		);
 
-		expect(settled.mergeSummary).toContain("omp/task/Worker");
+		expect(settled.mergeSummary).toContain("ngodeai/task/Worker");
 		await fs.rm(settled.artifactsDir, { recursive: true, force: true });
 	});
 
@@ -1278,7 +1278,7 @@ describe("structured subagent primitive", () => {
 
 describe("agent frontmatter structured opt-in", () => {
 	const MOCK_API_SOURCE = "test/structured-subagent-opt-in";
-	const ENV_KEYS = ["HOME", "PI_CODING_AGENT_DIR", "OMP_PROFILE", "PI_PROFILE"] as const;
+	const ENV_KEYS = ["HOME", "PI_CODING_AGENT_DIR", "NGODEAI_PROFILE", "PI_PROFILE"] as const;
 	let savedEnv: Record<string, string | undefined> = {};
 	let root: string;
 
@@ -1315,12 +1315,12 @@ describe("agent frontmatter structured opt-in", () => {
 
 	beforeEach(async () => {
 		savedEnv = Object.fromEntries(ENV_KEYS.map(key => [key, process.env[key]]));
-		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-structured-opt-in-"));
+		root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-structured-opt-in-"));
 		const home = path.join(root, "home");
 		await fs.mkdir(home, { recursive: true });
 		restoreEnvValue("HOME", home);
 		vi.spyOn(os, "homedir").mockReturnValue(home);
-		setAgentDir(path.join(home, ".omp", "agent"));
+		setAgentDir(path.join(home, ".ngodeai", "agent"));
 		AgentRegistry.resetGlobalForTests();
 		AgentLifecycleManager.resetGlobalForTests();
 		registerMockApi(MOCK_API_SOURCE);
@@ -1345,10 +1345,10 @@ describe("agent frontmatter structured opt-in", () => {
 	])(
 		"task.structured=$setting: yield and schema follow the agent opt-in",
 		async ({ setting, structured }) => {
-			// Under the isolated HOME so project discovery stops before the developer's real ~/.omp.
+			// Under the isolated HOME so project discovery stops before the developer's real ~/.ngodeai.
 			const cwd = path.join(root, "home", "work");
 			await fs.mkdir(cwd, { recursive: true });
-			const agentsDir = path.join(root, "home", ".omp", "agent", "agents");
+			const agentsDir = path.join(root, "home", ".ngodeai", "agent", "agents");
 			await Bun.write(path.join(agentsDir, "reporter.md"), agentFile("reporter", true));
 			await Bun.write(path.join(agentsDir, "plain.md"), agentFile("plain", false));
 

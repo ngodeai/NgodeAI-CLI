@@ -39,24 +39,24 @@ export type RelayWaitOutcome =
 	| "extension-gone"
 	/** An older relay server is still running. */
 	| "outdated-relay"
-	/** A compatible relay from an older OMP is ready and reports no CDP client connected to it. */
+	/** A compatible relay from an older NGODEAI is ready and reports no CDP client connected to it. */
 	| "idle-older-relay"
 	/** The relay extension is older than the running server. */
 	| "outdated-extension";
 
-/** The OMP version a parsed `/json/version` body (ready or waiting) reports; empty when it reports none. */
+/** The NGODEAI version a parsed `/json/version` body (ready or waiting) reports; empty when it reports none. */
 export function relayVersionOf(parsed: object): string {
-	return "ompRelayVersion" in parsed && typeof parsed.ompRelayVersion === "string" ? parsed.ompRelayVersion : "";
+	return "ngodeRelayVersion" in parsed && typeof parsed.ngodeRelayVersion === "string" ? parsed.ngodeRelayVersion : "";
 }
 
 /** CDP clients a parsed `/json/version` body (ready or waiting) reports; null for a relay too old to report them. */
 export function relayCdpClientsOf(parsed: object): number | null {
-	return "ompRelayCdpClients" in parsed && typeof parsed.ompRelayCdpClients === "number"
-		? parsed.ompRelayCdpClients
+	return "ngodeRelayCdpClients" in parsed && typeof parsed.ngodeRelayCdpClients === "number"
+		? parsed.ngodeRelayCdpClients
 		: null;
 }
 
-/** Whether a relay reporting `version` predates this OMP; one reporting none predates version markers. */
+/** Whether a relay reporting `version` predates this NGODEAI; one reporting none predates version markers. */
 export function isOlderRelayVersion(version: string): boolean {
 	if (version === "") return true;
 	try {
@@ -67,7 +67,7 @@ export function isOlderRelayVersion(version: string): boolean {
 	}
 }
 
-function parseUnavailableInfo(body: string): Omit<RelayUnavailableInfo, "ompRelayCdpClients"> | null {
+function parseUnavailableInfo(body: string): Omit<RelayUnavailableInfo, "ngodeRelayCdpClients"> | null {
 	try {
 		const parsed: unknown = JSON.parse(body);
 		if (
@@ -84,7 +84,7 @@ function parseUnavailableInfo(body: string): Omit<RelayUnavailableInfo, "ompRela
 				error: "",
 				extensionSeen: parsed.extensionSeen,
 				uptimeMs: parsed.uptimeMs,
-				ompRelayVersion: relayVersionOf(parsed),
+				ngodeRelayVersion: relayVersionOf(parsed),
 				disconnectedMs,
 			};
 		}
@@ -100,16 +100,16 @@ function readyOutcome(body: string): RelayWaitOutcome {
 		if (
 			typeof parsed !== "object" ||
 			parsed === null ||
-			!("ompRelayDiscardedTabsProtocol" in parsed) ||
-			parsed.ompRelayDiscardedTabsProtocol !== String(DISCARDED_TABS_PROTOCOL_VERSION)
+			!("ngodeRelayDiscardedTabsProtocol" in parsed) ||
+			parsed.ngodeRelayDiscardedTabsProtocol !== String(DISCARDED_TABS_PROTOCOL_VERSION)
 		) {
 			return "outdated-relay";
 		}
 		if (
-			!("ompExtensionDiscardedTabsProtocol" in parsed) ||
-			parsed.ompExtensionDiscardedTabsProtocol !== String(DISCARDED_TABS_PROTOCOL_VERSION)
+			!("ngodeExtensionDiscardedTabsProtocol" in parsed) ||
+			parsed.ngodeExtensionDiscardedTabsProtocol !== String(DISCARDED_TABS_PROTOCOL_VERSION)
 		) {
-			// A relay from another OMP version is the likelier culprit than the extension.
+			// A relay from another NGODEAI version is the likelier culprit than the extension.
 			if (relayVersionOf(parsed) !== VERSION) return "outdated-relay";
 			return "outdated-extension";
 		}
@@ -141,7 +141,7 @@ export async function waitForRelayExtension(cdpUrl: string, signal?: AbortSignal
 		const info = parseUnavailableInfo(response.body);
 		// Past the dial window a relay from another version reads as outdated even
 		// with CDP clients connected: no extension, so no browser, is behind them.
-		staleRelay = info !== null && info.ompRelayVersion !== VERSION;
+		staleRelay = info !== null && info.ngodeRelayVersion !== VERSION;
 		if (info && !info.extensionSeen) {
 			// Never connected: the window is measured from server start, not from now.
 			deadline = Math.min(deadline, Date.now() - info.uptimeMs + EXTENSION_DIAL_WINDOW_MS);

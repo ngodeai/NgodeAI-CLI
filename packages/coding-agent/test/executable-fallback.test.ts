@@ -43,15 +43,15 @@ describe("executable fallback on unlinked binary", () => {
 		// The launcher must be fully qualified on the host platform: on Windows a rooted path
 		// without a drive letter is drive-relative and intentionally not trusted.
 		const root = process.platform === "win32" ? "C:" : "";
-		const missingPath = `${root}/opt/homebrew/Cellar/omp/18.1.8/bin/omp`;
-		const originalLauncher = `${root}/opt/homebrew/bin/omp`;
-		const otherOmpInPath = `${root}/usr/local/bin/omp`;
+		const missingPath = `${root}/opt/homebrew/Cellar/ngodeai/18.1.8/bin/ngodeai`;
+		const originalLauncher = `${root}/opt/homebrew/bin/ngodeai`;
+		const otherOmpInPath = `${root}/usr/local/bin/ngodeai`;
 
 		setProcessProp("execPath", missingPath);
 		setProcessProp("argv0", originalLauncher);
 
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "omp") return otherOmpInPath;
+			if (cmd === "ngodeai") return otherOmpInPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
@@ -66,15 +66,15 @@ describe("executable fallback on unlinked binary", () => {
 
 	it("falls back to PATH when original absolute launcher exists but is not executable", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(true);
-		const missingPath = "/opt/homebrew/Cellar/omp/18.1.8/bin/omp";
-		const originalLauncher = "/opt/homebrew/bin/omp";
-		const otherOmpInPath = "/usr/local/bin/omp";
+		const missingPath = "/opt/homebrew/Cellar/ngodeai/18.1.8/bin/ngodeai";
+		const originalLauncher = "/opt/homebrew/bin/ngodeai";
+		const otherOmpInPath = "/usr/local/bin/ngodeai";
 
 		setProcessProp("execPath", missingPath);
 		setProcessProp("argv0", originalLauncher);
 
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "omp") return otherOmpInPath;
+			if (cmd === "ngodeai") return otherOmpInPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
@@ -90,11 +90,11 @@ describe("executable fallback on unlinked binary", () => {
 
 	it("does not resolve relative argv0 against the working tree", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(true);
-		const missingPath = "/opt/homebrew/Cellar/omp/18.1.8/bin/omp";
+		const missingPath = "/opt/homebrew/Cellar/ngodeai/18.1.8/bin/ngodeai";
 		setProcessProp("execPath", missingPath);
-		setProcessProp("argv0", "./omp");
+		setProcessProp("argv0", "./ngodeai");
 
-		const cwdRogueBinary = path.resolve("./omp");
+		const cwdRogueBinary = path.resolve("./ngodeai");
 		vi.spyOn(utils, "$which").mockReturnValue(null);
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
 			return p === cwdRogueBinary;
@@ -104,11 +104,11 @@ describe("executable fallback on unlinked binary", () => {
 		expect(resolveExecutablePath()).toBe(missingPath);
 	});
 
-	it("does not treat Windows drive-relative paths (e.g. C:omp) as bare commands", () => {
+	it("does not treat Windows drive-relative paths (e.g. C:ngodeai) as bare commands", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(true);
-		const missingPath = "C:\\Tools\\omp.exe";
+		const missingPath = "C:\\Tools\\ngodeai.exe";
 		setProcessProp("execPath", missingPath);
-		setProcessProp("argv0", "C:omp");
+		setProcessProp("argv0", "C:ngodeai");
 
 		let whichCalledWith: string | undefined;
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
@@ -119,19 +119,19 @@ describe("executable fallback on unlinked binary", () => {
 
 		resolveExecutablePath();
 
-		// Should not pass "C:omp" to which as a bare name; only "omp" generic fallback is queried
-		expect(whichCalledWith).toBe("omp");
+		// Should not pass "C:ngodeai" to which as a bare name; only "ngodeai" generic fallback is queried
+		expect(whichCalledWith).toBe("ngodeai");
 	});
 
-	it("falls back to $which('omp') when original execPath was unlinked and argv0 has no path", () => {
+	it("falls back to $which('ngodeai') when original execPath was unlinked and argv0 has no path", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(true);
-		const missingPath = "/opt/homebrew/Cellar/omp/18.1.8/bin/omp";
+		const missingPath = "/opt/homebrew/Cellar/ngodeai/18.1.8/bin/ngodeai";
 		setProcessProp("execPath", missingPath);
-		setProcessProp("argv0", "omp");
+		setProcessProp("argv0", "ngodeai");
 
-		const mockUpgradedPath = "/opt/homebrew/bin/omp";
+		const mockUpgradedPath = "/opt/homebrew/bin/ngodeai";
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "omp") return mockUpgradedPath;
+			if (cmd === "ngodeai") return mockUpgradedPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
@@ -144,15 +144,15 @@ describe("executable fallback on unlinked binary", () => {
 		});
 	});
 
-	it("falls back to process.argv0 when $which('omp') is unavailable", () => {
+	it("falls back to process.argv0 when $which('ngodeai') is unavailable", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(true);
-		const missingPath = "/custom/install/bin/omp";
+		const missingPath = "/custom/install/bin/ngodeai";
 		setProcessProp("execPath", missingPath);
-		setProcessProp("argv0", "my-omp");
+		setProcessProp("argv0", "my-ngodeai");
 
-		const mockCustomPath = "/usr/local/bin/my-omp";
+		const mockCustomPath = "/usr/local/bin/my-ngodeai";
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "my-omp") return mockCustomPath;
+			if (cmd === "my-ngodeai") return mockCustomPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
@@ -164,7 +164,7 @@ describe("executable fallback on unlinked binary", () => {
 
 	it("does not perform fallback lookup when isCompiledBinary is false", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(false);
-		const missingPath = "/opt/homebrew/Cellar/omp/18.1.8/bin/omp";
+		const missingPath = "/opt/homebrew/Cellar/ngodeai/18.1.8/bin/ngodeai";
 		setProcessProp("execPath", missingPath);
 
 		const whichSpy = vi.spyOn(utils, "$which");
@@ -177,7 +177,7 @@ describe("executable fallback on unlinked binary", () => {
 
 	it("returns original execPath gracefully if no fallback candidate exists", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(true);
-		const missingPath = "/nonexistent/omp";
+		const missingPath = "/nonexistent/ngodeai";
 		setProcessProp("execPath", missingPath);
 		vi.spyOn(utils, "$which").mockReturnValue(null);
 		vi.spyOn(utils, "isExecutable").mockReturnValue(false);

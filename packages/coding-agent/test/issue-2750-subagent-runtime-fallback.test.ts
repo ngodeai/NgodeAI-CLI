@@ -725,7 +725,7 @@ describe("subagent runtime model resolution", () => {
 
 describe("subagent runtime fallback on a real provider error", () => {
 	const MOCK_API_SOURCE = "test/issue-2750-subagent-runtime-fallback";
-	const ENV_KEYS = ["HOME", "PI_CODING_AGENT_DIR", "OMP_PROFILE", "PI_PROFILE"] as const;
+	const ENV_KEYS = ["HOME", "PI_CODING_AGENT_DIR", "NGODEAI_PROFILE", "PI_PROFILE"] as const;
 	const OVERLOADED = "overloaded_error: provider returned error 503";
 	let savedEnv: Record<string, string | undefined> = {};
 	let root: string;
@@ -742,13 +742,13 @@ describe("subagent runtime fallback on a real provider error", () => {
 
 	beforeEach(async () => {
 		savedEnv = Object.fromEntries(ENV_KEYS.map(key => [key, process.env[key]]));
-		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-empty-fallback-chain-"));
+		root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-empty-fallback-chain-"));
 		// Project discovery walks up from cwd to os.homedir(); keep both inside the fake HOME.
 		const home = path.join(root, "home");
 		await fs.mkdir(path.join(home, "work"), { recursive: true });
 		restoreEnvValue("HOME", home);
 		vi.spyOn(os, "homedir").mockReturnValue(home);
-		setAgentDir(path.join(home, ".omp", "agent"));
+		setAgentDir(path.join(home, ".ngodeai", "agent"));
 		AgentRegistry.resetGlobalForTests();
 		AgentLifecycleManager.resetGlobalForTests();
 		registerMockApi(MOCK_API_SOURCE);

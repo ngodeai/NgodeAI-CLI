@@ -32,9 +32,9 @@ function fakeClient(openFiles: Map<string, { version: number; languageId: string
 
 describe("reconcileOpenFilesFromDisk", () => {
 	test("re-syncs an open document whose disk text changed, then stays quiet once in sync", async () => {
-		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-reconcile-open-"));
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-reconcile-open-"));
 		try {
-			// The consumer was edited outside OMP: the server still holds the
+			// The consumer was edited outside NGODEAI: the server still holds the
 			// pre-edit overlay, so a project-wide rename would compute ranges
 			// against the old text (#15772).
 			const consumer = path.join(dir, "b.ts");
@@ -56,7 +56,7 @@ describe("reconcileOpenFilesFromDisk", () => {
 	});
 
 	test("leaves documents that match disk untouched", async () => {
-		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-reconcile-open-"));
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-reconcile-open-"));
 		try {
 			const file = path.join(dir, "a.ts");
 			await fs.writeFile(file, "export const x = 1;\n");

@@ -1,5 +1,5 @@
 /**
- * Types for the omp commit pipeline.
+ * Types for the ngodeai commit pipeline.
  */
 /** Conventional commit classifications accepted by commit generation. */
 export type CommitType =

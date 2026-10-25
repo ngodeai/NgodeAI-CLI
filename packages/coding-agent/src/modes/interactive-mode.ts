@@ -2661,7 +2661,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		);
 		// The preset may have switched before this listener existed.
 		this.#refreshSlashCommandIcons();
-		// A confirmed Glyph Protocol handshake means omp's own icons render in
+		// A confirmed Glyph Protocol handshake means ngodeai's own icons render in
 		// this terminal without a Nerd Font, so the unconfigured `unicode` preset
 		// is upgraded to `nerd` for this session. The persisted setting is left
 		// alone: it travels to terminals (ssh, tmux) where the upgrade would
@@ -7467,7 +7467,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		// Do not force a final render during teardown: disposed session/UI state can
 		// collapse to an empty frame, clearing the viewport and leaving the parent
 		// shell prompt at row 0. Stop from the last committed frame so the terminal
-		// hands Bash the cursor immediately after visible OMP content.
+		// hands Bash the cursor immediately after visible NGODEAI content.
 		// Close the TSP surfaces first so the drain below also swallows what the
 		// terminal still sends them (acks, events) instead of the shell.
 		this.ui.closeNative();
@@ -8338,7 +8338,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			await active.stop();
 			this.statusLine.setRecording(false);
 			this.showStatus(
-				`Saved ${formatDuration(elapsed)} recording to ${active.path} · replay: omp play · share: omp clip`,
+				`Saved ${formatDuration(elapsed)} recording to ${active.path} · replay: ngodeai play · share: ngodeai clip`,
 			);
 			return;
 		}

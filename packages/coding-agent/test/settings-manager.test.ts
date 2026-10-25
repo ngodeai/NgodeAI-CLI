@@ -385,7 +385,7 @@ describe("Settings", () => {
 
 		it("backs up a corrupted project config and retains the pending project role for retry", async () => {
 			await writeSettings({});
-			const projectConfigPath = path.join(projectDir, ".omp", "config.yml");
+			const projectConfigPath = path.join(projectDir, ".ngodeai", "config.yml");
 			await Bun.write(
 				projectConfigPath,
 				YAML.stringify({ modelRoles: { default: "keep/default" }, custom: { keep: true } }, null, 2),
@@ -1068,7 +1068,7 @@ describe("Settings", () => {
 
 		it("leaves an unreadable project config untouched and retains its pending role", async () => {
 			await writeSettings({});
-			const projectConfigPath = path.join(projectDir, ".omp", "config.yml");
+			const projectConfigPath = path.join(projectDir, ".ngodeai", "config.yml");
 			const original = YAML.stringify({ modelRoles: { default: "keep/default" }, custom: { keep: true } }, null, 2);
 			await Bun.write(projectConfigPath, original);
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
@@ -1094,7 +1094,7 @@ describe("Settings", () => {
 			const malformed = 'modelRoles:\n  default: "unterminated\n';
 			await Promise.all([
 				Bun.write(getConfigPath(), malformed),
-				Bun.write(path.join(projectDir, ".omp", "config.yml"), malformed),
+				Bun.write(path.join(projectDir, ".ngodeai", "config.yml"), malformed),
 			]);
 			const unhandled: unknown[] = [];
 			const onUnhandled = (reason: unknown): void => {
@@ -1106,7 +1106,7 @@ describe("Settings", () => {
 				expect(unhandled).toEqual([]);
 				expect(fs.readdirSync(agentDir).some(name => name.startsWith("config.yml.broken-"))).toBe(true);
 				expect(
-					fs.readdirSync(path.join(projectDir, ".omp")).some(name => name.startsWith("config.yml.broken-")),
+					fs.readdirSync(path.join(projectDir, ".ngodeai")).some(name => name.startsWith("config.yml.broken-")),
 				).toBe(true);
 			} finally {
 				process.removeListener("unhandledRejection", onUnhandled);
@@ -1116,7 +1116,7 @@ describe("Settings", () => {
 
 	describe("live persisted reload", () => {
 		it("rejects malformed live configs without moving them aside or replacing effective settings", async () => {
-			const projectConfigPath = path.join(projectDir, ".omp", "config.yml");
+			const projectConfigPath = path.join(projectDir, ".ngodeai", "config.yml");
 			await writeSettings({
 				setupVersion: 1,
 				modelRoles: { global_role: "openai/global" },
@@ -1639,7 +1639,7 @@ describe("Settings", () => {
 			// Process loads its #global snapshot.
 			const settings = await Settings.init({ cwd: projectDir, agentDir });
 
-			// External edit (another omp instance / manual edit): changes advisor,
+			// External edit (another ngodeai instance / manual edit): changes advisor,
 			// adds vision. This process's #global is now stale.
 			await writeSettings({
 				modelRoles: {

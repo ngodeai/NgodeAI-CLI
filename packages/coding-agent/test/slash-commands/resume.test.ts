@@ -15,7 +15,7 @@ const fallbackAgentDir = path.join(getConfigRootDir(), "agent");
 const storage = new FileSessionStorage();
 
 beforeEach(async () => {
-	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-resume-command-"));
+	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-resume-command-"));
 	setAgentDir(path.join(tempDir, "agent"));
 });
 
@@ -172,7 +172,7 @@ describe("/resume slash command", () => {
 
 	it.skipIf(process.platform === "win32")("lists and resumes sessions stored in XDG_DATA_HOME", async () => {
 		const xdgDataDir = path.join(tempDir, "xdg-data");
-		const xdgOmpDir = path.join(xdgDataDir, "omp");
+		const xdgOmpDir = path.join(xdgDataDir, "ngodeai");
 		await fs.mkdir(xdgOmpDir, { recursive: true });
 
 		const originalXdgData = process.env.XDG_DATA_HOME;

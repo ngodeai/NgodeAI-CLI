@@ -14,7 +14,7 @@ describe("VS Code MCP discovery", () => {
 	let tempCwd = "";
 
 	beforeEach(async () => {
-		tempCwd = await fs.mkdtemp(path.join(os.tmpdir(), "omp-vscode-mcp-"));
+		tempCwd = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-vscode-mcp-"));
 	});
 
 	afterEach(async () => {

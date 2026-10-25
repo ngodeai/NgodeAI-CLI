@@ -217,7 +217,7 @@ function filterChildShellEnvInternal(
 		}
 		if (runtimeLaunchEnvValues || projectEnvNamesLoadedByOmp.has(key)) {
 			// Strong provenance: the launch environment is known and this name is
-			// absent from it, or OMP itself injected the value — either way it came
+			// absent from it, or NGODEAI itself injected the value — either way it came
 			// from a project dotenv file, not the parent shell.
 			const value = result[key];
 			if (value !== undefined) onDotenvValue?.(value);
@@ -260,18 +260,19 @@ export function getDotenvEnvValues(
 }
 
 /**
- * Canonical env prefix. `NGODEAI_FOO` is the name to document and to set in new
- * configs; {@link mirrorEnvAliases} republishes it under the legacy prefixes so
- * the ~240 existing `PI_*`/`OMP_*` read sites keep working unchanged.
+ * Canonical env prefix. `NGODEAI_FOO` is the only documented spelling.
+ *
+ * `OMP_*` is gone for good: the rebrand treats it as a foreign name, so no
+ * alias is published. `PI_*` survives as the single legacy prefix because
+ * third-party plugins and older shells still export it.
  */
 const CANONICAL_ENV_PREFIX = "NGODEAI_";
 
 /** Legacy prefixes, strongest first. Earlier entries win over later ones. */
-const LEGACY_ENV_PREFIXES = ["OMP_", "PI_"] as const;
+const LEGACY_ENV_PREFIXES = ["PI_"] as const;
 
 /**
- * Mirror canonical `NGODEAI_*` names onto the legacy `OMP_*` and `PI_*` aliases,
- * in place, honoring precedence `NGODEAI_ > OMP_ > PI_`.
+ * Mirror canonical `NGODEAI_*` names onto the legacy `PI_*` alias, in place.
  *
  * Mutates `env` so every consumer — `$env`, `process.env`, and spawned children
  * — sees the same resolved value regardless of which prefix the user wrote. An
@@ -297,7 +298,7 @@ export function mirrorEnvAliases(env: Record<string, string | undefined>): void 
 /**
  * Parses a complete .env file with the runtime's dotenv grammar, then retains
  * only shell-identifier names and spawn-safe values before mirroring canonical
- * `NGODEAI_` variables onto their `OMP_`/`PI_` aliases.
+ * `NGODEAI_` variables onto their `NGODEAI_`/`PI_` aliases.
  */
 export function parseEnvFile(filePath: string): Record<string, string> {
 	const result: Record<string, string> = {};
@@ -311,15 +312,8 @@ export function parseEnvFile(filePath: string): Record<string, string> {
 		// File doesn't exist or can't be read - return empty result
 	}
 
-	// NGODEAI_ > OMP_ > PI_ within a single dotenv file.
+	// `NGODEAI_` wins over `PI_` within a single dotenv file.
 	mirrorEnvAliases(result);
-	for (const k in result) {
-		if (k.startsWith("OMP_")) {
-			const alias = `PI_${k.slice(4)}`;
-			if (result[alias] === undefined) result[alias] = result[k];
-		}
-	}
-
 	return result;
 }
 
@@ -478,7 +472,7 @@ export function setInteractiveHost(interactive: boolean): boolean {
  * history.db, stats.db).
  *
  * Interactive hosts tolerate a longer synchronous wait on lock contention
- * (SQLITE_BUSY during WAL recovery/checkpoint — see oh-my-pi#2421): the
+ * (SQLITE_BUSY during WAL recovery/checkpoint — see ngodeai#2421): the
  * operator sees a brief freeze and the statement eventually completes.
  * Headless hosts (print/RPC/ACP/eval/SDK) run a protocol on the same thread —
  * a multi-second synchronous busy-wait freezes their event loop and stalls

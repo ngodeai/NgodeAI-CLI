@@ -12,7 +12,7 @@ import { __resetDirsFromEnvForTests, setAgentDir, TempDir } from "@ngodeai/utils
 
 const originalEnv = {
 	PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,
-	OMP_PROFILE: process.env.OMP_PROFILE,
+	NGODEAI_PROFILE: process.env.NGODEAI_PROFILE,
 	PI_PROFILE: process.env.PI_PROFILE,
 };
 

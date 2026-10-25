@@ -14,7 +14,7 @@ describe("/move directory autocomplete", () => {
 	const values = async (prefix: string) => (await complete(prefix))?.map(item => item.value) ?? null;
 
 	beforeEach(async () => {
-		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-move-autocomplete-"));
+		root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-move-autocomplete-"));
 		projectDir = path.join(root, "project");
 		await fs.mkdir(path.join(projectDir, "alpha"), { recursive: true });
 		await fs.mkdir(path.join(projectDir, "beta"));

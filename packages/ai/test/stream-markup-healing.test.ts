@@ -592,7 +592,7 @@ describe("StreamMarkupHealing DeepSeek template-token spellings", () => {
 		const cases = [
 			[
 				"bash",
-				{ command: 'grep -c "<｜tool▁calls▁end｜>\\|<｜tool_call_begin｜>\\|<tool_call_end｜>" omp.log' },
+				{ command: 'grep -c "<｜tool▁calls▁end｜>\\|<｜tool_call_begin｜>\\|<tool_call_end｜>" ngodeai.log' },
 				"<｜tool_calls_end｜>",
 			],
 			[

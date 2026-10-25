@@ -2,9 +2,9 @@
  * Allowlist anonymizer for session JSONL files.
  *
  * Every field is exported by an explicit rule in {@link FIELD_RULES}: usage, timing, models, ids,
- * tool names, and other metadata omp writes are kept; turn contents become size-annotated markers;
+ * tool names, and other metadata ngodeai writes are kept; turn contents become size-annotated markers;
  * paths become mock paths; shell commands keep program names and flags. A field without a rule —
- * and every payload omp does not define (extension/MCP data, non-built-in tool details or args,
+ * and every payload ngodeai does not define (extension/MCP data, non-built-in tool details or args,
  * `eval` display output) — becomes an opaque marker under a tokenized key. Nothing is kept because
  * of how a value looks.
  *
@@ -26,19 +26,19 @@ export const ANONYMIZED_REVIEW_NOTE =
 	"Turn contents and error text are redacted and paths/literals replaced; metadata such as model names is kept — review before sharing.";
 
 /**
- * Export rule for a field omp writes. Numbers, booleans, and null under any rule except `opaque`
+ * Export rule for a field ngodeai writes. Numbers, booleans, and null under any rule except `opaque`
  * and `label` are kept (counts, sizes, timings, flags).
  * - `num`: numeric/flag field; a string there is redacted.
  * - `time`: ISO timestamp or epoch ms.
- * - `enum`/`identity`: omp- or provider-written identifier (stop reason, model id); other shapes are tokenized.
+ * - `enum`/`identity`: ngode- or provider-written identifier (stop reason, model id); other shapes are tokenized.
  * - `agent`/`spawns`: bundled agent names kept, custom agent names tokenized.
  * - `id`: machine-minted ids kept; named ids mapped like the `agent://` segment they mirror.
  * - `path`/`cmd`: mock paths / shell rewrite. `text`: redaction marker. `label`: placeholder.
  * - `error`: redacted except a leading HTTP status.
  * - `tool`/`name`/`customType`: code-chosen identifiers kept; MCP (user-configured) names tokenized.
- * - `content`: string or content blocks. `struct`: nested omp structure.
+ * - `content`: string or content blocks. `struct`: nested ngodeai structure.
  * - `args`/`details`/`data`: tool-call args, tool-result details, custom-entry data — walked only
- *   for built-in tools / omp's own entries, otherwise opaque.
+ *   for built-in tools / ngodeai's own entries, otherwise opaque.
  * - `runtime`: the build stamp; version and commit kept, branch/diff/label tokenized.
  * - `opaque`: replaced whole by a marker.
  */
@@ -72,7 +72,7 @@ function fields(rule: Rule, keys: readonly string[]): Record<string, Rule> {
 	return Object.fromEntries(keys.map(key => [key, rule]));
 }
 
-/** Every field omp writes in session records, messages, content blocks, and built-in tool details. */
+/** Every field ngodeai writes in session records, messages, content blocks, and built-in tool details. */
 const FIELD_RULES: Record<string, Rule> = {
 	...fields("num", [
 		"version",
@@ -720,7 +720,7 @@ const KEEP_SEGMENTS: Record<string, true> = {
 	".git": true,
 	".github": true,
 	".vscode": true,
-	".omp": true,
+	".ngodeai": true,
 	".claude": true,
 	".cargo": true,
 	agent: true,
@@ -819,7 +819,7 @@ const SHELL_COMMANDS = new Set([
 	"sh",
 	"zsh",
 	"nu",
-	"omp",
+	"ngodeai",
 	"gcc",
 	"clang",
 	"dotnet",
@@ -1093,7 +1093,7 @@ const ENV_NAMES = new Set([
 	"NO_PROXY",
 ]);
 
-/** URI schemes kept verbatim: standard web/file schemes and omp's built-in internal schemes. */
+/** URI schemes kept verbatim: standard web/file schemes and ngodeai's built-in internal schemes. */
 const KNOWN_SCHEMES = new Set([
 	"http",
 	"https",
@@ -1114,7 +1114,7 @@ const KNOWN_SCHEMES = new Set([
 	"mcp",
 	"memory",
 	"mr",
-	"omp",
+	"ngodeai",
 	"pr",
 	"proc",
 	"rule",
@@ -1377,7 +1377,7 @@ export class SessionAnonymizer {
 	}
 
 	/**
-	 * Walk an omp-defined object: ruled fields by rule, unknown fields opaque under a tokenized key.
+	 * Walk an ngode-defined object: ruled fields by rule, unknown fields opaque under a tokenized key.
 	 * `fromTool` marks built-in tool details, whose writer cannot be verified from the transcript.
 	 */
 	#struct(object: JsonObject, fromTool = false): JsonObject {
@@ -1477,7 +1477,7 @@ export class SessionAnonymizer {
 					? this.#struct(value, true)
 					: this.#opaque(value);
 			case "data":
-				// omp's execution log mirrors the tool call; every other custom entry is extension state.
+				// ngodeai's execution log mirrors the tool call; every other custom entry is extension state.
 				return parent.type === "custom" && parent.customType === "tool_execution_start" && isObject(value)
 					? this.#executionLog(value)
 					: this.#opaque(value);
@@ -1507,7 +1507,7 @@ export class SessionAnonymizer {
 					parent.type === "custom_message";
 				return this.#contentBlock(value, untrusted);
 			}
-			// Only structural rules descend; a scalar field holding an object is not omp's shape.
+			// Only structural rules descend; a scalar field holding an object is not ngodeai's shape.
 			const descends = rule === "struct" || rule === "enum" || rule === "id" || rule === "path" || rule === "tool";
 			if (rule === "transforms") {
 				// Provider input transformations address transcript slots (`messages.3.content.0`), not files.
@@ -1542,7 +1542,7 @@ export class SessionAnonymizer {
 							.map(part => this.#string("agent", part.trim(), key, fromTool))
 							.join(",");
 			case "id":
-				// Machine-minted ids omp writes stay joinable with provider logs; tool-written and named
+				// Machine-minted ids ngodeai writes stay joinable with provider logs; tool-written and named
 				// ids (subagent names) are mapped like the `agent://` segment they mirror.
 				return !fromTool && RANDOM_ID.test(value) ? value : this.segment(value);
 			case "path":
@@ -1574,7 +1574,7 @@ export class SessionAnonymizer {
 			case "customType":
 				return /^[a-z][a-z0-9_:.-]{0,63}$/.test(value) ? value : this.placeholder(value);
 			default:
-				// `num`, `text`, `content`: a string here is turn content (or not omp's shape).
+				// `num`, `text`, `content`: a string here is turn content (or not ngodeai's shape).
 				return this.redactText(value);
 		}
 	}

@@ -16,9 +16,9 @@ export default class Anonymize extends Command {
 	};
 
 	static examples = [
-		"omp anonymize",
-		"omp anonymize 01a0285c -o ./bug-report",
-		"omp anonymize ~/.ngodeai/agent/sessions/--work-pi--/session.jsonl",
+		"ngodeai anonymize",
+		"ngodeai anonymize 01a0285c -o ./bug-report",
+		"ngodeai anonymize ~/.ngodeai/agent/sessions/--work-pi--/session.jsonl",
 	];
 
 	async run(): Promise<void> {

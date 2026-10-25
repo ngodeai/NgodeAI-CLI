@@ -18,7 +18,7 @@ afterEach(async () => {
 
 describe("StreamPublisher", () => {
 	it("publishes viewport deltas and ordered resets, then detaches when the streamer closes", async () => {
-		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "omp-stream-publisher-"));
+		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-stream-publisher-"));
 		const endpoint = await streamSocketEndpoint(cwd);
 		const frames: StreamSessionFrame[] = [];
 		const frameWaiters: Array<{ count: number; resolve: () => void }> = [];

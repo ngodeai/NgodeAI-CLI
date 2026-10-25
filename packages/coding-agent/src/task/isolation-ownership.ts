@@ -2,7 +2,7 @@
  * Ownership marker for task-isolation sandboxes under `~/.ngodeai/wt/`.
  *
  * Each isolation base dir (`ensureIsolation` in {@link ./worktree}) holds a
- * compact `m` mount plus this marker file naming the omp process that created
+ * compact `m` mount plus this marker file naming the ngodeai process that created
  * it. `ngodeai worktree clear` consults the marker so it can distinguish a live
  * subagent's sandbox from a crashed run's leftover instead of deleting both.
  */
@@ -13,11 +13,11 @@ import { $ } from "bun";
 const { IsoBackendKind } = natives;
 
 /** Marker file written into a task-isolation base dir identifying its owner. */
-export const ISOLATION_OWNER_FILE = ".omp-isolation-owner.json";
+export const ISOLATION_OWNER_FILE = ".ngode-isolation-owner.json";
 
 /** Recorded owner of a task-isolation sandbox. */
 export interface IsolationOwner {
-	/** PID of the omp process that created and owns the sandbox. */
+	/** PID of the ngodeai process that created and owns the sandbox. */
 	pid: number;
 	/** Task id the sandbox was materialised for. */
 	id: string;
@@ -73,7 +73,7 @@ export async function writeIsolationOwner(baseDir: string, id: string): Promise<
 }
 
 /**
- * Whether a live omp process still owns the sandbox at `baseDir`.
+ * Whether a live ngodeai process still owns the sandbox at `baseDir`.
  *
  * A missing or malformed marker means no verifiable owner — a crashed run or a
  * sandbox from before markers existed, both safe to reclaim. `process.kill(pid,
@@ -109,7 +109,7 @@ export async function hasLiveIsolationOwner(baseDir: string): Promise<boolean> {
 }
 
 /** Sidecar recording the native-teardown backend of a retained workspace. */
-export const RETAINED_BACKEND_FILE = ".omp-retained-backend.json";
+export const RETAINED_BACKEND_FILE = ".ngode-retained-backend.json";
 
 /**
  * Backends whose workspaces `ngodeai worktree clear` must not remove with plain

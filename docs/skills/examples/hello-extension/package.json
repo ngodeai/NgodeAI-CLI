@@ -1,9 +1,9 @@
 {
   "name": "hello-extension",
   "version": "1.0.0",
-  "description": "Minimal omp extension example",
+  "description": "Minimal ngodeai extension example",
   "homepage": "https://ngodeai.net",
-  "omp": {
+  "ngodeai": {
     "extensions": ["./index.ts"]
   }
 }

@@ -1,9 +1,9 @@
 /**
  * Regression test for #3680: third-party extension / hook modules that call
- * `process.exit()` at the top level must not terminate the host OMP process.
+ * `process.exit()` at the top level must not terminate the host NGODEAI process.
  *
  * The harness intercepts the load via `withHostGuard`; this test pins that the
- * intercepted error surfaces as a per-module load failure (so OMP keeps going)
+ * intercepted error surfaces as a per-module load failure (so NGODEAI keeps going)
  * instead of crashing the test runner.
  */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
@@ -18,7 +18,7 @@ describe("extension/hook loader process.exit guard (#3680)", () => {
 	let project: TempDir | undefined;
 
 	beforeEach(() => {
-		project = TempDir.createSync("@omp-exit-guard-");
+		project = TempDir.createSync("@ngode-exit-guard-");
 	});
 
 	afterEach(() => {

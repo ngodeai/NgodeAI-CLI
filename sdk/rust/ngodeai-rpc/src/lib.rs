@@ -1,4 +1,4 @@
-//! Rust client for the NgodeAI RPC protocol: JSON lines over the stdio of `omp
+//! Rust client for the NgodeAI RPC protocol: JSON lines over the stdio of `ngodeai
 //! --mode rpc`.
 //!
 //! [`wire`] is generated from the wire schema by `bun run gen:rpc`; [`client`]

@@ -6,9 +6,9 @@
  * - success returns the output value; the input is returned as-is unless the
  *   schema morphs (defaults, `"+": "delete"`, embedded stepped schemas), in
  *   which case a fresh object/array is produced and the input is untouched
- * - failure returns an `OmpErrors` with a single fast-fail entry
+ * - failure returns an `NgodeErrors` with a single fast-fail entry
  */
-import { MISSING, OmpErrors } from "./errors";
+import { MISSING, NgodeErrors } from "./errors";
 import { expectedOf, hasAlias, hasMorph, type IR } from "./ir";
 
 const own = Object.prototype.hasOwnProperty;
@@ -22,7 +22,7 @@ let activeVisits: WeakMap<object, Set<IR>> | undefined;
 let activeChecks: WeakMap<object, Set<IR>> | undefined;
 
 /**
- * Validate `value` against `ir`; returns output value or `OmpErrors`.
+ * Validate `value` against `ir`; returns output value or `NgodeErrors`.
  * `path` seeds the traversal location so nested step callbacks observe
  * absolute ctx.path values when a compiled parent delegates a subtree;
  * resulting error paths are then already absolute.
@@ -41,9 +41,9 @@ export function walk(ir: IR, value: unknown, path: PropertyKey[] = []): unknown 
 	}
 }
 
-function fail(path: PropertyKey[], expected: string, data: unknown): OmpErrors {
+function fail(path: PropertyKey[], expected: string, data: unknown): NgodeErrors {
 	const storedPath = path.length === 0 ? undefined : path.length === 1 ? path[0] : [...path];
-	return new OmpErrors(storedPath, expected, data);
+	return new NgodeErrors(storedPath, expected, data);
 }
 
 /** Pure predicate used for union-member scanning (no morphs, no errors). */
@@ -192,7 +192,7 @@ function checkNode(ir: IR, v: unknown): boolean {
 		case "morph":
 			return checks(ir.input, v);
 		case "sub":
-			return !(ir.schema.run(v) instanceof OmpErrors);
+			return !(ir.schema.run(v) instanceof NgodeErrors);
 	}
 }
 
@@ -217,7 +217,7 @@ function visit(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 /** Run the node visitor, then apply node-local error configuration. */
 function visitFinish(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 	const out = visitNode(ir, v, path);
-	if (!(out instanceof OmpErrors) || ir.cfg === undefined) return out;
+	if (!(out instanceof NgodeErrors) || ir.cfg === undefined) return out;
 	for (const error of out) {
 		if (error.path.length !== path.length) return out;
 	}
@@ -230,10 +230,10 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 			return visit(ir.resolve(), v, path);
 		case "refine": {
 			const base = visit(ir.base, v, path);
-			if (base instanceof OmpErrors) return base;
+			if (base instanceof NgodeErrors) return base;
 			try {
 				const result = ir.pred(base);
-				if (result instanceof OmpErrors) return path.length === 0 ? result : prefixAll(result, path);
+				if (result instanceof NgodeErrors) return path.length === 0 ? result : prefixAll(result, path);
 				return result ? base : fail(path, ir.expected, base);
 			} catch {
 				return fail(path, ir.expected, base);
@@ -241,26 +241,26 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 		}
 		case "morph": {
 			const input = visit(ir.input, v, path);
-			if (input instanceof OmpErrors) return input;
+			if (input instanceof NgodeErrors) return input;
 			const context = {
 				error: (expected: string, data: unknown = input) => fail(path, expected, data),
 				reject: (problem: string, data: unknown = input) => fail(path, problem, data),
 			};
 			const output = ir.fn(input, context);
-			if (output instanceof OmpErrors) return output;
+			if (output instanceof NgodeErrors) return output;
 			return ir.out === undefined ? output : visit(ir.out, output, path);
 		}
 		case "intersection": {
 			let output = v;
 			for (const member of ir.members) {
 				output = visit(member, output, path);
-				if (output instanceof OmpErrors) return output;
+				if (output instanceof NgodeErrors) return output;
 			}
 			return output;
 		}
 		case "sub": {
 			const out = ir.schema.run(v, path);
-			if (out instanceof OmpErrors) {
+			if (out instanceof NgodeErrors) {
 				return path.length === 0 ? out : prefixAll(out, path);
 			}
 			return out;
@@ -273,12 +273,12 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 					return v;
 				}
 			}
-			let targeted: OmpErrors | undefined;
+			let targeted: NgodeErrors | undefined;
 			let targetCount = 0;
 			for (const member of ir.members) {
 				if (member.k === "sub" || hasMorph(member)) {
 					const out = visit(member, v, path);
-					if (!(out instanceof OmpErrors)) return out;
+					if (!(out instanceof NgodeErrors)) return out;
 					if (kindMatches(unwrapBase(member), v)) {
 						targetCount++;
 						targeted ??= out;
@@ -295,12 +295,12 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 			const morph = hasMorph(ir.el);
 			// oxlint-disable-next-line unicorn/no-new-array -- length preallocation
 			const out = morph ? new Array<unknown>(v.length) : v;
-			let errors: OmpErrors | undefined;
+			let errors: NgodeErrors | undefined;
 			for (let index = 0; index < v.length; index++) {
 				path.push(index);
 				const element = visit(ir.el, v[index], path);
 				path.pop();
-				if (element instanceof OmpErrors) {
+				if (element instanceof NgodeErrors) {
 					if (errors) errors.append(element);
 					else errors = element;
 				} else if (morph) {
@@ -322,12 +322,12 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 			const prefixCount = Math.min(ir.prefix.length, postfixStart);
 			const morph = hasMorph(ir);
 			const output = morph ? [...v] : v;
-			let errors: OmpErrors | undefined;
+			let errors: NgodeErrors | undefined;
 			for (let index = 0; index < prefixCount; index++) {
 				path.push(index);
 				const item = visit(ir.prefix[index].val, v[index], path);
 				path.pop();
-				if (item instanceof OmpErrors) {
+				if (item instanceof NgodeErrors) {
 					if (errors) errors.append(item);
 					else errors = item;
 				} else if (morph) {
@@ -342,7 +342,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 						path.push(index);
 						const resolved = visit(item.val, payload(), path);
 						path.pop();
-						if (resolved instanceof OmpErrors) {
+						if (resolved instanceof NgodeErrors) {
 							if (errors) errors.append(resolved);
 							else errors = resolved;
 						} else {
@@ -364,7 +364,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 					path.push(index);
 					const item = visit(ir.variadic, v[index], path);
 					path.pop();
-					if (item instanceof OmpErrors) {
+					if (item instanceof NgodeErrors) {
 						if (errors) errors.append(item);
 						else errors = item;
 					} else if (morph) {
@@ -377,7 +377,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 				path.push(inputIndex);
 				const item = visit(ir.postfix[index], v[inputIndex], path);
 				path.pop();
-				if (item instanceof OmpErrors) {
+				if (item instanceof NgodeErrors) {
 					if (errors) errors.append(item);
 					else errors = item;
 				} else if (morph) {
@@ -391,7 +391,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 			const rec = v as Record<PropertyKey, unknown>;
 			const morph = hasMorph(ir);
 			let out: Record<PropertyKey, unknown> | undefined;
-			let errors: OmpErrors | undefined;
+			let errors: NgodeErrors | undefined;
 			if (morph) {
 				if (
 					ir.extras === "delete" &&
@@ -412,7 +412,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 							path.push(p.key);
 							const resolved = visit(p.val, payload(), path);
 							path.pop();
-							if (resolved instanceof OmpErrors) {
+							if (resolved instanceof NgodeErrors) {
 								if (errors) errors.append(resolved);
 								else errors = resolved;
 							} else {
@@ -434,7 +434,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 				path.push(p.key);
 				const result = visit(p.val, rec[p.key], path);
 				path.pop();
-				if (result instanceof OmpErrors) {
+				if (result instanceof NgodeErrors) {
 					if (errors) errors.append(result);
 					else errors = result;
 				} else if (out) {
@@ -449,7 +449,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 					path.push(key);
 					const result = visit(ir.index, rec[key], path);
 					path.pop();
-					if (result instanceof OmpErrors) {
+					if (result instanceof NgodeErrors) {
 						if (errors) errors.append(result);
 						else errors = result;
 					} else if (out) {
@@ -463,7 +463,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 						path.push(key);
 						const result = visit(pattern.val, rec[key], path);
 						path.pop();
-						if (result instanceof OmpErrors) {
+						if (result instanceof NgodeErrors) {
 							if (errors) errors.append(result);
 							else errors = result;
 						} else if (out) {
@@ -485,7 +485,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 					path.push(key);
 					const result = visit(ir.symbolIndex, rec[key], path);
 					path.pop();
-					if (result instanceof OmpErrors) {
+					if (result instanceof NgodeErrors) {
 						if (errors) errors.append(result);
 						else errors = result;
 					} else if (out) {
@@ -510,7 +510,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 		}
 		case "number": {
 			if (typeof v !== "number" || !Number.isFinite(v)) return fail(path, ir.int ? "an integer" : "a number", v);
-			let errors: OmpErrors | undefined;
+			let errors: NgodeErrors | undefined;
 			const add = (expected: string): void => {
 				const error = fail(path, expected, v);
 				if (errors) errors.append(error);
@@ -562,7 +562,7 @@ function visitNode(ir: IR, v: unknown, path: PropertyKey[]): unknown {
 	}
 }
 
-function prefixAll(errs: OmpErrors, path: PropertyKey[]): OmpErrors {
+function prefixAll(errs: NgodeErrors, path: PropertyKey[]): NgodeErrors {
 	for (let i = path.length - 1; i >= 0; i--) errs.prefix(path[i]);
 	return errs;
 }
@@ -582,7 +582,7 @@ export function canRefineUnionFailure(member: IR): boolean {
  * for a precise nested error (paths, narrow messages) instead of the coarse
  * "A or B" expectation.
  */
-export function unionFail(ir: IR & { k: "union" }, v: unknown, path: PropertyKey[], expected?: string): OmpErrors {
+export function unionFail(ir: IR & { k: "union" }, v: unknown, path: PropertyKey[], expected?: string): NgodeErrors {
 	let best: IR | undefined;
 	for (const member of ir.members) {
 		const base = unwrapBase(member);
@@ -599,12 +599,12 @@ export function unionFail(ir: IR & { k: "union" }, v: unknown, path: PropertyKey
 	}
 	if (best !== undefined) {
 		const out = visit(best, v, path);
-		if (out instanceof OmpErrors) return out;
+		if (out instanceof NgodeErrors) return out;
 	}
 	if (ir.members.every(member => unwrapBase(member).k === "object")) {
 		const branches = ir.members.flatMap(member => {
 			const result = visit(member, v, path);
-			return result instanceof OmpErrors ? [[...result]] : [];
+			return result instanceof NgodeErrors ? [[...result]] : [];
 		});
 		if (branches.length !== 0) {
 			const common = branches[0].filter(
@@ -612,7 +612,7 @@ export function unionFail(ir: IR & { k: "union" }, v: unknown, path: PropertyKey
 					first.findIndex(candidate => pathsEqual(candidate.path, entry.path)) === index &&
 					branches.every(branch => branch.some(candidate => pathsEqual(candidate.path, entry.path))),
 			);
-			const alternatives: OmpErrors[] = [];
+			const alternatives: NgodeErrors[] = [];
 			if (common.length !== 0) {
 				for (const entry of common) {
 					const expectations = new Set<string>();
@@ -624,14 +624,14 @@ export function unionFail(ir: IR & { k: "union" }, v: unknown, path: PropertyKey
 						}
 					}
 					alternatives.push(
-						new OmpErrors(entry.path, [...expectations].join(" or "), entry.data, { preserveActual: true }),
+						new NgodeErrors(entry.path, [...expectations].join(" or "), entry.data, { preserveActual: true }),
 					);
 				}
 			} else {
 				for (const branch of branches) {
 					for (const entry of branch) {
 						alternatives.push(
-							new OmpErrors(
+							new NgodeErrors(
 								entry.path,
 								entry.expected.endsWith(" instance") ? "an object" : entry.expected,
 								entry.data,
@@ -695,7 +695,7 @@ function valueAtPath(value: unknown, path: readonly PropertyKey[]): { present: b
 	return { present: true, value: cursor };
 }
 
-function discriminateFailure(members: IR[], value: unknown, path: PropertyKey[]): OmpErrors | undefined {
+function discriminateFailure(members: IR[], value: unknown, path: PropertyKey[]): NgodeErrors | undefined {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
 	const byMember = members.map(member => collectDiscriminants(member));
 	const candidates: { path: PropertyKey[]; distinct: number; declared: number }[] = [];
@@ -740,7 +740,7 @@ function discriminateFailure(members: IR[], value: unknown, path: PropertyKey[])
 		}
 		if (exact.length === 1) {
 			const result = visit(exact[0], value, path);
-			return result instanceof OmpErrors ? result : undefined;
+			return result instanceof NgodeErrors ? result : undefined;
 		}
 		const nested = discriminateFailure(exact, value, path);
 		if (nested !== undefined) return nested;

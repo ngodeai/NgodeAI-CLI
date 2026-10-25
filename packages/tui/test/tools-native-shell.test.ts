@@ -87,7 +87,11 @@ describe("bash native run box", () => {
 		expect(role(box)).toBe("ngodeai.run");
 		expect(box?.key).toBe("run");
 		expect(props(box).tone).toBeUndefined();
-		expect(sections(box)).toEqual(["code:ngodeai.tool.bash.command", "ansi:ngodeai.tool.bash.output", "row:ngodeai.run.foot"]);
+		expect(sections(box)).toEqual([
+			"code:ngodeai.tool.bash.command",
+			"ansi:ngodeai.tool.bash.output",
+			"row:ngodeai.run.foot",
+		]);
 		const [input, output] = nodes(box?.c);
 		expect(props(input)).toMatchObject({ text: 'CI="1" make', wrap: true, preview: { lines: 6 } });
 		expect(props(output)).toMatchObject({ text: "built", follow: true, preview: { lines: 10 } });
@@ -425,7 +429,11 @@ describe("eval native run boxes", () => {
 		expect(rest).toEqual([]);
 		expect(box?.key).toBe("cell-0");
 		// A single cell has no caption; its source keeps no trailing blank line.
-		expect(sections(box)).toEqual(["code:ngodeai.tool.eval.input", "ansi:ngodeai.tool.eval.output", "row:ngodeai.run.foot"]);
+		expect(sections(box)).toEqual([
+			"code:ngodeai.tool.eval.input",
+			"ansi:ngodeai.tool.eval.output",
+			"row:ngodeai.run.foot",
+		]);
 		expect(props(nodes(box?.c)[0])).toMatchObject({ text: "x = 1\nprint(x)", wrap: false, preview: { lines: 6 } });
 		expect(props(nodes(box?.c)[1])).toMatchObject({ follow: true, preview: { lines: 10 } });
 		expect(foot(box)).toMatchObject({ state: "Done", tone: "success", time: { age: 120, stopped: 120 } });
@@ -677,7 +685,11 @@ describe("user shell runs", () => {
 		const [box, image] = nodes(described.c);
 		expect(role(box)).toBe("ngodeai.run");
 		expect(props(box).tone).toBe("error");
-		expect(sections(box)).toEqual(["code:ngodeai.tool.bash.command", "ansi:ngodeai.tool.bash.output", "row:ngodeai.run.foot"]);
+		expect(sections(box)).toEqual([
+			"code:ngodeai.tool.bash.command",
+			"ansi:ngodeai.tool.bash.output",
+			"row:ngodeai.run.foot",
+		]);
 		expect(props(nodes(box?.c)[1])).toMatchObject({ follow: true, preview: { lines: 10 } });
 		expect(foot(box)).toMatchObject({ state: "exit 1", tone: "error" });
 		expect(foot(box)?.time?.stopped).toBeNumber();

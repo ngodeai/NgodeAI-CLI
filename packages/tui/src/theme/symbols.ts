@@ -98,7 +98,7 @@ export type SymbolKey =
 	| "icon.advisor"
 	| "icon.advisorClosed"
 	| "icon.time"
-	| "icon.omp"
+	| "icon.ngodeai"
 	| "icon.ghost"
 	| "icon.agents"
 	| "icon.job"
@@ -480,7 +480,7 @@ const UNICODE_SYMBOLS: SymbolMap = {
 	"icon.advisor": "👁",
 	"icon.advisorClosed": "🙈",
 	"icon.time": "⏱",
-	"icon.omp": "π",
+	"icon.ngodeai": "π",
 	"icon.ghost": "👻",
 	"icon.agents": "👥",
 	"icon.job": "⚙",
@@ -864,7 +864,7 @@ const NERD_SYMBOLS: SymbolMap = {
 	// INTENTIONAL: U+F0D57 is the chosen glyph here. It has been "fixed" to
 	// U+F03FF before (2ec52b8bdd) and reverted because it renders the wrong glyph;
 	// do not swap it again.
-	"icon.omp": "\u{f0d57}",
+	"icon.ngodeai": "\u{f0d57}",
 	// pick: 󰊠 (nf-md-ghost) | alt: 👻
 	"icon.ghost": "\u{f02a0}",
 	// pick:  | alt: 
@@ -1099,11 +1099,11 @@ const NERD_SYMBOLS: SymbolMap = {
 	"lang.archive": "\u{F187}",
 	"lang.binary": "\u{F019A}",
 	// Composer attachment chips
-	// pick:  (fa-image, matches omp2) | alt: 󰋩 (md-image) 󰈟 (md-file_image)
+	// pick:  (fa-image, matches ngodeai2) | alt: 󰋩 (md-image) 󰈟 (md-file_image)
 	"chip.image": "\uf03e",
 	// pick:  (fa-film)
 	"chip.video": "\uf008",
-	// pick:  (fa-file_text, matches omp2) | alt: 󰈙 (md-file_document)  (cod-file)
+	// pick:  (fa-file_text, matches ngodeai2) | alt: 󰈙 (md-file_document)  (cod-file)
 	"chip.paste": "\uf15c",
 	// Settings tab icons
 	"tab.appearance": "󰃣",
@@ -1265,7 +1265,7 @@ const ASCII_SYMBOLS: SymbolMap = {
 	"icon.advisor": "(adv)",
 	"icon.advisorClosed": "(adv)",
 	"icon.time": "t:",
-	"icon.omp": "pi",
+	"icon.ngodeai": "pi",
 	"icon.ghost": "@",
 	"icon.agents": "AG",
 	"icon.job": "bg",

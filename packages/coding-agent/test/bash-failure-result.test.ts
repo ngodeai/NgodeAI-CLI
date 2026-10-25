@@ -139,7 +139,7 @@ describe("BashTool execution results", () => {
 			getSessionId: () => "session-fg-shell",
 			sessionManager: { getSessionId: () => "session-fg" },
 		} as unknown as ToolSession);
-		// The session's persistent shell carries a value an earlier command (or a parent omp) left behind.
+		// The session's persistent shell carries a value an earlier command (or a parent ngodeai) left behind.
 		await tool.execute("call-stale", { command: "export PI_SESSION_FILE=/stale/parent.jsonl" });
 		const result = await tool.execute("call-env", {
 			command: `printf '%s|%s|' "$PI_SESSION_ID" "$PI_SESSION_FILE"`,

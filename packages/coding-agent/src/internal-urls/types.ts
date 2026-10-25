@@ -299,7 +299,7 @@ export interface ResolveContext {
 	 * Required for correctness in multi-session hosts (cmux/ACP, embedded SDK
 	 * consumers) where multiple sessions are registered as `main` and the
 	 * "first one wins" lookup picks the wrong artifacts directory — see
-	 * [#1608](https://github.com/can1357/oh-my-pi/issues/1608).
+	 * [#1608](https://github.com/can1357/ngodeai/issues/1608).
 	 */
 	localProtocolOptions?: LocalProtocolOptions;
 	/** Calling session's loaded skills. Prefer this over process-global skill state. */
@@ -412,7 +412,7 @@ export interface ProtocolHandler {
 	 */
 	locateSync?(url: InternalUrl, context?: ResolveContext): string | undefined;
 	/**
-	 * Expand a virtual container URL (e.g. `omp://`) into its searchable
+	 * Expand a virtual container URL (e.g. `ngodeai://`) into its searchable
 	 * leaf documents for `grep`/`find`. Leaf `url`s must round-trip through `resolve`.
 	 */
 	enumerate?(url: InternalUrl, context?: ResolveContext): Promise<Array<{ url: string; content: string }>>;

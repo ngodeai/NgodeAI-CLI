@@ -187,7 +187,7 @@ describe("MCPManager.updateServerConfig", () => {
 	});
 
 	test("returns the in-flight reconnection so a fresh attempt can supersede it", async () => {
-		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "omp-manager-update-"));
+		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-manager-update-"));
 		// Drive a real reconnect: the connect hangs until released, then fails;
 		// the attempt aborts on the identity check once the definition is
 		// replaced (no retry ladder is walked on that path).

@@ -162,7 +162,7 @@ function hasPasteText(value: unknown): value is PasteTarget {
 const SHELL_PROMPT_COMMAND_RE =
 	/^(?:\.{0,2}\/|~\/|cd(?:\s|$)|sudo(?:\s|$)|git(?:\s|$)|bun(?:\s|$)|npm(?:\s|$)|pnpm(?:\s|$)|yarn(?:\s|$)|node(?:\s|$)|python\d*(?:\s|$)|cargo(?:\s|$)|go(?:\s|$)|make(?:\s|$)|docker(?:\s|$)|kubectl(?:\s|$))/;
 const SHELL_PROMPT_OPERATOR_RE = /(?:^|\s)(?:&&|\|\||\||2>&1|[<>]{1,2})(?:\s|$)/;
-const OMP_STATUS_LINE_RE = /^\s*in:\s+\d+\s+out:\s+\d+(?:\s+cache\s+\S+)?\s+t:\s+\S+\s+tok\/s:\s+\S+/m;
+const NGODEAI_STATUS_LINE_RE = /^\s*in:\s+\d+\s+out:\s+\d+(?:\s+cache\s+\S+)?\s+t:\s+\S+\s+tok\/s:\s+\S+/m;
 
 /**
  * Slash commands that also run from a focused subagent view, keyed by canonical name to
@@ -195,7 +195,7 @@ function looksLikePastedShellPrompt(code: string): boolean {
 	return (
 		SHELL_PROMPT_COMMAND_RE.test(firstLine) ||
 		SHELL_PROMPT_OPERATOR_RE.test(firstLine) ||
-		OMP_STATUS_LINE_RE.test(code)
+		NGODEAI_STATUS_LINE_RE.test(code)
 	);
 }
 
@@ -1596,15 +1596,15 @@ export class InputController {
 			// for a given SignalKind permanently replaces the kernel-default
 			// handler for the lifetime of the process. So once the user has
 			// issued even one bash command — e.g. `/usr/bin/true` — SIGTSTP no
-			// longer stops omp: tokio swallows it and the TUI ends up torn down
+			// longer stops ngodeai: tokio swallows it and the TUI ends up torn down
 			// while the process keeps running with no live terminal (issue
 			// [#3461]). SIGSTOP cannot be caught, blocked, or ignored, so the
 			// kernel stops the process regardless of installed handlers.
 			//
-			// pid=0 (foreground process group, not just our PID): omp is not
+			// pid=0 (foreground process group, not just our PID): ngodeai is not
 			// always the shell's direct child. Package-manager launchers (`npx`,
 			// `pnpm exec`, `bunx`, …) wait on the real CLI from a parent shim
-			// that shares omp's process group, and a `omp … | tee log` style
+			// that shares ngodeai's process group, and a `ngodeai … | tee log` style
 			// pipeline puts a sibling foreground job member in the same group
 			// too. The shell sees the job as stopped only when its direct
 			// child / pipeline leader is stopped, so suspending only our PID
@@ -2817,7 +2817,7 @@ export class InputController {
 
 		try {
 			this.ctx.ui.stop();
-			const result = await openInEditor(editorCmd, currentText, { extension: ".omp.md" });
+			const result = await openInEditor(editorCmd, currentText, { extension: ".ngodeai.md" });
 			if (result !== null) {
 				this.ctx.editor.setText(result);
 			}

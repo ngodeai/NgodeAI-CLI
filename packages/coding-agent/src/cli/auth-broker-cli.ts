@@ -102,7 +102,7 @@ async function ensureToken(): Promise<string> {
 /**
  * OAuth refresh handler for `ngodeai auth-broker serve`'s {@link AuthStorage}.
  *
- * The vault holds provider OAuth rows AND OMP-managed `mcp_oauth:*` rows.
+ * The vault holds provider OAuth rows AND NGODEAI-managed `mcp_oauth:*` rows.
  * Provider rows refresh through the per-provider registry. MCP rows are
  * self-describing — the embedded token endpoint and client credentials are the
  * only refresh material — so they refresh with a generic `refresh_token` grant.
@@ -192,7 +192,9 @@ async function runToken(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 
 async function runLogin(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 	if (flags.via && !flags.provider) {
-		throw new Error("Usage: omp auth-broker login <provider> --via=user@host (provider required for remote login)");
+		throw new Error(
+			"Usage: ngodeai auth-broker login <provider> --via=user@host (provider required for remote login)",
+		);
 	}
 	const providers = getOAuthProviders();
 	// One interface for picker + login prompts; closed before `--via` hands
@@ -307,7 +309,7 @@ async function runList(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 // ─── CLIProxyAPI import ─────────────────────────────────────────────────
 
 /**
- * Maps the `type` field of a CLIProxyAPI credential JSON to the omp provider id.
+ * Maps the `type` field of a CLIProxyAPI credential JSON to the ngodeai provider id.
  * The filename also encodes the type (e.g. `claude-foo@bar.json`), but the
  * in-file `type` is authoritative — we only fall back to filename if absent.
  */
@@ -403,7 +405,7 @@ async function loadImportPlan(
 		if (!provider) {
 			skipped.push({
 				file,
-				reason: `cannot determine omp provider from type=${json.type ?? "?"} (pass --provider to override)`,
+				reason: `cannot determine ngodeai provider from type=${json.type ?? "?"} (pass --provider to override)`,
 			});
 			continue;
 		}
@@ -449,7 +451,9 @@ function describeImportEntry(entry: ImportPlanEntry): string {
 async function runImport(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 	const target = flags.source;
 	if (!target) {
-		throw new Error("Usage: omp auth-broker import <file|dir> [--provider=<id>] [--include-disabled] [--dry-run]");
+		throw new Error(
+			"Usage: ngodeai auth-broker import <file|dir> [--provider=<id>] [--include-disabled] [--dry-run]",
+		);
 	}
 	const resolvedTarget = path.resolve(target.startsWith("~") ? target.replace(/^~/, os.homedir()) : target);
 	const { entries, skipped } = await loadImportPlan(resolvedTarget, flags.provider, flags.includeDisabled === true);
@@ -575,7 +579,7 @@ async function runMigrate(flags: AuthBrokerCommandArgs["flags"]): Promise<void> 
 	const brokerConfig = await resolveAuthBrokerConfig();
 	if (!brokerConfig) {
 		throw new Error(
-			"OMP_AUTH_BROKER_URL must be set (or `auth.broker.url` in config.yml). `migrate` uploads local credentials to a configured broker.",
+			"NGODEAI_AUTH_BROKER_URL must be set (or `auth.broker.url` in config.yml). `migrate` uploads local credentials to a configured broker.",
 		);
 	}
 	if (flags.fromLocal !== true) {
@@ -728,7 +732,7 @@ async function runMigrate(flags: AuthBrokerCommandArgs["flags"]): Promise<void> 
 async function runStatus(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 	const cfg = await resolveAuthBrokerConfig();
 	if (!cfg) {
-		const message = "No auth-broker configured (set OMP_AUTH_BROKER_URL to enable).";
+		const message = "No auth-broker configured (set NGODEAI_AUTH_BROKER_URL to enable).";
 		if (flags.json) process.stdout.write(`${JSON.stringify({ ok: false, reason: "not_configured" })}\n`);
 		else process.stdout.write(`${chalk.yellow(message)}\n`);
 		return;

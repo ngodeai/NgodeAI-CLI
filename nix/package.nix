@@ -58,7 +58,7 @@ let
         rustFlags = "-C target-cpu=x86-64-v2";
       };
     }
-    .${stdenv.hostPlatform.system} or (throw "Unsupported OMP platform: ${stdenv.hostPlatform.system}");
+    .${stdenv.hostPlatform.system} or (throw "Unsupported NGODEAI platform: ${stdenv.hostPlatform.system}");
   patchedDependencies = lib.mapAttrs (
     _: patch: source + "/${patch}"
   ) rootPackageJson.patchedDependencies;
@@ -255,12 +255,12 @@ stdenv.mkDerivation {
   # soname from the already-loaded set, regardless of the addon's own DT_RUNPATH.
   # stdenv.cc.cc.lib is already in buildInputs, so the autoPatchelfHook pass that
   # follows resolves the new dependency and sets the RPATH. patchelf must run before
-  # wrapProgram: the wrapper replaces $out/bin/omp with a script and moves the ELF
+  # wrapProgram: the wrapper replaces $out/bin/ngodeai with a script and moves the ELF
   # to $out/bin/.ngodeai-wrapped.
   postFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
     patchelf --add-needed libstdc++.so.6 "$out/bin/ngodeai"
     wrapProgram "$out/bin/ngodeai" \
-      --set-default OMP_NATIVE_LIBRARY_PATH "${lib.makeLibraryPath runtimeNativeLibraries}"
+      --set-default NGODEAI_NATIVE_LIBRARY_PATH "${lib.makeLibraryPath runtimeNativeLibraries}"
   '';
 
   disallowedReferences = [ bun ];
@@ -282,9 +282,9 @@ stdenv.mkDerivation {
   doInstallCheck = true;
   installCheckPhase = ''
     runHook preInstallCheck
-    # Capture rather than pipe into grep: piping masks a signal death of omp
+    # Capture rather than pipe into grep: piping masks a signal death of ngodeai
     # under `set -o pipefail` (grep -q's exit status wins), which hid the
-    # loader SIGSEGV in issue #9881. With a variable, errexit surfaces omp's
+    # loader SIGSEGV in issue #9881. With a variable, errexit surfaces ngodeai's
     # real exit status and stderr in the build log.
     smokeOutput="$(HOME="$TMPDIR" "$out/bin/ngodeai" --smoke-test)"
     grep -q "smoke-test: ok" <<<"$smokeOutput"
@@ -294,10 +294,10 @@ stdenv.mkDerivation {
       # The addons are dlopen'd, so prove the advertised directories actually
       # resolve the libraries rather than merely carrying a plausible string.
       env -u LD_LIBRARY_PATH BUN_BE_BUN=1 "$out/bin/ngodeai" -e \
-        'const {dlopen}=require("bun:ffi");const dirs=(process.env.OMP_NATIVE_LIBRARY_PATH||"").split(":").filter(Boolean);const need={"libstdc++.so.6":{__cxa_demangle:{args:["ptr","ptr","ptr","ptr"],returns:"ptr"}},"libgcc_s.so.1":{_Unwind_Backtrace:{args:["ptr","ptr"],returns:"i32"}}};for(const lib of Object.keys(need)){let ok=false;for(const d of dirs){try{dlopen(d+"/"+lib,need[lib]);ok=true;break}catch(e){}}if(!ok){console.error("unresolved: "+lib);process.exit(1)}}'
+        'const {dlopen}=require("bun:ffi");const dirs=(process.env.NGODEAI_NATIVE_LIBRARY_PATH||"").split(":").filter(Boolean);const need={"libstdc++.so.6":{__cxa_demangle:{args:["ptr","ptr","ptr","ptr"],returns:"ptr"}},"libgcc_s.so.1":{_Unwind_Backtrace:{args:["ptr","ptr"],returns:"i32"}}};for(const lib of Object.keys(need)){let ok=false;for(const d of dirs){try{dlopen(d+"/"+lib,need[lib]);ok=true;break}catch(e){}}if(!ok){console.error("unresolved: "+lib);process.exit(1)}}'
       # The libstdc++ preload (see postFixup) must survive: without it addons the
       # main process dlopen's directly fail to resolve libstdc++.so.6 on NixOS.
-      # wrapProgram moved the real ELF to .omp-wrapped.
+      # wrapProgram moved the real ELF to .ngode-wrapped.
       patchelf --print-needed "$out/bin/.ngodeai-wrapped" | grep -q '^libstdc++\.so\.6$'
     ''}${
       lib.optionalString (cudaSupport && stdenv.hostPlatform.isLinux && cudaPackages_13 != null) ''
@@ -308,7 +308,7 @@ stdenv.mkDerivation {
         # lives at the host's driver link, which does not exist in this sandbox
         # and is not a property of the build.
         env -u LD_LIBRARY_PATH BUN_BE_BUN=1 "$out/bin/ngodeai" -e \
-          'const {dlopen}=require("bun:ffi");const dirs=(process.env.OMP_NATIVE_LIBRARY_PATH||"").split(":").filter(Boolean);const need={"libcublasLt.so.13":{cublasLtGetVersion:{args:[],returns:"ptr"}},"libcublas.so.13":{cublasGetVersion:{args:[],returns:"ptr"}},"libcurand.so.10":{curandGetVersion:{args:["ptr"],returns:"i32"}},"libcudart.so.13":{cudaRuntimeGetVersion:{args:["ptr"],returns:"i32"}}};for(const lib of Object.keys(need)){let ok=false;for(const d of dirs){try{dlopen(d+"/"+lib,need[lib]);ok=true;break}catch(e){}}if(!ok){console.error("unresolved: "+lib);process.exit(1)}}'
+          'const {dlopen}=require("bun:ffi");const dirs=(process.env.NGODEAI_NATIVE_LIBRARY_PATH||"").split(":").filter(Boolean);const need={"libcublasLt.so.13":{cublasLtGetVersion:{args:[],returns:"ptr"}},"libcublas.so.13":{cublasGetVersion:{args:[],returns:"ptr"}},"libcurand.so.10":{curandGetVersion:{args:["ptr"],returns:"i32"}},"libcudart.so.13":{cudaRuntimeGetVersion:{args:["ptr"],returns:"i32"}}};for(const lib of Object.keys(need)){let ok=false;for(const d of dirs){try{dlopen(d+"/"+lib,need[lib]);ok=true;break}catch(e){}}if(!ok){console.error("unresolved: "+lib);process.exit(1)}}'
       ''
     }
     ${lib.optionalString stdenv.hostPlatform.isDarwin ''
@@ -329,10 +329,10 @@ stdenv.mkDerivation {
 
   meta = {
     description = "Terminal-based coding agent with multi-model support";
-    homepage = "https://omp.sh";
-    changelog = "https://github.com/can1357/oh-my-pi/releases/tag/v${packageJson.version}";
+    homepage = "https://ngodeai.net";
+    changelog = "https://github.com/can1357/ngodeai/releases/tag/v${packageJson.version}";
     license = lib.licenses.mit;
-    mainProgram = "omp";
+    mainProgram = "ngodeai";
     platforms = [
       "aarch64-darwin"
       "aarch64-linux"

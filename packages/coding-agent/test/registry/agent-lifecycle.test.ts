@@ -718,7 +718,7 @@ describe("AgentLifecycleManager", () => {
 	});
 
 	it("tombstone release keeps a killed ref as terminal `aborted` so a persisted-subagent rescan cannot resurrect it as parked", async () => {
-		using tempDir = TempDir.createSync("@omp-lifecycle-tombstone-");
+		using tempDir = TempDir.createSync("@ngode-lifecycle-tombstone-");
 		const rootSessionFile = path.join(tempDir.path(), "main.jsonl");
 		const workerId = "Killed-Sub";
 		const workerSessionFile = path.join(tempDir.path(), "main", `${workerId}.jsonl`);
@@ -767,7 +767,7 @@ describe("AgentLifecycleManager", () => {
 	});
 
 	it("ensureLive revives a killed agent from its transcript as a fresh generation", async () => {
-		using tempDir = TempDir.createSync("@omp-lifecycle-reopen-");
+		using tempDir = TempDir.createSync("@ngode-lifecycle-reopen-");
 		const rootSessionFile = path.join(tempDir.path(), "main.jsonl");
 		const workerId = "Reopen-Sub";
 		const workerSessionFile = path.join(tempDir.path(), "main", `${workerId}.jsonl`);
@@ -834,7 +834,7 @@ describe("AgentLifecycleManager", () => {
 	});
 
 	it("a killed transcript no reviver can rebuild stays killed", async () => {
-		using tempDir = TempDir.createSync("@omp-lifecycle-reopen-refused-");
+		using tempDir = TempDir.createSync("@ngode-lifecycle-reopen-refused-");
 		const workerSessionFile = path.join(tempDir.path(), "Refused-Sub.jsonl");
 		await Bun.write(workerSessionFile, "");
 		const killed = registry.register({
@@ -881,7 +881,7 @@ describe("AgentLifecycleManager", () => {
 	});
 
 	it("tombstone release survives the dispose-path unregister racing the sidecar write (#10531)", async () => {
-		using tempDir = TempDir.createSync("@omp-lifecycle-tombstone-race-");
+		using tempDir = TempDir.createSync("@ngode-lifecycle-tombstone-race-");
 		const workerId = "Raced-Sub";
 		const workerSessionFile = path.join(tempDir.path(), `${workerId}.jsonl`);
 		await Bun.write(workerSessionFile, "");

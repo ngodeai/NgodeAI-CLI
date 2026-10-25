@@ -59,9 +59,9 @@ Behavior details:
 - `--copy`, `clipboard`, and `copy` arguments are explicitly rejected with a warning to use `/dump`.
 - Export embeds session header/entries/leaf plus current `systemPrompt` and tool descriptions from agent state. `previousSessionFiles` is omitted from exported headers.
 - Subagent transcripts stored next to the session file (`<session>/<AgentId>.jsonl`, recursively for nested spawns) are embedded as `subSessions` (`collectSubSessions` in `src/session/sub-sessions.ts`; disable with `includeSubSessions: false` in `ExportOptions`). Discovery skips advisor transcripts (`__advisor*.jsonl`), descends only into real child directories, and flags tombstoned (killed) agents as `aborted`. In the page, agent ids in task tool cards open a breadcrumbed sub-session overlay.
-- Tool calls render through the `<omp-tool-view>` web component — the React per-tool renderers shared with collab-web (`packages/collab-web/src/tool-render/`), prebuilt into `src/export/html/tool-views.generated.js` by `bun run gen:tool-views`.
+- Tool calls render through the `<ngode-tool-view>` web component — the React per-tool renderers shared with collab-web (`packages/collab-web/src/tool-render/`), prebuilt into `src/export/html/tool-views.generated.js` by `bun run gen:tool-views`.
 - No session entries are appended during export.
-- The default filename is `omp-session-<session-file-stem>.html` in the current directory. HTML export is not secret-redacted or encrypted; it can contain raw context, image data, and extension payloads.
+- The default filename is `ngode-session-<session-file-stem>.html` in the current directory. HTML export is not secret-redacted or encrypted; it can contain raw context, image data, and extension payloads.
 
 Caveat:
 
@@ -104,14 +104,14 @@ Dump transcript content includes:
 - Tool results and execution blocks (except `excludeFromContext` bash/python entries)
 - Custom/hook/file mention/branch summary/compaction summary entries
 
-The best-effort JSON sidecar is named `omp-llm-request-<id>.json` under the OS temporary directory. It contains the current model, thinking level, service tier, system prompt, wire tool schemas, and LLM-converted messages. It persists after the command and can contain raw context or secrets; protect or remove it accordingly. A sidecar failure does not suppress the transcript (the TUI reports the failure; headless execution silently omits the path).
+The best-effort JSON sidecar is named `ngode-llm-request-<id>.json` under the OS temporary directory. It contains the current model, thinking level, service tier, system prompt, wire tool schemas, and LLM-converted messages. It persists after the command and can contain raw context or secrets; protect or remove it accordingly. A sidecar failure does not suppress the transcript (the TUI reports the failure; headless execution silently omits the path).
 
 No session persistence entries are appended by dumping.
 
 ### `/dump all` (zip of per-agent dumps)
 
 `/dump all` calls `session.dumpSessionArchiveToTmpDir()`, which writes
-`omp-dump-<id>.zip` under the OS temporary directory with:
+`ngode-dump-<id>.zip` under the OS temporary directory with:
 
 - `session.md` — the same main transcript `/dump` copies
 - `llm-request.json` — the same payload as the `/dump` sidecar (best-effort; omitted if conversion fails)
@@ -172,14 +172,14 @@ For headless execution, or in the TUI only when no custom share handler is found
    (`[12B IV][ciphertext+tag]`).
 4. Upload target is chosen by `share.store`:
    - **Share server** (default, `store: "blob"`) — `POST <share.serverUrl>`
-     (default `https://my.omp.sh/s`) with the raw blob, capped at 1 MB.
+     (default `https://my.ngodeai.net/s`) with the raw blob, capped at 1 MB.
      Oversized snapshots are trimmed until they fit: inline images first,
      then long strings (32,768 → 8,192 → 2,048 → 512 character caps), then
      oldest entries. If the reduced snapshot still exceeds the budget, sharing
      fails rather than uploading an oversized blob.
    - **Secret gist** (`store: "gist"`) — when `gh` is installed and
      authenticated, the sealed blob is pushed base64-encoded as
-     `session.ompshare.txt` (budget 5 MB sealed; gist raw fetches cap at
+     `session.ngodeshare.txt` (budget 5 MB sealed; gist raw fetches cap at
      10 MB), falling back to the share server when `gh` is unusable or gist
      creation fails.
 5. The link is `<share.serverUrl>/<id>#<base64url key>` in both cases. The
@@ -470,7 +470,7 @@ non-empty headers fail closed without modifying the file.
 does, then, once the interactive TUI is up, goes on with what the session's last
 process left unfinished when it died (`task/restore.ts`, `restoreSession`). Tern's
 session daemon relaunches NgodeAI panes with it after a crash: NgodeAI reports
-`omp_restore=1` (OSC 1337 user variable) beside its session file to say it
+`ngode_restore=1` (OSC 1337 user variable) beside its session file to say it
 understands the flag.
 
 1. **Subagents first.** Every persisted subagent transcript under the session

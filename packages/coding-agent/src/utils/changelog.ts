@@ -135,7 +135,7 @@ function categoryLabel(category: string, count: number): string {
 export function formatStartupChangelogSummary(selection: StartupChangelogSelection): string {
 	const latestVersion = selection.latestVersion;
 	if (!latestVersion || selection.selectedEntries === 0) {
-		return "Updated omp. Use /changelog for recent changes.";
+		return "Updated ngodeai. Use /changelog for recent changes.";
 	}
 
 	const releaseCount = selection.selectedEntries;
@@ -169,7 +169,7 @@ export function formatStartupChangelogSummary(selection: StartupChangelogSelecti
 }
 
 /**
- * Parse changelog entries from omp's package asset when available, falling back
+ * Parse changelog entries from ngodeai's package asset when available, falling back
  * to the copy embedded in compiled binaries.
  *
  * The embedded fallback keeps standalone binaries self-contained without
@@ -332,7 +332,7 @@ function compareChangelogEntries(v1: ChangelogEntry, v2: ChangelogEntry): number
 }
 
 /**
- * Parse an omp changelog marker version into comparable parts.
+ * Parse an ngodeai changelog marker version into comparable parts.
  */
 export function parseChangelogVersion(version: string | undefined): ChangelogEntry | undefined {
 	const match = version?.match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -476,7 +476,7 @@ export async function resolveStartupChangelogForDisplay(options: {
 export { getChangelogPath } from "../config";
 
 /**
- * Last omp version whose changelog the user has seen. Stored as a plain-text
+ * Last ngodeai version whose changelog the user has seen. Stored as a plain-text
  * marker file (`~/.ngodeai/agent/last-changelog-version`) rather than in
  * `config.yml`, so version bumps never dirty user-tracked config files.
  */

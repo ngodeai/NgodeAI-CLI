@@ -177,7 +177,7 @@ describe("stderr guard", () => {
 				env: {
 					...process.env,
 					BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
-					OMP_LOGGER_TEST_NOW: "2026-09-22T17:00:00Z",
+					NGODEAI_LOGGER_TEST_NOW: "2026-09-22T17:00:00Z",
 					TZ: "Asia/Singapore",
 				},
 				stdout: "pipe",

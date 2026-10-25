@@ -115,7 +115,7 @@ Streaming/UI behavior:
 - The interactive selector is UI-driven instead of model-driven. It swaps TUI components, appends status lines to the chat pane, opens files in external viewers, writes archives/temp files, or starts the process-wide JavaScriptCore inspector socket.
 
 Side-channel artifacts outside the model tool result:
-- `createReportBundle()` writes `omp-report-<timestamp>.tar.gz` under the reports dir and returns the filesystem path to the UI handler.
+- `createReportBundle()` writes `ngode-report-<timestamp>.tar.gz` under the reports dir and returns the filesystem path to the UI handler.
 - `#handleWorkReport()` writes `/tmp/work-profile-<Date.now()>.svg` before opening it.
 - `RawSseViewerComponent` and `DebugLogViewerComponent` can copy captured text to the clipboard.
 
@@ -308,7 +308,7 @@ GDB example for an OpenOCD remote target:
 - Raw SSE buffer caps in `packages/tui/src/apps/debug/raw-sse-buffer.ts`:
   - `MAX_RAW_SSE_EVENTS = 1_000`
   - `MAX_RAW_SSE_CHARS = 512_000`
-  - `MAX_RAW_SSE_EVENT_CHARS = 64_000` per event; over-budget events first compact long `tools` schemas/descriptions to 200-character previews (name/type retained), then, if still oversized, use head+tail trimming with `: omp-debug-elided chars=...`. Trimmed events end with `: omp-debug-truncated originalChars=...`.
+  - `MAX_RAW_SSE_EVENT_CHARS = 64_000` per event; over-budget events first compact long `tools` schemas/descriptions to 200-character previews (name/type retained), then, if still oversized, use head+tail trimming with `: ngode-debug-elided chars=...`. Trimmed events end with `: ngode-debug-truncated originalChars=...`.
 - Log viewer window in `packages/tui/src/apps/debug/log-viewer.ts`:
   - `INITIAL_LOG_CHUNK = 50`
   - `LOAD_OLDER_CHUNK = 50`

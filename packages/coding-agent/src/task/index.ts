@@ -5,7 +5,7 @@ import { taskSubprocessRenderer } from "@ngodeai/tui/tools/subprocess";
  * Task tool - Delegate tasks to specialized agents.
  *
  * Discovers agent definitions from:
- *   - Bundled agents (shipped with omp-coding-agent)
+ *   - Bundled agents (shipped with ngode-coding-agent)
  *   - ~/.ngodeai/agent/agents/*.md (user-level)
  *   - .ngodeai/agents/*.md (project-level)
  *

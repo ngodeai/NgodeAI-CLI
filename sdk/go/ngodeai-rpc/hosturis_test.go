@@ -1,4 +1,4 @@
-package omprpc
+package ngodeairpc
 
 import (
 	"context"

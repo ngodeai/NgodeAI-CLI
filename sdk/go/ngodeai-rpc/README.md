@@ -1,7 +1,7 @@
 # ngodeai-rpc (Go)
 
-Go client for the omp RPC protocol (`ngodeai --mode rpc`, JSON lines over stdio).
-Module `github.com/ngodeai/NgodeAI-CLI/sdk/go/ngodeai-rpc`, package `omprpc`, standard library only.
+Go client for the ngodeai RPC protocol (`ngodeai --mode rpc`, JSON lines over stdio).
+Module `github.com/ngodeai/NgodeAI-CLI/sdk/go/ngodeai-rpc`, package `ngodeairpc`, standard library only.
 
 ## Layout
 
@@ -41,29 +41,29 @@ bun run gen:rpc
 ## Usage
 
 ```go
-echo := omprpc.HostTool{
-	Definition: omprpc.HostToolDefinition{
+echo := ngodeairpc.HostTool{
+	Definition: ngodeairpc.HostToolDefinition{
 		Name:        "echo_host",
 		Description: "Echo a message back from the host.",
 		Parameters: map[string]json.RawMessage{
 			"type":       json.RawMessage(`"object"`),
 			"properties": json.RawMessage(`{"message":{"type":"string"}}`),
 		},
-		LoadMode: omprpc.Ptr(omprpc.ToolLoadModeEssential),
+		LoadMode: ngodeairpc.Ptr(ngodeairpc.ToolLoadModeEssential),
 	},
-	Handler: func(ctx context.Context, call *omprpc.HostToolCall, args json.RawMessage) (omprpc.HostToolResultPayload, error) {
+	Handler: func(ctx context.Context, call *ngodeairpc.HostToolCall, args json.RawMessage) (ngodeairpc.HostToolResultPayload, error) {
 		var p struct{ Message string }
 		if err := json.Unmarshal(args, &p); err != nil {
-			return omprpc.HostToolResultPayload{}, err
+			return ngodeairpc.HostToolResultPayload{}, err
 		}
-		_ = call.SendUpdate(omprpc.TextResult("working"))
-		return omprpc.TextResult("host:" + p.Message), nil
+		_ = call.SendUpdate(ngodeairpc.TextResult("working"))
+		return ngodeairpc.TextResult("host:" + p.Message), nil
 	},
 }
 
-cmd := exec.Command("omp", "--mode", "rpc", "--no-session")
+cmd := exec.Command("ngodeai", "--mode", "rpc", "--no-session")
 cmd.Stderr = os.Stderr
-client, err := omprpc.Start(ctx, cmd, omprpc.WithHostTools(echo))
+client, err := ngodeairpc.Start(ctx, cmd, ngodeairpc.WithHostTools(echo))
 if err != nil {
 	return err
 }
@@ -72,25 +72,25 @@ defer client.Close()
 go func() {
 	for frame := range client.Frames() {
 		switch v := frame.Value.(type) {
-		case omprpc.MessageUpdateEvent:
+		case ngodeairpc.MessageUpdateEvent:
 			// stream output
-		case omprpc.ExtensionUiRequest:
-			if confirm, ok := v.Value.(omprpc.ConfirmUiRequest); ok {
-				_ = client.Send(omprpc.ConfirmUiResponse{ID: confirm.ID, Confirmed: true})
+		case ngodeairpc.ExtensionUiRequest:
+			if confirm, ok := v.Value.(ngodeairpc.ConfirmUiRequest); ok {
+				_ = client.Send(ngodeairpc.ConfirmUiResponse{ID: confirm.ID, Confirmed: true})
 			}
-		case omprpc.UnknownNotification:
+		case ngodeairpc.UnknownNotification:
 			// newer server, or a payload that failed to decode (v.Err)
 		}
 	}
 }()
 
-turn, err := client.PromptAndWait(ctx, omprpc.PromptCommand{Message: "say hi"}, time.Minute)
+turn, err := client.PromptAndWait(ctx, ngodeairpc.PromptCommand{Message: "say hi"}, time.Minute)
 fmt.Println(*turn.AssistantText, turn.Result.Status)
 messages, err := client.GetMessages(ctx)
 ```
 
 `Start` runs a process; `NewClient(ctx, stdout, stdin, options...)` connects over any reader and
-writer. Failed commands return `*omprpc.CommandError` (`Command`, `Message`, `Code`). `Frames()`
+writer. Failed commands return `*ngodeairpc.CommandError` (`Command`, `Message`, `Code`). `Frames()`
 delivers every frame the client does not consume (host tool and host URI requests are answered
 internally) and must be drained; it closes when the
 connection ends, and `Err()` then says why (`ErrClosed`, plus `ErrProtocol` for a transport violation).
@@ -142,14 +142,14 @@ frame's content. Unknown schemes, writes without a handler, unsupported operatio
 errors become `isError` results. Host URI frames are not delivered on `Frames()`.
 
 ```go
-notes := omprpc.HostUri{
+notes := ngodeairpc.HostUri{
 	Scheme: "notes",
-	Read: func(ctx context.Context, url string) (omprpc.HostUriReadResult, error) {
-		return omprpc.HostUriReadResult{Content: "note body"}, nil
+	Read: func(ctx context.Context, url string) (ngodeairpc.HostUriReadResult, error) {
+		return ngodeairpc.HostUriReadResult{Content: "note body"}, nil
 	},
 	Write: func(ctx context.Context, url, content string) error { return save(url, content) },
 }
-client, err := omprpc.Start(ctx, cmd, omprpc.WithHostUris(notes))
+client, err := ngodeairpc.Start(ctx, cmd, ngodeairpc.WithHostUris(notes))
 ```
 
 ### Messages
@@ -163,7 +163,7 @@ mid-way (`session_busy`, `stale_cursor`); under v1 it sends `get_messages`.
 
 ```sh
 go test -race ./...
-OMP_RPC_SMOKE=1 go test -run TestSmoke -v ./...   # real servers via bun, from this checkout
+NGODEAI_RPC_SMOKE=1 go test -run TestSmoke -v ./...   # real servers via bun, from this checkout
 ```
 
 `TestSmokeModel` drives full prompt turns against the scripted model in

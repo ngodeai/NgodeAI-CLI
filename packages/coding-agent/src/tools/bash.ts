@@ -157,7 +157,7 @@ const BASH_PATTERN_APPROVAL_VALUES = new Set(["allow", "deny", "prompt"]);
  * preserves `bash` tool semantics (`$VAR`, `$(...)`, `source`, POSIX quoting,
  * `-l`) wherever a POSIX shell is available. The agent host's shell path is
  * used as a proxy for the client's, matching the near-universal ACP
- * deployment shape of an editor spawning omp as a co-hosted subprocess.
+ * deployment shape of an editor spawning ngodeai as a co-hosted subprocess.
  */
 export function wrapShellLineForClientTerminal(
 	line: string,
@@ -654,7 +654,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 	 * Session identity for a command, read when its tool call starts, so
 	 * `/fork`, `/new`, and `/resume` take effect on the next call while a call
 	 * already under way keeps the session it began in. Always set both keys: an
-	 * empty value replaces a stale one inherited from a parent omp process,
+	 * empty value replaces a stale one inherited from a parent ngodeai process,
 	 * since an env overlay cannot unset.
 	 */
 	#sessionEnv(): Record<string, string> {
@@ -1176,7 +1176,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 		}
 
 		// A timeout of 0 is an explicit long-running-command contract: the user
-		// must still cancel the call or job, but OMP does not impose a deadline.
+		// must still cancel the call or job, but NGODEAI does not impose a deadline.
 		const requestedTimeoutSec = rawTimeout ?? 300;
 		const timeoutDisabled = requestedTimeoutSec === 0;
 		const maxTimeout = cfgToolsMaxTimeout.get(this.session.settings);

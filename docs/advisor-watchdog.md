@@ -287,7 +287,7 @@ Especially watch for:
 
 Unlike native context files, watchdog discovery does not stop at the nearest project file. Multiple project watchdog files can load together.
 
-Candidates in hidden owner directories are ignored unless the file is inside a `.ngodeai` (or legacy `.omp`) directory. This keeps unrelated dot-directory conventions from being picked up accidentally while still allowing `.ngodeai/WATCHDOG.md`.
+Candidates in hidden owner directories are ignored unless the file is inside a `.ngodeai` (or legacy `.ngodeai`) directory. This keeps unrelated dot-directory conventions from being picked up accidentally while still allowing `.ngodeai/WATCHDOG.md`.
 
 ### `@` imports
 

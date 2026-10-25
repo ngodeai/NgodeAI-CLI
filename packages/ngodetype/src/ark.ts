@@ -6,15 +6,15 @@
  * `from "@ngodeai/ngodetype/ark"` and nothing else changes. New code should
  * import `@ngodeai/ngodetype` directly.
  *
- * Compatibility affordance: `ArkError` / `ArkErrors` alias `OmpError` /
- * `OmpErrors`. All schema builders, including recursive `scope()`, are
+ * Compatibility affordance: `ArkError` / `ArkErrors` alias `NgodeError` /
+ * `NgodeErrors`. All schema builders, including recursive `scope()`, are
  * re-exported unchanged.
  */
-import { OmpError, OmpErrors } from "./errors";
+import { NgodeError, NgodeErrors } from "./errors";
 
 export * from "./index";
 
-export const ArkError = OmpError;
-export type ArkError = OmpError;
-export const ArkErrors = OmpErrors;
-export type ArkErrors = OmpErrors;
+export const ArkError = NgodeError;
+export type ArkError = NgodeError;
+export const ArkErrors = NgodeErrors;
+export type ArkErrors = NgodeErrors;

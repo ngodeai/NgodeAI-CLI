@@ -109,13 +109,13 @@ describe("browser prelude relay guidance", () => {
 				settings: {},
 				env: { TERN_PANE_SOCKET: "/tmp/tern.sock", TERN_PANE: "1" },
 				kind: "tern",
-				says: "omp's own Tern picture-in-picture instead",
+				says: "ngodeai's own Tern picture-in-picture instead",
 			},
 			{
 				settings: {},
 				env: { CMUX_SOCKET_PATH: "/tmp/cmux.sock" },
 				kind: "cmux",
-				says: "omp's own cmux browser surface instead",
+				says: "ngodeai's own cmux browser surface instead",
 			},
 		];
 		for (const { settings, env, kind, says } of cases) {

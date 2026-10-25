@@ -16,7 +16,7 @@ afterEach(async () => {
 });
 
 async function writeTool(name: string, source: string): Promise<string> {
-	tempRoot ??= await fs.mkdtemp(path.join(os.tmpdir(), "omp-custom-tool-loader-"));
+	tempRoot ??= await fs.mkdtemp(path.join(os.tmpdir(), "ngode-custom-tool-loader-"));
 	const filePath = path.join(tempRoot, name);
 	await Bun.write(filePath, source);
 	return filePath;
@@ -320,7 +320,7 @@ describe("custom tool host package imports", () => {
 	}
 
 	// Tools live outside any workspace (here a temp dir; in the shipped binary,
-	// anywhere), so `@oh-my-pi/*` and the legacy pi scopes have no node_modules
+	// anywhere), so `@ngodeai/*` and the legacy pi scopes have no node_modules
 	// to resolve from. They must resolve to the host's own copy, as extensions do.
 	it.each(["@ngodeai/utils", "@mariozechner/pi-utils"])("resolves %s to the host copy", async specifier => {
 		const toolPath = await writeTool(

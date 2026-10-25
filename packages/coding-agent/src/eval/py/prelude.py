@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# OMP prelude helpers (loaded once into the runner namespace)
+# NGODEAI prelude helpers (loaded once into the runner namespace)
 if "__omp_prelude_loaded__" not in globals():
     __omp_prelude_loaded__ = True
     from pathlib import Path
@@ -402,8 +402,8 @@ if "__omp_prelude_loaded__" not in globals():
     # host-owned loopback endpoint must always connect directly.
     _BRIDGE_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
-    _OMP_CALL_IDENTITY = contextvars.ContextVar("omp_call_identity", default=None)
-    _OMP_CALL_OCCURRENCES = contextvars.ContextVar("omp_call_occurrences", default=None)
+    _OMP_CALL_IDENTITY = contextvars.ContextVar("ngode_call_identity", default=None)
+    _OMP_CALL_OCCURRENCES = contextvars.ContextVar("ngode_call_occurrences", default=None)
 
     def __omp_reset_call_occurrences__():
         _OMP_CALL_OCCURRENCES.set(None)

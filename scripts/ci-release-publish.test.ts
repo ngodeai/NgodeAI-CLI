@@ -146,7 +146,7 @@ describe("published legal payloads", () => {
 	});
 
 	it("stages missing legal files without replacing package-local text", async () => {
-		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-publish-legal-"));
+		const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-publish-legal-"));
 		const pkgDir = path.join(root, "package");
 		await fs.mkdir(pkgDir);
 		try {
@@ -166,7 +166,7 @@ describe("published legal payloads", () => {
 	});
 
 	it("lists every legal file explicitly in the native core package", async () => {
-		const pkgDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-native-core-"));
+		const pkgDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-native-core-"));
 		try {
 			await Bun.write(
 				path.join(pkgDir, "package.json"),

@@ -36,13 +36,13 @@ export default class Cleanse extends Command {
 	};
 
 	static examples = [
-		"omp cleanse",
-		"omp cleanse --all",
-		'omp cleanse "ts errors"',
-		"omp cleanse -n 8",
-		"omp cleanse -m opus",
-		"omp cleanse -t",
-		"omp cleanse --agents 12 --model anthropic/claude-opus-4-6",
+		"ngodeai cleanse",
+		"ngodeai cleanse --all",
+		'ngodeai cleanse "ts errors"',
+		"ngodeai cleanse -n 8",
+		"ngodeai cleanse -m opus",
+		"ngodeai cleanse -t",
+		"ngodeai cleanse --agents 12 --model anthropic/claude-opus-4-6",
 	];
 
 	async run(): Promise<void> {

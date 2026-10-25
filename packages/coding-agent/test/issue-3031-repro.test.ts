@@ -1,5 +1,5 @@
 /**
- * Regression for https://github.com/can1357/oh-my-pi/issues/3031
+ * Regression for https://github.com/can1357/ngodeai/issues/3031
  *
  * Mnemopi's local embedding provider used to `import("onnxruntime-node")` and
  * `import("fastembed")` directly inside `fastembed-runtime.ts`. With
@@ -30,7 +30,7 @@ import type {
 describe("issue #3031 — mnemopi embeddings live in an isolated subprocess", () => {
 	it("ping/pongs through the spawned worker subprocess and tears it down cleanly", async () => {
 		// `smokeTestMnemopiEmbedWorker` is the runtime probe wired into
-		// `omp --smoke-test`. Run it in a child Bun process instead of this
+		// `ngodeai --smoke-test`. Run it in a child Bun process instead of this
 		// Bun-test worker: the test runner owns its own IPC channel and can
 		// starve nested Bun subprocess IPC on some Bun builds.
 		const repoRoot = path.resolve(import.meta.dir, "../../..");

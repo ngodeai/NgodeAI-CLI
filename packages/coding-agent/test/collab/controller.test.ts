@@ -4,7 +4,7 @@
  * dialogs raised before the relay connects; the registry sees one entry per
  * process keyed by a stable instance ID with an increasing generation; a
  * session switch revokes the old room before its successor is published; and
- * the published access level caps what `omp collab link` can obtain.
+ * the published access level caps what `ngodeai collab link` can obtain.
  *
  * Real CollabHost/CollabSocket run over the in-memory relay; the registry's
  * real Unix-socket IPC is redirected into a temp dir via a spy on
@@ -58,7 +58,7 @@ import {
 
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 const originalPiProfile = process.env.PI_PROFILE;
-const originalOmpProfile = process.env.OMP_PROFILE;
+const originalOmpProfile = process.env.NGODEAI_PROFILE;
 
 function restoreEnv(key: string, value: string | undefined): void {
 	if (value === undefined) {
@@ -220,7 +220,7 @@ const publishWaiters: (() => void)[] = [];
 let capturedSockets: FakeWebSocket[] = [];
 
 beforeEach(async () => {
-	tmp = await fs.mkdtemp(path.join(os.tmpdir(), "omp-collabctl-"));
+	tmp = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-collabctl-"));
 	utils.setAgentDir(path.join(tmp, "agent"));
 	installInMemoryRelay();
 	// Record every fake socket so a test can drive a terminal close on the host's transport.
@@ -248,7 +248,7 @@ afterEach(async () => {
 	publishSpy?.mockRestore();
 	restoreEnv("PI_CODING_AGENT_DIR", originalAgentDir);
 	restoreEnv("PI_PROFILE", originalPiProfile);
-	restoreEnv("OMP_PROFILE", originalOmpProfile);
+	restoreEnv("NGODEAI_PROFILE", originalOmpProfile);
 	utils.__resetDirsFromEnvForTests();
 	// InteractiveMode and the CLI open process-wide agent.db, history.db (prompt history and
 	// session index), and models.db under tmp/agent; Windows cannot delete open files.

@@ -1755,7 +1755,7 @@ export class SelectorController {
 		// agent turn, where the model sees the redirect and starts a
 		// conversation, but this standalone re-answer has no turn to hand it
 		// to — completing the navigation with it would silently drop the
-		// user's intent to chat (roboomp review on #5895).
+		// user's intent to chat (ngodebot review on #5895).
 		if (result.details?.chatRedirect) {
 			this.ctx.showError(
 				"Chat about this isn't available when re-answering from the tree — pick an option or type a custom answer instead.",

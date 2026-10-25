@@ -1,6 +1,6 @@
 //go:build !unix
 
-package omprpc
+package ngodeairpc
 
 import (
 	"errors"
@@ -21,7 +21,7 @@ func (p *process) terminate() error {
 	}
 	_ = p.cmd.Process.Kill()
 	if !p.exitedWithin(processGrace) {
-		return errors.New("omprpc: server process survived Kill")
+		return errors.New("ngodeairpc: server process survived Kill")
 	}
 	return nil
 }

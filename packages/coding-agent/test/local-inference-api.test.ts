@@ -15,7 +15,7 @@ import { TINY_LOCAL_MODELS } from "@ngodeai/coding-agent/tiny/models";
 import { type TinyModelChatOptions, TinyTitleClient, tinyModelClient } from "@ngodeai/coding-agent/tiny/title-client";
 import type { TinyChatMessage, TinyWorkerRequest, TinyWorkerResponse } from "@ngodeai/coding-agent/tiny/title-protocol";
 
-const SOURCE_ID = "omp/local-inference";
+const SOURCE_ID = "ngodeai/local-inference";
 const model = getBundledModel("local", "lfm2.5-230m")!;
 
 function zeroUsage(): Usage {

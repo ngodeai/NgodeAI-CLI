@@ -34,9 +34,9 @@ export default class BrowserRelay extends Command {
 	};
 
 	static examples = [
-		"omp browser-relay install    # write the Chrome extension to disk + setup steps",
-		"omp browser-relay            # serve the relay on the default port",
-		"omp browser-relay -p 9333 --token s3cret",
+		"ngodeai browser-relay install    # write the Chrome extension to disk + setup steps",
+		"ngodeai browser-relay            # serve the relay on the default port",
+		"ngodeai browser-relay -p 9333 --token s3cret",
 	];
 
 	async run(): Promise<void> {

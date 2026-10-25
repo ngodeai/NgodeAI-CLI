@@ -16,7 +16,7 @@ It covers runtime behavior as implemented today, including precedence, invalid-d
 - [`src/prompts/agents/task.md`](../packages/coding-agent/src/prompts/agents/task.md)
 - [`src/prompts/tools/task.md`](../packages/coding-agent/src/prompts/tools/task.md)
 - [`src/discovery/helpers.ts`](../packages/coding-agent/src/discovery/helpers.ts)
-- [`src/discovery/omp-extension-roots.ts`](../packages/coding-agent/src/discovery/omp-extension-roots.ts)
+- [`src/discovery/ngode-extension-roots.ts`](../packages/coding-agent/src/discovery/ngode-extension-roots.ts)
 - [`src/config.ts`](../packages/coding-agent/src/config.ts)
 - [`src/task/executor.ts`](../packages/coding-agent/src/task/executor.ts)
 
@@ -145,23 +145,23 @@ Because bundled parsing uses `level: "fatal"`, unrecoverable YAML errors or inva
 
 ## Filesystem and plugin discovery
 
-`discoverAgents(cwd, home, extensionRoots?)` (`src/task/discovery.ts`) merges agents from OMP-native roots, NgodeAI extension packages, and Claude marketplace plugin roots before appending bundled definitions. Direct cross-harness roots such as `.claude/agents`, `.codex/agents`, and `.gemini/agents` are intentionally skipped — their frontmatter schema is not the NgodeAI task-agent contract (`TASK_AGENT_CONFIG_SOURCE = ".omp"` filters the native config-dir lists).
+`discoverAgents(cwd, home, extensionRoots?)` (`src/task/discovery.ts`) merges agents from NGODEAI-native roots, NgodeAI extension packages, and Claude marketplace plugin roots before appending bundled definitions. Direct cross-harness roots such as `.claude/agents`, `.codex/agents`, and `.gemini/agents` are intentionally skipped — their frontmatter schema is not the NgodeAI task-agent contract (`TASK_AGENT_CONFIG_SOURCE = ".ngodeai"` filters the native config-dir lists).
 
 ### Discovery inputs and precedence
 
-1. Nearest project `.ngodeai/agents` dir from `findAllNearestProjectConfigDirs("agents", cwd)` (first `.omp` hit only)
-2. User `.ngodeai/agents` dir from `getConfigDirs("agents", { project: false })` (first `.omp` hit only)
+1. Nearest project `.ngodeai/agents` dir from `findAllNearestProjectConfigDirs("agents", cwd)` (first `.ngodeai` hit only)
+2. User `.ngodeai/agents` dir from `getConfigDirs("agents", { project: false })` (first `.ngodeai` hit only)
 3. `<extension-root>/agents` for every enabled NgodeAI extension package returned by `listOmpExtensionRoots(...)`, in this order:
    - explicit CLI `--extension` / SDK `additionalExtensionPaths` directory roots
    - the session's effective `extensions:` array, in its configured order
    - installed npm/link plugins
    Project and user `extensions:` arrays are not concatenated: settings use array-replacement precedence. Session overlays/runtime overrides and the configured array's project/user provenance are preserved. In `explicit-only` mode (`--no-extensions` or SDK `disableExtensionDiscovery`), only explicit roots contribute this package surface; file entrypoints have no `agents/` subdirectory to scan.
-4. Claude marketplace plugin roots (`listClaudePluginRoots(home, cwd)`) with `agents/` subdirs — only when `isProviderEnabled("claude-plugins")`; project-scope plugins sort before user-scope. User-scope roots additionally require the `claude-plugins` or `claude` user source to be enabled (`isUserSourceEnabled`: normally via `enabledProviders`, e.g. `["claude-plugins"]`; `claude` is also enabled implicitly when `CLAUDE_CONFIG_DIR` is set), except roots whose origin is not the foreign `~/.claude/plugins` tree (NgodeAI's own installs with `origin: "omp"` and `--plugin-dir` roots) — mirroring the skills path's exemption.
+4. Claude marketplace plugin roots (`listClaudePluginRoots(home, cwd)`) with `agents/` subdirs — only when `isProviderEnabled("claude-plugins")`; project-scope plugins sort before user-scope. User-scope roots additionally require the `claude-plugins` or `claude` user source to be enabled (`isUserSourceEnabled`: normally via `enabledProviders`, e.g. `["claude-plugins"]`; `claude` is also enabled implicitly when `CLAUDE_CONFIG_DIR` is set), except roots whose origin is not the foreign `~/.claude/plugins` tree (NgodeAI's own installs with `origin: "ngodeai"` and `--plugin-dir` roots) — mirroring the skills path's exemption.
 5. Bundled agents (`loadBundledAgents()`)
 
-The NgodeAI extension-package surface is disabled when the `omp-plugins` capability provider is disabled. Marketplace roots are excluded from `listOmpExtensionRoots` and enter only through the separately gated Claude-plugin path.
+The NgodeAI extension-package surface is disabled when the `ngode-plugins` capability provider is disabled. Marketplace roots are excluded from `listOmpExtensionRoots` and enter only through the separately gated Claude-plugin path.
 
-Claude-dialect plugin agents discard their frontmatter `model` so Claude aliases are not misread as NgodeAI selectors. This applies to foreign Claude roots and packages whose manifest declares the Claude format, including NgodeAI installs or `--plugin-dir` roots. OMP-native and Agent-Plugins-standard packages retain their model selectors.
+Claude-dialect plugin agents discard their frontmatter `model` so Claude aliases are not misread as NgodeAI selectors. This applies to foreign Claude roots and packages whose manifest declares the Claude format, including NgodeAI installs or `--plugin-dir` roots. NGODEAI-native and Agent-Plugins-standard packages retain their model selectors.
 
 ## Merge and collision rules
 
@@ -173,7 +173,7 @@ Discovery uses first-wins dedup by exact `agent.name`:
 
 Implications:
 
-- Project `.omp` overrides user `.omp`.
+- Project `.ngodeai` overrides user `.ngodeai`.
 - Earlier extension roots override later extension roots, Claude marketplace plugins, and bundled agents.
 - Non-bundled agents override bundled agents with the same name.
 - Name matching is case-sensitive (`Task` and `task` are distinct).

@@ -358,8 +358,8 @@ describe("WorkerCore", () => {
 	});
 
 	it("keeps the process cwd while another cell is mid-run", async () => {
-		const dirA = await fs.mkdtemp(path.join(os.tmpdir(), "omp-cwd-a-"));
-		const dirB = await fs.mkdtemp(path.join(os.tmpdir(), "omp-cwd-b-"));
+		const dirA = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-cwd-a-"));
+		const dirB = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-cwd-b-"));
 		const chdirs: string[] = [];
 		const hostListeners = new Set<(message: WorkerOutbound) => void>();
 		const workerListeners = new Set<(message: WorkerInbound) => void>();
@@ -460,8 +460,8 @@ describe("WorkerCore", () => {
 	});
 
 	it("reads artifact:// from the artifacts dir of the run's snapshot, not the first one", async () => {
-		const dirA = await fs.mkdtemp(path.join(os.tmpdir(), "omp-artifacts-a-"));
-		const dirB = await fs.mkdtemp(path.join(os.tmpdir(), "omp-artifacts-b-"));
+		const dirA = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-artifacts-a-"));
+		const dirB = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-artifacts-b-"));
 		await Bun.write(path.join(dirA, "5.eval.log"), "from A");
 		await Bun.write(path.join(dirB, "5.eval.log"), "from B");
 		const harness = createWorkerHarness();
@@ -495,8 +495,8 @@ describe("WorkerCore", () => {
 	});
 
 	it("keeps a suspended run on its own artifact root while an overlapping run uses another", async () => {
-		const dirA = await fs.mkdtemp(path.join(os.tmpdir(), "omp-artifacts-a-"));
-		const dirB = await fs.mkdtemp(path.join(os.tmpdir(), "omp-artifacts-b-"));
+		const dirA = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-artifacts-a-"));
+		const dirB = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-artifacts-b-"));
 		await Bun.write(path.join(dirA, "5.eval.log"), "from A");
 		await Bun.write(path.join(dirB, "5.eval.log"), "from B");
 		const harness = createWorkerHarness();
@@ -597,7 +597,7 @@ console.log("survived concurrent setCwd");
 process.exit(0);
 `;
 
-		const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-same-realm-"));
+		const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-same-realm-"));
 		const probePath = path.join(root, "probe.ts");
 		try {
 			await Bun.write(probePath, probe);

@@ -1,16 +1,16 @@
 /**
- * Centralized logger for omp.
+ * Centralized logger for ngodeai.
  *
- * Default: rotating `~/.ngodeai/logs/omp.<DATE>.<PID>.log`, no console output (writing
+ * Default: rotating `~/.ngodeai/logs/ngodeai.<DATE>.<PID>.log`, no console output (writing
  * to stdout/stderr would corrupt the TUI). Long-running headless services
  * (the auth broker, etc.) call {@link setTransports} to swap in a console
  * transport so a process supervisor (pm2, journald, k8s) captures the logs.
  *
- * Each entry includes `process.pid` so concurrent omp instances stay
+ * Each entry includes `process.pid` so concurrent ngodeai instances stay
  * traceable. The file is created on the first record written. Records are
  * batched — one write per second or per 64 KiB — while `warn`/`error` records
  * are written at once together with everything buffered before them; exit,
- * fatal, and signal paths flush the rest. `OMP_LOG_LEVEL` optionally limits
+ * fatal, and signal paths flush the rest. `NGODEAI_LOG_LEVEL` optionally limits
  * the levels written to the file (default: all).
  */
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -69,14 +69,14 @@ const PROCESS_LOG_PATTERN = new RegExp(`^${APP_NAME}\\.(\\d{4}-\\d{2}-\\d{2})\\.
  * only exist on disk from earlier builds. Both the current and the previous
  * brand's prefix are matched so an upgraded install can still prune them.
  */
-const PROCESS_AUDIT_PATTERN = new RegExp(`^\\.(?:${APP_NAME}|omp)\\.(\\d+)-audit\\.json$`);
+const PROCESS_AUDIT_PATTERN = new RegExp(`^\\.(?:${APP_NAME}|ngodeai)\\.(\\d+)-audit\\.json$`);
 /**
  * Shared daily logs (plain, size-rolled, or gzipped) written by the
- * winston-era logger. The `omp.` prefix is historical data on existing
+ * winston-era logger. The `ngodeai.` prefix is historical data on existing
  * installs, not a name this build writes: keeping it lets the pruner age out
  * files left behind by the previous brand.
  */
-const LEGACY_LOG_PATTERN = /^omp\.(\d{4}-\d{2}-\d{2})\.log(?:\.\d+)?(?:\.gz)?$/;
+const LEGACY_LOG_PATTERN = /^ngodeai\.(\d{4}-\d{2}-\d{2})\.log(?:\.\d+)?(?:\.gz)?$/;
 /** Hash-named audit files written by winston-daily-rotate-file. */
 const LEGACY_AUDIT_PATTERN = /^\.[0-9a-f]{8,}-audit\.json$/;
 const RETAINED_STALE_LOGS_PER_PROCESS_DAY = 1;
@@ -333,11 +333,11 @@ const LOG_LEVEL_RANK: Record<LogLevel, number> = { error: 0, warn: 1, info: 2, d
 const IMMEDIATE_FLUSH_RANK = LOG_LEVEL_RANK.warn;
 
 /**
- * Rank of the most verbose level the file transport persists: `OMP_LOG_LEVEL`
+ * Rank of the most verbose level the file transport persists: `NGODEAI_LOG_LEVEL`
  * (error|warn|info|debug, case-insensitive), default `debug` (everything).
  */
 function resolveFileLevelRank(): number {
-	const requested = process.env.OMP_LOG_LEVEL?.trim().toLowerCase();
+	const requested = process.env.NGODEAI_LOG_LEVEL?.trim().toLowerCase();
 	return requested && Object.hasOwn(LOG_LEVEL_RANK, requested)
 		? LOG_LEVEL_RANK[requested as LogLevel]
 		: LOG_LEVEL_RANK.debug;
@@ -402,7 +402,7 @@ function emitLocally(level: LogLevel, message: string, context: Record<string, u
  * long-running services (the auth broker, etc.) that want their structured
  * logs piped into a process supervisor instead of the rotating file.
  * The previous file transport writes its buffered records before closing, and
- * the file level (`OMP_LOG_LEVEL`) is re-read on each reconfiguration.
+ * the file level (`NGODEAI_LOG_LEVEL`) is re-read on each reconfiguration.
  */
 export function setTransports(opts: { console?: boolean; file?: boolean | string }): void {
 	transportOpts = opts;

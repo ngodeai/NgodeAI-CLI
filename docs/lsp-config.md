@@ -1,4 +1,4 @@
-# LSP configuration in OMP
+# LSP configuration in NGODEAI
 
 This guide explains how to configure language servers for the NgodeAI coding agent.
 
@@ -199,7 +199,7 @@ Shut down language servers that have been inactive for more than five minutes:
 
 ### Disable a server for one project, keep it globally
 
-Place the override in `<project>/.omp/lsp.json`:
+Place the override in `<project>/.ngodeai/lsp.json`:
 
 ```json
 {

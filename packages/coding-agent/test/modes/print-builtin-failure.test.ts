@@ -1,7 +1,7 @@
 /**
  * Contract: print mode is automation surface — a dispatched `/mcp reauth`
  * that consumes an input but fails (unknown server, usage error, refused
- * operation) must not exit 0, or `omp -p '/mcp reauth foo'` scripts treat a
+ * operation) must not exit 0, or `ngodeai -p '/mcp reauth foo'` scripts treat a
  * failed reauthorization as success. Conversely a consumed reauth that
  * succeeded exits 0 without prompting the model or reprinting the persisted
  * previous turn, and the merged stdin/@file message is never dispatched as a
@@ -43,7 +43,7 @@ function printSession(cwd: string, prompts: string[]): AgentSession {
 
 describe("print mode builtin exit codes", () => {
 	test("exits 1 when the dispatched reauth fails, 0 for other slash input", async () => {
-		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "omp-print-builtin-"));
+		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-print-builtin-"));
 		const stderrLines: string[] = [];
 		const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(((chunk: unknown) => {
 			stderrLines.push(String(chunk));
@@ -79,10 +79,10 @@ describe("print mode builtin exit codes", () => {
 	});
 
 	test("never dispatches the merged stdin/@file message as a command", async () => {
-		// Security: `curl … | omp "summarize"` merges the pipe into
+		// Security: `curl … | ngodeai "summarize"` merges the pipe into
 		// `initialMessage`; a slash-shaped payload there (e.g. a persisted
 		// `/mcp add`) must reach the model as text, never run as a command.
-		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "omp-print-stdin-"));
+		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-print-stdin-"));
 		const stderrLines: string[] = [];
 		const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(((chunk: unknown) => {
 			stderrLines.push(String(chunk));
@@ -113,7 +113,7 @@ describe("print mode builtin exit codes", () => {
 		// (`agentInvoked`); that turn's answer belongs to this run, so it is
 		// printed — not suppressed as a stale persisted turn — and its stop
 		// reason decides the exit status.
-		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "omp-print-retry-"));
+		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-print-retry-"));
 		const stdoutLines: string[] = [];
 		const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
 			chunk: unknown,

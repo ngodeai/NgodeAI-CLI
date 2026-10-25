@@ -282,7 +282,7 @@ let cachedDb: Database | null = null;
 
 /**
  * Open (or return the cached handle for) the auto-QA SQLite database at
- * `~/.ngodeai/autoqa.db` (XDG: `$XDG_DATA_HOME/omp/autoqa.db`), creating the
+ * `~/.ngodeai/autoqa.db` (XDG: `$XDG_DATA_HOME/ngodeai/autoqa.db`), creating the
  * schema lazily. Returns `null` when the path cannot be resolved or opened.
  */
 export function openAutoQaDb(): Database | null {
@@ -483,7 +483,7 @@ async function performFlush(db: Database, config: PushConfig, options: FlushOpti
 
 	const postBatch = async (batch: GrievanceRow[]): Promise<BatchOutcome> => {
 		const body = JSON.stringify({
-			agent: { name: "omp", version: VERSION },
+			agent: { name: "ngodeai", version: VERSION },
 			installId: getInstallId(),
 			// Coarse host fingerprint for triage — `darwin`/`linux`/`win32` +
 			// `arm64`/`x64`. Useful for "is this bug arch-specific?" without

@@ -128,7 +128,7 @@ afterEach(() => {
 
 describe("seance startup contracts", () => {
 	it("builds a fresh SDK session with only historical tools and no extensions or outbound IRC", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-sdk-fresh-");
+		using tempDir = TempDir.createSync("@ngode-seance-sdk-fresh-");
 		const cwd = path.join(tempDir.path(), "project");
 		await fs.mkdir(cwd, { recursive: true });
 		const sourceRoot = path.join(tempDir.path(), "source-additional");
@@ -206,7 +206,7 @@ describe("seance startup contracts", () => {
 	});
 
 	it("drops a failed pre-ready source fork without loading parent extensions or changing the source", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-fresh-");
+		using tempDir = TempDir.createSync("@ngode-seance-fresh-");
 		const cwd = path.join(tempDir.path(), "project");
 		await fs.mkdir(cwd, { recursive: true });
 		const sourceFile = path.join(tempDir.path(), "source.jsonl");
@@ -285,7 +285,7 @@ describe("seance startup contracts", () => {
 	});
 
 	it("cold-revives the full persisted runtime prompt and retains restricted tools", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-cold-");
+		using tempDir = TempDir.createSync("@ngode-seance-cold-");
 		const cwd = path.join(tempDir.path(), "project");
 		await fs.mkdir(cwd, { recursive: true });
 		const sourceRoot = path.join(tempDir.path(), "source-additional");
@@ -435,7 +435,7 @@ describe("seance startup contracts", () => {
 	});
 
 	it("does not offer a cold reviver when startup failed after forking but before its restricted init", async () => {
-		using tempDir = TempDir.createSync("@omp-seance-failed-start-");
+		using tempDir = TempDir.createSync("@ngode-seance-failed-start-");
 		const cwd = path.join(tempDir.path(), "project");
 		await fs.mkdir(cwd, { recursive: true });
 		const sourceFile = path.join(tempDir.path(), "source.jsonl");

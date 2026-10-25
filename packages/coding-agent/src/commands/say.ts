@@ -40,9 +40,9 @@ export default class Say extends Command {
 	};
 
 	static examples = [
-		'omp say "hello world"',
-		"omp say --file notes.md --voice bm_fable --speed 1.25",
-		'omp say "hello world" --out /tmp/hello.wav',
+		'ngodeai say "hello world"',
+		"ngodeai say --file notes.md --voice bm_fable --speed 1.25",
+		'ngodeai say "hello world" --out /tmp/hello.wav',
 	];
 
 	async run(): Promise<void> {

@@ -376,7 +376,7 @@ export function createSecurityPublicationTool(
 					operationId: options.operationId,
 				});
 				const scan: SecurityScan = {
-					documentType: "omp-security.scan",
+					documentType: "ngode-security.scan",
 					schemaVersion: "1.0",
 					id: options.scanId,
 					projectKey: options.store.projectKey,

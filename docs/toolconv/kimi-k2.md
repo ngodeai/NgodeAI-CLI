@@ -4,10 +4,10 @@ Native tool-calling convention of Moonshot AI's **Kimi K2** family (`moonshotai/
 
 This document was verified against the model card, the official `docs/tool_call_guidance.md` and `docs/deploy_guidance.md` (GitHub `MoonshotAI/Kimi-K2`), the raw `chat_template.jinja` and `tokenizer_config.json` from the HF repo (rendered locally for the byte-exact streams below), and the vLLM `kimi_k2` tool parser source.
 
-The upstream template/tokenizer reference below is distinct from OMP's
+The upstream template/tokenizer reference below is distinct from NGODEAI's
 prompt-driven implementation. NgodeAI does not run that template or inject its
 default system prompt; its current behavior is described in
-[omp / pi converter behavior](#omp--pi-converter-behavior).
+[ngodeai / pi converter behavior](#ngode--pi-converter-behavior).
 
 ## Special tokens
 

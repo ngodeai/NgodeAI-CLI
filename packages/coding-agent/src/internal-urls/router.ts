@@ -28,7 +28,7 @@ import { LocalProtocolHandler } from "./local-protocol";
 import { McpProtocolHandler } from "./mcp-protocol";
 import { MemoryProtocolHandler } from "./memory-protocol";
 import { MrProtocolHandler } from "./mr-protocol";
-import { OmpProtocolHandler } from "./omp-protocol";
+import { NgodeProtocolHandler } from "./ngode-protocol";
 import { extractUriScheme, parseInternalUrl } from "./parse";
 import { ProcProtocolHandler } from "./proc-protocol";
 import { RuleProtocolHandler } from "./rule-protocol";
@@ -97,7 +97,7 @@ export class InternalUrlRouter {
 	#handlers = new Map<string, ProtocolHandler>();
 	/** Scheme whose handler resolves resources of unregistered custom schemes (MCP resource URIs). */
 	readonly #resourceFallbackScheme: string;
-	/** Schemes the constructor registers: OMP-owned, never replaced by hosts. */
+	/** Schemes the constructor registers: NGODEAI-owned, never replaced by hosts. */
 	readonly #builtinSchemes: ReadonlySet<string>;
 
 	constructor() {
@@ -114,14 +114,14 @@ export class InternalUrlRouter {
 		this.register(new ProcProtocolHandler());
 		this.register(new CfgProtocolHandler());
 		this.register(new SshProtocolHandler());
-		// Reserved OMP-owned security-analysis namespace; vendor adapters normalize into its store.
+		// Reserved NGODEAI-owned security-analysis namespace; vendor adapters normalize into its store.
 		this.register(new SecurityProtocolHandler());
 		this.register(new VaultProtocolHandler());
 		this.register(new IssueProtocolHandler());
 		this.register(new PrProtocolHandler());
 		this.register(new MrProtocolHandler());
 		this.register(resourceFallback);
-		this.register(new OmpProtocolHandler());
+		this.register(new NgodeProtocolHandler());
 		this.register(new XdProtocolHandler());
 		this.register(new AttachmentProtocolHandler());
 		this.register(new ConflictProtocolHandler());
@@ -169,7 +169,7 @@ export class InternalUrlRouter {
 		this.#handlers.set(scheme.toLowerCase(), handler);
 	}
 
-	/** Whether the router constructor registered `scheme` (case-insensitive): an OMP-owned scheme hosts may not replace. */
+	/** Whether the router constructor registered `scheme` (case-insensitive): an NGODEAI-owned scheme hosts may not replace. */
 	isBuiltin(scheme: string): boolean {
 		return this.#builtinSchemes.has(scheme.toLowerCase());
 	}

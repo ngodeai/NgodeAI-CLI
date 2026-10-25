@@ -95,11 +95,11 @@ describe.skipIf(!hasZsh)("zsh action helper under _arguments' calling convention
 		expect(start).toBeGreaterThanOrEqual(0);
 		const fn = script.slice(start, script.indexOf("\n}\n", start) + 3);
 
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-zsh-action-"));
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-zsh-action-"));
 		try {
 			// `command ngodeai` bypasses shell functions, so the stub must be an
 			// executable on PATH.
-			const bin = path.join(dir, "omp");
+			const bin = path.join(dir, "ngodeai");
 			fs.writeFileSync(bin, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${dir}/argv.log"\n`, { mode: 0o755 });
 			fs.writeFileSync(
 				path.join(dir, "harness.zsh"),
@@ -169,7 +169,9 @@ describe("generateCompletion — fish", () => {
 	});
 
 	it("maps value sources to fish completion args", () => {
-		expect(out).toContain("-l model -d 'Model to use' -x -a '(command ngodeai __complete models -- (commandline -ct))'");
+		expect(out).toContain(
+			"-l model -d 'Model to use' -x -a '(command ngodeai __complete models -- (commandline -ct))'",
+		);
 		expect(out).toContain("-l thinking -d 'Effort' -x -a 'low high'");
 		expect(out).toContain("-l tools -d 'Tools' -x -a 'read bash'");
 		expect(out).toContain("-s r -l resume -d 'Resume' -x -a '(command ngodeai __complete sessions");
@@ -253,7 +255,7 @@ describe("live completion surface", () => {
 		expect(stdout).toContain("_ngodeai_cmd_commit");
 		expect(stdout).toContain("'completions:");
 		// zsh routes single-value dynamic flags through the _ngodeai_call action, which
-		// itself shells out to `omp __complete $kind`.
+		// itself shells out to `ngodeai __complete $kind`.
 		expect(stdout).toContain("_ngodeai_call models");
 		expect(stdout).toContain("_ngodeai_call sessions");
 		expect(stdout).toContain("command ngodeai __complete $kind");

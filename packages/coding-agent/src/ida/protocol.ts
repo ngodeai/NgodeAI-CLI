@@ -1,8 +1,8 @@
 /**
- * Cross-process contract between omp processes and the broker-supervised IDA host daemon.
+ * Cross-process contract between ngodeai processes and the broker-supervised IDA host daemon.
  *
  * Each open database runs in one daemon named {@link idaDaemonName} under the project's daemon
- * broker (so it shows up in `ngodeai ps`). The daemon is an omp worker (`host.ts`) that owns the
+ * broker (so it shows up in `ngodeai ps`). The daemon is an ngodeai worker (`host.ts`) that owns the
  * IDB lock and one Python worker, and serves NDJSON requests on {@link idaHostEndpoint}.
  */
 import { ipcEndpoint } from "@ngodeai/natives";
@@ -10,7 +10,7 @@ import { type } from "@ngodeai/ngodetype";
 export { IDA_HOST_WORKER_ARG } from "../cli/worker-selectors";
 
 /** Environment key carrying the JSON {@link IdaHostConfig} for the daemon. */
-export const IDA_HOST_CONFIG_ENV = "OMP_IDA_HOST_CONFIG";
+export const IDA_HOST_CONFIG_ENV = "NGODEAI_IDA_HOST_CONFIG";
 
 /** Name prefix of every IDA daemon in a broker scope. */
 export const IDA_DAEMON_PREFIX = "ngodeai.ida.";
@@ -50,7 +50,7 @@ export function idaHostEndpoint(runtimeDir: string, daemonName: string): string 
 	return ipcEndpoint(runtimeDir, `ida-${hash16(daemonName)}`);
 }
 
-/** RPC methods an omp process may forward to the worker through `call`. */
+/** RPC methods an ngodeai process may forward to the worker through `call`. */
 export const IDA_CALL_METHODS = ["view", "exec", "rename", "comment", "set_type", "make_function", "save"] as const;
 
 /** A method forwarded with `call`. */
@@ -116,7 +116,7 @@ const hostStatusSchema = type({
 
 /**
  * A host's database as reported by `open`/`status`. `busy` counts queued and running requests
- * from every omp process; `lastUsed` drives LRU eviction; `dirty` means a close would save.
+ * from every ngodeai process; `lastUsed` drives LRU eviction; `dirty` means a close would save.
  */
 export type IdaHostStatus = typeof hostStatusSchema.infer;
 
@@ -141,7 +141,7 @@ const hostConfigSchema = type({
 	idleCloseMs: "number",
 });
 
-/** Everything the host needs to open its database; built by the omp process that starts it. */
+/** Everything the host needs to open its database; built by the ngodeai process that starts it. */
 export type IdaHostConfig = typeof hostConfigSchema.infer;
 
 /** Decode the host config from {@link IDA_HOST_CONFIG_ENV}; throws on a malformed value. */

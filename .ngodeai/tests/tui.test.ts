@@ -28,7 +28,7 @@ async function waitForScreen(name: string, expected: string): Promise<string> {
 }
 
 async function sessionDirs(name: string): Promise<string[]> {
-	return (await fs.readdir(os.tmpdir())).filter(entry => entry.startsWith(`omp-tui-${name}-`));
+	return (await fs.readdir(os.tmpdir())).filter(entry => entry.startsWith(`ngode-tui-${name}-`));
 }
 
 afterEach(() => {
@@ -37,7 +37,7 @@ afterEach(() => {
 
 describe("TUI debug tool PTY launcher", () => {
 	it("gives file targets a real terminal, preserves argv, and resizes before delivering input", async () => {
-		using dir = TempDir.createSync("@omp-tui-tool-fixture-");
+		using dir = TempDir.createSync("@ngode-tui-tool-fixture-");
 		const file = dir.join("terminal.ts");
 		await Bun.write(
 			file,
@@ -70,7 +70,7 @@ process.stdin.on("data", chunk => {
 	}, 15_000);
 
 	it("rejects non-UTF-8 input on Windows without writing a prefix and preserves valid input bytes", async () => {
-		using dir = TempDir.createSync("@omp-tui-input-fixture-");
+		using dir = TempDir.createSync("@ngode-tui-input-fixture-");
 		const file = dir.join("input.ts");
 		await Bun.write(
 			file,
@@ -110,7 +110,7 @@ process.stdout.write("READY\\r\\n");
 	it.skipIf(process.platform !== "win32")(
 		"keeps the Windows PTY, screen, and reported size aligned with native dimensions",
 		async () => {
-			using dir = TempDir.createSync("@omp-tui-dimensions-fixture-");
+			using dir = TempDir.createSync("@ngode-tui-dimensions-fixture-");
 			const preload = dir.join("interactive.ts");
 			const envModuleUrl = pathToFileURL(path.resolve(import.meta.dir, "../../packages/utils/src/env.ts")).href;
 			// CI marks test children headless; opt only this real-PTY child back into terminal I/O.

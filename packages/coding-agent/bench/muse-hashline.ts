@@ -12,7 +12,7 @@ import { editDescriptionCompact } from "../src/edit/index";
 const WARMUP = 10;
 const SAMPLES = 41;
 const REQUEST_REPETITIONS = 100;
-const root = path.join(os.tmpdir(), "omp-bench-muse-hashline");
+const root = path.join(os.tmpdir(), "ngode-bench-muse-hashline");
 const target = path.join(root, "fixture.ts");
 const fixture =
 	Array.from(

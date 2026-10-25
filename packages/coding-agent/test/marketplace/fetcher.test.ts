@@ -180,7 +180,7 @@ describe("fetchMarketplace", () => {
 	let tmpDir: string;
 
 	beforeEach(() => {
-		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-fetcher-test-"));
+		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-fetcher-test-"));
 	});
 
 	afterEach(() => {
@@ -202,27 +202,27 @@ describe("fetchMarketplace", () => {
 		await expect(fetchMarketplace(missing, tmpDir)).rejects.toThrow(/Marketplace catalog not found/);
 	});
 
-	it("loads catalog from .omp-plugin/marketplace.json when present", async () => {
-		const root = path.join(tmpDir, "omp-only");
-		fs.mkdirSync(path.join(root, ".omp-plugin"), { recursive: true });
+	it("loads catalog from .ngode-plugin/marketplace.json when present", async () => {
+		const root = path.join(tmpDir, "ngode-only");
+		fs.mkdirSync(path.join(root, ".ngode-plugin"), { recursive: true });
 		const catalog = {
-			name: "omp-only-marketplace",
+			name: "ngode-only-marketplace",
 			owner: { name: "Test" },
-			plugins: [{ name: "omp-plugin", source: "./plugins/omp-plugin", description: "x" }],
+			plugins: [{ name: "ngode-plugin", source: "./plugins/ngode-plugin", description: "x" }],
 		};
-		fs.writeFileSync(path.join(root, ".omp-plugin", "marketplace.json"), JSON.stringify(catalog));
+		fs.writeFileSync(path.join(root, ".ngode-plugin", "marketplace.json"), JSON.stringify(catalog));
 
 		const result = await fetchMarketplace(root, tmpDir);
-		expect(result.catalog.name).toBe("omp-only-marketplace");
-		expect(result.catalog.plugins[0].name).toBe("omp-plugin");
+		expect(result.catalog.name).toBe("ngode-only-marketplace");
+		expect(result.catalog.plugins[0].name).toBe("ngode-plugin");
 	});
 
-	it("prefers .omp-plugin/marketplace.json over .claude-plugin/marketplace.json when both exist", async () => {
+	it("prefers .ngode-plugin/marketplace.json over .claude-plugin/marketplace.json when both exist", async () => {
 		const root = path.join(tmpDir, "both-catalogs");
-		fs.mkdirSync(path.join(root, ".omp-plugin"), { recursive: true });
+		fs.mkdirSync(path.join(root, ".ngode-plugin"), { recursive: true });
 		fs.mkdirSync(path.join(root, ".claude-plugin"), { recursive: true });
-		const ompCatalog = {
-			name: "from-omp-plugin",
+		const ngodeCatalog = {
+			name: "from-ngode-plugin",
 			owner: { name: "Test" },
 			plugins: [{ name: "p", source: "./p", description: "x" }],
 		};
@@ -231,18 +231,18 @@ describe("fetchMarketplace", () => {
 			owner: { name: "Test" },
 			plugins: [{ name: "p", source: "./p", description: "x" }],
 		};
-		fs.writeFileSync(path.join(root, ".omp-plugin", "marketplace.json"), JSON.stringify(ompCatalog));
+		fs.writeFileSync(path.join(root, ".ngode-plugin", "marketplace.json"), JSON.stringify(ngodeCatalog));
 		fs.writeFileSync(path.join(root, ".claude-plugin", "marketplace.json"), JSON.stringify(claudeCatalog));
 
 		const result = await fetchMarketplace(root, tmpDir);
-		expect(result.catalog.name).toBe("from-omp-plugin");
+		expect(result.catalog.name).toBe("from-ngode-plugin");
 	});
 
 	it("error message names both candidate paths when neither exists", async () => {
 		const empty = path.join(tmpDir, "empty-dir");
 		fs.mkdirSync(empty, { recursive: true });
 		await expect(fetchMarketplace(empty, tmpDir)).rejects.toThrow(
-			/\.omp-plugin[\\/]marketplace\.json.*\.claude-plugin[\\/]marketplace\.json/,
+			/\.ngode-plugin[\\/]marketplace\.json.*\.claude-plugin[\\/]marketplace\.json/,
 		);
 	});
 
@@ -279,9 +279,9 @@ describe("fetchMarketplace", () => {
 
 	it("keeps simultaneous clone checkouts isolated", async () => {
 		const cloneSpy = spyOn(vcs, "clone").mockImplementation(async (_url, targetDir) => {
-			fs.mkdirSync(path.join(targetDir, ".omp-plugin"));
+			fs.mkdirSync(path.join(targetDir, ".ngode-plugin"));
 			fs.writeFileSync(
-				path.join(targetDir, ".omp-plugin", "marketplace.json"),
+				path.join(targetDir, ".ngode-plugin", "marketplace.json"),
 				JSON.stringify({ name: "test-marketplace", owner: { name: "Test" }, plugins: [] }),
 			);
 		});
@@ -291,8 +291,8 @@ describe("fetchMarketplace", () => {
 				fetchMarketplace("owner/repo", tmpDir),
 			]);
 			expect(first.clonePath).not.toBe(second.clonePath);
-			expect(fs.existsSync(path.join(first.clonePath!, ".omp-plugin", "marketplace.json"))).toBe(true);
-			expect(fs.existsSync(path.join(second.clonePath!, ".omp-plugin", "marketplace.json"))).toBe(true);
+			expect(fs.existsSync(path.join(first.clonePath!, ".ngode-plugin", "marketplace.json"))).toBe(true);
+			expect(fs.existsSync(path.join(second.clonePath!, ".ngode-plugin", "marketplace.json"))).toBe(true);
 		} finally {
 			cloneSpy.mockRestore();
 		}

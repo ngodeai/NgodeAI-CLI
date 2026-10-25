@@ -22,7 +22,7 @@ describe("issue #935 path equivalence", () => {
 	});
 
 	it("resolves a missing path through its deepest existing ancestor only when asked", () => {
-		const temp = fs.mkdtempSync(path.join(os.tmpdir(), "omp-through-missing-"));
+		const temp = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-through-missing-"));
 		try {
 			const real = path.join(temp, "real");
 			const link = path.join(temp, "link");

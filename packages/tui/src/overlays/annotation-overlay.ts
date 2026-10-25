@@ -210,7 +210,7 @@ function modeSpans(mode: string): TspSpan[] {
 	return mode.split("`").flatMap((part, index) => (part ? [span(part, index % 2 === 1 ? "code" : "muted")] : []));
 }
 
-/** A fullscreen, annotated diff picker that only relies on public OMP APIs. */
+/** A fullscreen, annotated diff picker that only relies on public NGODEAI APIs. */
 export class AnnotationOverlay implements Focusable {
 	focused = false;
 	#scrollView: ScrollView;

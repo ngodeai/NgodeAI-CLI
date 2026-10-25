@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { ipcEndpoint } from "@ngodeai/natives";
 import { getDaemonRuntimeDir, hasFsCode, isEacces, isEisdir, isEnoent } from "@ngodeai/utils";
 
-/** Resolve the private runtime directory shared by omp processes in one project directory. */
+/** Resolve the private runtime directory shared by ngodeai processes in one project directory. */
 export { getDaemonRuntimeDir as daemonRuntimeDir };
 
 /** File in a broker runtime dir recording which project (or global service dir) owns the scope. */

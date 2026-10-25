@@ -59,7 +59,7 @@ export interface ScrollOptions {
 	selector?: string;
 }
 
-/** A browser element handle with omp's additional interaction methods. */
+/** A browser element handle with ngodeai's additional interaction methods. */
 export type InteractionHandle = ElementHandle & {
 	dblclick(): Promise<void>;
 	check(): Promise<void>;
@@ -875,7 +875,7 @@ export async function highlightElement(
 	const duration = options.duration ?? 2_000;
 	if (!Number.isFinite(duration) || duration < 0)
 		throw new ToolError("highlight duration must be a non-negative number");
-	const id = `omp-highlight-${crypto.randomUUID()}`;
+	const id = `ngode-highlight-${crypto.randomUUID()}`;
 	await untilAborted(signal, () =>
 		handle.evaluate((el, overlayId) => {
 			const element = el as unknown as PageElement;
@@ -883,7 +883,7 @@ export async function highlightElement(
 			const rect = element.getBoundingClientRect();
 			const overlay = page.document.createElement("div");
 			overlay.id = overlayId;
-			overlay.dataset.ompHighlightOverlay = "";
+			overlay.dataset.ngodeHighlightOverlay = "";
 			overlay.setAttribute("aria-hidden", "true");
 			overlay.setAttribute("role", "presentation");
 			overlay.inert = true;
@@ -1167,7 +1167,7 @@ async function dropRead(
 	drop: (watch: string) => Promise<void>,
 	signal: AbortSignal | undefined,
 ): Promise<boolean> {
-	const type = `omp-upload-drop-${crypto.randomUUID()}`;
+	const type = `ngode-upload-drop-${crypto.randomUUID()}`;
 	const frame = zone.frame;
 	const realm = frame.mainRealm();
 	const target = await untilAbortedOrReleased(signal, realm.adoptHandle(zone), late => late.dispose());

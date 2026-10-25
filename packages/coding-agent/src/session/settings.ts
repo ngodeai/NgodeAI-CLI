@@ -168,7 +168,7 @@ export const cfgProvidersMaxInFlightRequests = register({
 		group: "Services",
 		label: "Max In-Flight Requests",
 		description:
-			'Maximum concurrent LLM requests per provider id (for example "openai" or "anthropic"), shared across local OMP processes with this config root. Omitted providers are unlimited.',
+			'Maximum concurrent LLM requests per provider id (for example "openai" or "anthropic"), shared across local NGODEAI processes with this config root. Omitted providers are unlimited.',
 	},
 });
 effect(cfgProvidersMaxInFlightRequests, limits =>

@@ -289,7 +289,7 @@ async function runPrintModeCore(
 	 * Dispatch a CLI-authored message as a local command, if it is one.
 	 * Only CLI-authored input (`messages`, the positional/-p args) is ever
 	 * dispatched. The merged stdin/@file `initialMessage` is attacker-shaped
-	 * end to end — `curl … | omp "summarize"` must never run a slash payload
+	 * end to end — `curl … | ngodeai "summarize"` must never run a slash payload
 	 * from the pipe as a command — so it always prompts the model as text.
 	 * Commands outside the dispatched list keep the historic behavior of
 	 * prompting the model with the literal text. Returns whether the message
@@ -307,7 +307,7 @@ async function runPrintModeCore(
 		// (`session.retry()` posts the continuation as a post-prompt task),
 		// so run `promptTurn`'s pre-turn prep BEFORE the command executes:
 		// the readiness binding (`waitForStartup` + `refreshMCPTools`), the
-		// strict `OMP_MCP_REQUIRE_READY` gate, the working indicator, and
+		// strict `NGODEAI_MCP_REQUIRE_READY` gate, the working indicator, and
 		// the uncommitted text output. Without it the retried turn would
 		// stream without the MCP tools turn one gets, strict automation
 		// would pass on a run it should fail, and turn recovery would treat
@@ -353,7 +353,7 @@ async function runPrintModeCore(
 	});
 
 	const timeoutMs = resolveMCPTimeoutMs();
-	const strict = $flag("OMP_MCP_REQUIRE_READY");
+	const strict = $flag("NGODEAI_MCP_REQUIRE_READY");
 	let strictMCPFailure = false;
 	// Warn once per unavailable server across evaluations: readiness is
 	// re-evaluated after a dispatched recovery command, and a still-broken
@@ -451,7 +451,7 @@ async function runPrintModeCore(
 		await promptTurn(message);
 	}
 	// A run with no model turn (every input consumed locally, or none) still
-	// reports strict unreadiness: `OMP_MCP_REQUIRE_READY=1 omp -p '/mcp reauth
+	// reports strict unreadiness: `NGODEAI_MCP_REQUIRE_READY=1 ngodeai -p '/mcp reauth
 	// foo'` that failed to repair its server exits with the strict error, not
 	// only the builtin's own failure.
 	if (strict && !admittedAgentTurn && !strictMCPFailure) {
@@ -525,7 +525,7 @@ async function runPrintModeCore(
 	await stdoutTail;
 	// Dispose before returning the status instead of hard-exiting ahead of it:
 	// the awaited `dispose()` runs the browser reaper (releaseTabsForOwner), so
-	// an OMP-owned Chromium cannot survive the exit (issue #5643).
+	// an NGODEAI-owned Chromium cannot survive the exit (issue #5643).
 	//
 	// A latched store failure rethrows from `dispose()`; report it as lost
 	// durability rather than letting it escape as a raw fatal dump.

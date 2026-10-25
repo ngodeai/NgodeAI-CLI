@@ -266,7 +266,7 @@ off) raise `RpcCommandError`.
 
 ## History, Commands, and Thinking Levels
 
-- `get_entries(since=None)` returns `SessionEntries`: OMP-native `SessionEntry`
+- `get_entries(since=None)` returns `SessionEntries`: NGODEAI-native `SessionEntry`
   objects (raw dicts) in append order plus `leaf_id`. With `since`, only entries
   strictly after that entry id; an unknown id raises `RpcCommandError` with
   `code == "unknown_since"`.
@@ -290,8 +290,8 @@ for snapshot in client.get_subagents():
     page = client.get_subagent_messages(subagent_id=snapshot.id)
     more = client.get_subagent_messages(subagent_id=snapshot.id, from_byte=page.next_byte)
 
-client.steer_subagent("OmpWorker", "Drop the glob, keep the direct path.")
-cancelled = client.cancel_subagent("OmpWorker")  # False when not running
+client.steer_subagent("NgodeWorker", "Drop the glob, keep the direct path.")
+cancelled = client.cancel_subagent("NgodeWorker")  # False when not running
 ```
 
 At `"events"`, `on_subagent_event()` delivers each subagent's own session

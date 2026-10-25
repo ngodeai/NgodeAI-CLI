@@ -59,7 +59,7 @@ In a top-level session, changing `prewalk.enabled` live also takes effect:
 turning it on arms the current `@smol` target when none is armed; turning it off
 disarms a pending handoff. This does not control subagent prewalk.
 
-Run these slash commands without restarting OMP:
+Run these slash commands without restarting NGODEAI:
 
 ```text
 /prewalk
@@ -77,7 +77,7 @@ If prewalk is already armed, `/prewalk` leaves the existing target in place. `/p
 
 ## Auto-prewalk
 
-`prewalk.enabled` and `/prewalk` unconditionally arm a one-shot handoff. Auto-prewalk asks OMP's native judge, per task, whether prewalk is worthwhile, and arms the same handoff from the active model when it is. It is a prewalk-suitability check, not a difficulty rating or a general model router: it never picks a different planning model.
+`prewalk.enabled` and `/prewalk` unconditionally arm a one-shot handoff. Auto-prewalk asks NGODEAI's native judge, per task, whether prewalk is worthwhile, and arms the same handoff from the active model when it is. It is a prewalk-suitability check, not a difficulty rating or a general model router: it never picks a different planning model.
 
 ```yaml
 prewalk:

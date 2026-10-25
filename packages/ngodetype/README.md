@@ -63,7 +63,7 @@ Scopes resolve aliases lazily, including cycles. `type.module()` exports a
 scope directly, `type.define()` preserves literal definitions, and
 `type.generic("<value>", definition)` builds parameterized runtime schemas.
 
-Failed validation returns `OmpErrors`; each entry exposes `code`, `path`,
+Failed validation returns `NgodeErrors`; each entry exposes `code`, `path`,
 `expected`, `actual`, `problem`, and `message`, while the aggregate exposes
 `summary` and `byPath`. `.configure()` accepts string or callback overrides for
 error text. `.toJsonSchema()` accepts `target`, `dialect`, and `fallback`

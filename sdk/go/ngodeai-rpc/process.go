@@ -1,4 +1,4 @@
-package omprpc
+package ngodeairpc
 
 import (
 	"errors"
@@ -26,7 +26,7 @@ type process struct {
 // the reader.
 func startProcess(cmd *exec.Cmd) (*process, io.WriteCloser, error) {
 	if cmd.Stdin != nil || cmd.Stdout != nil {
-		return nil, nil, errors.New("omprpc: Start owns the command's Stdin and Stdout; leave them nil")
+		return nil, nil, errors.New("ngodeairpc: Start owns the command's Stdin and Stdout; leave them nil")
 	}
 	stdinR, stdinW, err := os.Pipe()
 	if err != nil {

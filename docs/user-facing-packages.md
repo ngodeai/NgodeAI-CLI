@@ -11,15 +11,15 @@ This page indexes README-only user-facing package CLIs and features that need ro
 
 ## Package CLIs and features
 
-### `python/robomp` — self-hosted GitHub triage and fix service
+### `python/ngodebot` — self-hosted GitHub triage and fix service
 
-Sources: [`python/robomp/README.md`](../python/robomp/README.md), [`python/robomp/pyproject.toml`](../python/robomp/pyproject.toml), [`python/robomp/.env.example`](../python/robomp/.env.example), [`python/robomp/docker-compose.yml`](../python/robomp/docker-compose.yml).
+Sources: [`python/ngodebot/README.md`](../python/ngodebot/README.md), [`python/ngodebot/pyproject.toml`](../python/ngodebot/pyproject.toml), [`python/ngodebot/.env.example`](../python/ngodebot/.env.example), [`python/ngodebot/docker-compose.yml`](../python/ngodebot/docker-compose.yml).
 
-- Python package: `robomp` (Python 3.11 or newer); bin: `robomp`, with `serve`, `triage`, `replay`, `status`, and `cleanup` commands.
-- Feature: self-hosted service that receives GitHub webhooks for allowlisted repositories, classifies issues, resumes an `ngodeai --mode rpc` session per issue, comments or opens a fix PR, and handles follow-up issue and PR conversations. Incoming PR review is enabled by default; the opt-in release sentinel handles failed release CI (`ROBOMP_RELEASE_SENTINEL_ENABLED`, default false).
-- Dashboard/API: FastAPI serves the operator dashboard at `/` alongside health, event, issue, and replay endpoints. The bundled Compose deployment publishes it at `http://localhost:6543/`; `bun run robomp:web:dev` runs the dashboard frontend in development, and `bun run robomp:web:build` rebuilds its static bundle.
-- Inputs/storage: Compose interpolates `python/robomp/.env` through explicit per-service environment allowlists and mounts `~/.ngodeai/agent/models.container.yml` as agent `models.yml`. Host CLI configuration uses process environment and `.env` relative to cwd. GitHub webhook events feed a SQLite-backed queue; Compose persists the database, workspaces, session transcripts, and logs in the `robomp_data` volume under `/data`.
-- Root commands: `bun run robomp:install` installs the Python package for host development; `bun run robomp:serve` runs it on the host; `bun run robomp:build`/`bun run robomp:rebuild`, `bun run robomp:up`, `bun run robomp:down`, `bun run robomp:restart`, `bun run robomp:logs`, `bun run robomp:dev`, and `bun run robomp:reset` manage the container deployment.
+- Python package: `ngodebot` (Python 3.11 or newer); bin: `ngodebot`, with `serve`, `triage`, `replay`, `status`, and `cleanup` commands.
+- Feature: self-hosted service that receives GitHub webhooks for allowlisted repositories, classifies issues, resumes an `ngodeai --mode rpc` session per issue, comments or opens a fix PR, and handles follow-up issue and PR conversations. Incoming PR review is enabled by default; the opt-in release sentinel handles failed release CI (`NGODEBOT_RELEASE_SENTINEL_ENABLED`, default false).
+- Dashboard/API: FastAPI serves the operator dashboard at `/` alongside health, event, issue, and replay endpoints. The bundled Compose deployment publishes it at `http://localhost:6543/`; `bun run ngodebot:web:dev` runs the dashboard frontend in development, and `bun run ngodebot:web:build` rebuilds its static bundle.
+- Inputs/storage: Compose interpolates `python/ngodebot/.env` through explicit per-service environment allowlists and mounts `~/.ngodeai/agent/models.container.yml` as agent `models.yml`. Host CLI configuration uses process environment and `.env` relative to cwd. GitHub webhook events feed a SQLite-backed queue; Compose persists the database, workspaces, session transcripts, and logs in the `robomp_data` volume under `/data`.
+- Root commands: `bun run ngodebot:install` installs the Python package for host development; `bun run ngodebot:serve` runs it on the host; `bun run ngodebot:build`/`bun run ngodebot:rebuild`, `bun run ngodebot:up`, `bun run ngodebot:down`, `bun run ngodebot:restart`, `bun run ngodebot:logs`, `bun run ngodebot:dev`, and `bun run ngodebot:reset` manage the container deployment.
 - Prerequisites: Docker Compose v2 for the bundled deployment, a host-reachable model gateway matching the container model configuration, a GitHub webhook endpoint, and a bot PAT with write access to every allowlisted repository. The orchestrator requires an HMAC-authenticated `gh-proxy` and refuses to hold `GITHUB_TOKEN`; the bundled two-container deployment passes the PAT only to the sidecar. Host development must likewise keep the PAT out of the orchestrator environment and `.env`.
 
 ### `packages/stats` — local usage dashboard
@@ -89,7 +89,7 @@ Sources: [`packages/browser-relay/README.md`](../packages/browser-relay/README.m
 
 Sources: [`packages/collab-web/README.md`](../packages/collab-web/README.md), [`packages/collab-web/package.json`](../packages/collab-web/package.json), [`docs/collab.md`](./collab.md).
 
-- Package: private `@ngodeai/collab-web`; production client: <https://my.omp.sh/>.
+- Package: private `@ngodeai/collab-web`; production client: <https://my.ngodeai.net/>.
 - Feature: browser guest UI for `/collab` sessions, including streaming transcript, tool cards,
   subagent views, prompts, and host interruption.
 - Local paths: `bun run dev` serves the UI on port 3000; `bun run mock-host` runs an offline relay
@@ -116,6 +116,6 @@ Sources: [`packages/mnemopi/README.md`](../packages/mnemopi/README.md), [`packag
 - Package: public `@ngodeai/mnemopi`; bin: `mnemopi`; requires Bun 1.3.14 or newer. Install globally with `bun add --global @ngodeai/mnemopi`, then run `mnemopi <command>`. From a source checkout, `bun packages/mnemopi/src/cli.ts <command>` runs the same entrypoint.
 - Store and search: `store`/`remember`, `recall`/`search`, `update`/`edit`, and `delete`/`forget`.
 - Inspect and maintain: `stats`, `sleep`/`consolidate`, `diagnose`/`doctor`, JSON `export` and `import`, `scratchpad`/`sp` with `read`, `write`, or `clear`, and `bank` with `list`, `create`, or `delete`.
-- Storage: standalone commands use `~/.hermes/mnemopi/data/mnemopi.db` by default; `MNEMOPI_DATA_DIR` selects a different data directory. This default is separate from OMP's session-managed memory location.
+- Storage: standalone commands use `~/.hermes/mnemopi/data/mnemopi.db` by default; `MNEMOPI_DATA_DIR` selects a different data directory. This default is separate from NGODEAI's session-managed memory location.
 - Integration: `mcp` starts the package's MCP server. The standalone CLI operates directly on Mnemopi storage; select `memory.backend: mnemopi` instead when integrating memory into NgodeAI sessions, as described in the backend guide.
 - Discovery and errors: `mnemopi --help` lists primary command forms. Unknown commands and invalid arguments print a concise error and return a nonzero exit code.

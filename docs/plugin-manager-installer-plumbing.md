@@ -23,7 +23,7 @@ ngodeai plugin <npm/link action> ...
   -> mutate user plugins data root {package.json,node_modules,ngodeai-plugins.lock.json}
   -> enabled-plugin enumeration discovers user and nearest project plugin roots
   -> direct loaders resolve manifest-declared tool/extension entries
-  -> `omp-plugins` capability discovery scans conventional skills/hooks/tools/commands/rules/prompts/MCP content; task discovery scans `agents/`
+  -> `ngode-plugins` capability discovery scans conventional skills/hooks/tools/commands/rules/prompts/MCP content; task discovery scans `agents/`
 
 ngodeai plugin install name@marketplace / NgodeAI install name@marketplace
   -> MarketplaceManager
@@ -43,7 +43,7 @@ ngodeai plugin install name@marketplace / NgodeAI install name@marketplace
 
 ## On-disk model
 
-User plugin state lives under the plugins data root (`~/.ngodeai/plugins` by default). On Linux and macOS, `ngodeai config init-xdg` initializes the XDG data, state, and cache roots but does not move existing plugin trees. With `XDG_DATA_HOME` set and its `omp/` directory initialized, default-profile state resolves under `$XDG_DATA_HOME/omp/plugins`. Named profiles use their own roots and require a profile-specific XDG directory to opt into that routing. The marketplace registry helper separately copies a legacy `marketplaces.json` best-effort when its XDG target is absent.
+User plugin state lives under the plugins data root (`~/.ngodeai/plugins` by default). On Linux and macOS, `ngodeai config init-xdg` initializes the XDG data, state, and cache roots but does not move existing plugin trees. With `XDG_DATA_HOME` set and its `ngodeai/` directory initialized, default-profile state resolves under `$XDG_DATA_HOME/ngodeai/plugins`. Named profiles use their own roots and require a profile-specific XDG directory to opt into that routing. The marketplace registry helper separately copies a legacy `marketplaces.json` best-effort when its XDG target is absent.
 
 The plugin root contains:
 
@@ -54,17 +54,17 @@ The plugin root contains:
   - selected feature set per plugin
   - persisted plugin settings
 
-Project-root resolution first walks upward for the nearest `.ngodeai/`; only when none exists does it use the nearest `.git` anchor. Project runtime plugins live in `<anchor>/.omp/plugins/{node_modules,ngodeai-plugins.lock.json}`. Explicit marketplace project installs can create `<cwd>/.ngodeai/plugins/` when neither anchor exists (except when cwd is home). Enabled project packages shadow user packages with the same package name; disabled project packages do not. npm/git/link CLI operations remain user-scoped; their install handler warns and ignores `--scope`.
+Project-root resolution first walks upward for the nearest `.ngodeai/`; only when none exists does it use the nearest `.git` anchor. Project runtime plugins live in `<anchor>/.ngodeai/plugins/{node_modules,ngodeai-plugins.lock.json}`. Explicit marketplace project installs can create `<cwd>/.ngodeai/plugins/` when neither anchor exists (except when cwd is home). Enabled project packages shadow user packages with the same package name; disabled project packages do not. npm/git/link CLI operations remain user-scoped; their install handler warns and ignores `--scope`.
 
-Project-local overrides are searched through project config directories as `plugin-overrides.json` (normally `<project>/.omp/plugin-overrides.json`). Overrides are read-only from manager/loader perspective and can disable plugins or override features/settings.
+Project-local overrides are searched through project config directories as `plugin-overrides.json` (normally `<project>/.ngodeai/plugin-overrides.json`). Overrides are read-only from manager/loader perspective and can disable plugins or override features/settings.
 
 Marketplace installs add registry and cache state alongside those runtime entries:
 
 - user data root `marketplaces.json` (`~/.ngodeai/marketplaces.json` by default) — configured marketplace catalogs
 - user plugins data root `installed_plugins.json` (`~/.ngodeai/plugins/installed_plugins.json` by default) — user-scoped marketplace installs
-- `<anchor>/.omp/plugins/installed_plugins.json` — project-scoped marketplace installs
+- `<anchor>/.ngodeai/plugins/installed_plugins.json` — project-scoped marketplace installs
 - user plugins data root `cache/{marketplaces,plugins}/` — cached catalogs and plugin directories
-- `<scope>/plugins/node_modules/<package>` — symlink to the cached plugin, allowing its `package.json` `omp.extensions` and tools to load
+- `<scope>/plugins/node_modules/<package>` — symlink to the cached plugin, allowing its `package.json` `ngodeai.extensions` and tools to load
 - `<scope>/plugins/ngodeai-plugins.lock.json` — enablement and feature state shared with the runtime plugin loader
 
 ## Plugin spec parsing and metadata interpretation
@@ -89,7 +89,7 @@ Non-GitHub `https://`/`ssh://` specs are passed to bun with a `git+` prefix (bun
 
 Manifest is resolved as:
 
-1. `package.json.omp`
+1. `package.json.ngodeai`
 2. fallback `package.json.pi`
 3. fallback `{ version: package.version }`
 
@@ -108,7 +108,7 @@ Every Bun package-manager call below (`install`, `update`, `uninstall`, `pm cach
 
 1. Parse feature bracket syntax from install spec.
 2. Validate the spec: git specs via `validateGitSpec`; npm specs against the package-name regex + shell-metacharacter denylist.
-3. Ensure plugin `package.json` exists (`omp-plugins`, private dependencies map).
+3. Ensure plugin `package.json` exists (`ngode-plugins`, private dependencies map).
 4. Run `bun install --no-cache <packageSpec>` for npm, or `bun install <gitSpec>` for Git, in the user plugins directory; `--force` is forwarded when requested. Reinstalls prune stale dependency entries first. Reinstalling an existing Git plugin also refreshes Bun's matching Git cache and runs `bun update <resolved-name>` to refresh the lockfile revision.
 5. Resolve the installed package name (npm: strip version via `extractPackageName`; git: diff `dependencies` before/after) and read `node_modules/<name>/package.json`.
 6. Resolve manifest and compute `enabledFeatures`:
@@ -208,7 +208,7 @@ Manifest entries may point to a file. Tool/hook/command directories require a di
 
 - Manifest-declared **tools** feed `discoverAndLoadCustomTools` through `getAllPluginToolPaths(cwd)`.
 - Manifest-declared **extensions** feed `discoverAndLoadExtensions` through `getAllPluginExtensionPaths(cwd)`.
-- The `omp-plugins` capability provider separately scans conventional `skills/`, `hooks/pre|post/`, `tools/`, `commands/`, `rules/`, `prompts/`, and `.mcp.json`/`mcp.json` under enabled npm/link plugin roots. Task-agent discovery scans the same roots' `agents/`. Marketplace roots are excluded there and handled through `claude-plugins` plus marketplace task-agent discovery instead.
+- The `ngode-plugins` capability provider separately scans conventional `skills/`, `hooks/pre|post/`, `tools/`, `commands/`, `rules/`, `prompts/`, and `.mcp.json`/`mcp.json` under enabled npm/link plugin roots. Task-agent discovery scans the same roots' `agents/`. Marketplace roots are excluded there and handled through `claude-plugins` plus marketplace task-agent discovery instead.
 - Packages whose root `plugin.json` targets Agent Plugins 1.0.0 use `agent-plugins` for portable `skills/` and root `mcp.json`, from both marketplace and extension-package roots. Legacy providers skip those two surfaces but can still load client-specific content from hybrid packages; fatally invalid standard manifests suppress legacy discovery.
 - Manifest hook/command path resolvers remain exported, but runtime hook/slash discovery uses the conventional capability-provider scans rather than `getAllPluginHookPaths()` or `getAllPluginCommandPaths()`.
 - Direct custom-tool and extension path lists are de-duplicated by resolved absolute path (`seen`, first path wins).
@@ -292,7 +292,7 @@ Operationally, `doctor --fix` can repair some drift (`bun install`, orphaned con
 - [`src/extensibility/plugins/loader.ts`](../packages/coding-agent/src/extensibility/plugins/loader.ts) — enabled-plugin discovery and manifest tool/hook/command/extension path resolution
 - [`src/extensibility/plugins/parser.ts`](../packages/coding-agent/src/extensibility/plugins/parser.ts) — install spec and package-name parsing helpers
 - [`src/extensibility/plugins/types.ts`](../packages/coding-agent/src/extensibility/plugins/types.ts) — manifest/runtime/override type contracts
-- [`src/discovery/omp-plugins.ts`](../packages/coding-agent/src/discovery/omp-plugins.ts) — conventional capability discovery for npm/link extension packages
+- [`src/discovery/ngode-plugins.ts`](../packages/coding-agent/src/discovery/ngode-plugins.ts) — conventional capability discovery for npm/link extension packages
 - [`src/task/discovery.ts`](../packages/coding-agent/src/task/discovery.ts) — conventional `agents/` discovery for extension and marketplace plugin roots
 - [`src/discovery/claude-plugins.ts`](../packages/coding-agent/src/discovery/claude-plugins.ts) — marketplace-plugin capability discovery
 - [`src/discovery/agent-plugins.ts`](../packages/coding-agent/src/discovery/agent-plugins.ts) — portable Agent Plugins skills and MCP discovery

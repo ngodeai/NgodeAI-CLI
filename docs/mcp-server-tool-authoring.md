@@ -5,7 +5,7 @@ This document explains how MCP server definitions become callable `mcp__*` tools
 ## Architecture at a glance
 
 ```text
-Config sources (.omp/.claude/.cursor/.vscode/mcp.json, mcp.json, etc.)
+Config sources (.ngodeai/.claude/.cursor/.vscode/mcp.json, mcp.json, etc.)
   -> discovery providers normalize to canonical MCPServer
   -> loadAllMCPConfigs supplies scope filters and user enablement suppression
   -> capability loader dedupes by server name and equivalent connection (higher priority wins)
@@ -25,8 +25,8 @@ Config sources (.omp/.claude/.cursor/.vscode/mcp.json, mcp.json, etc.)
 - shared fields: `enabled`, `timeout`, `requestIdFormat` (`"number"` or `"string"`), `instructions` (`boolean`, default `true`), `auth`, `oauth`
 
 `timeout` is in milliseconds, defaults to 30,000, and accepts `0` to disable
-client-side timeouts. A valid `OMP_MCP_TIMEOUT_MS` environment value overrides
-the per-server timeout. `requestIdFormat` and `instructions` are OMP-specific;
+client-side timeouts. A valid `NGODEAI_MCP_TIMEOUT_MS` environment value overrides
+the per-server timeout. `requestIdFormat` and `instructions` are NGODEAI-specific;
 native configs, standalone MCP JSON, and NgodeAI plugins parse them, while foreign
 tool-format providers generally do not.
 
@@ -101,7 +101,7 @@ Key behavior:
 
 ### Environment expansion during discovery
 
-OMP-native MCP config (`.ngodeai/mcp.json`, `~/.ngodeai/agent/mcp.json`, plus their `.mcp.json` variants) expands `${VAR}` and `${VAR:-default}` placeholders recursively before converting to runtime config. It also accepts boolean/string forms for `enabled` (`true`, `false`, `1`, `0`) and numeric strings for `timeout`. `requestIdFormat` accepts only `"number"` or `"string"`; other values warn and fall back to numeric IDs.
+NGODEAI-native MCP config (`.ngodeai/mcp.json`, `~/.ngodeai/agent/mcp.json`, plus their `.mcp.json` variants) expands `${VAR}` and `${VAR:-default}` placeholders recursively before converting to runtime config. It also accepts boolean/string forms for `enabled` (`true`, `false`, `1`, `0`) and numeric strings for `timeout`. `requestIdFormat` accepts only `"number"` or `"string"`; other values warn and fall back to numeric IDs.
 
 The standalone fallback provider in `src/discovery/mcp-json.ts` reads project-root `mcp.json` and `.mcp.json`, expands the same `${...}` placeholders in endpoint/auth fields, and type-checks `enabled`/`timeout` without coercing string values. Both providers require a finite, non-negative timeout and validate `requestIdFormat` and boolean `instructions`.
 
@@ -136,7 +136,7 @@ When lookup succeeds:
 - `stdio`: injects `OAUTH_ACCESS_TOKEN` env var
 
 If no credential resolves, NgodeAI connects without injecting an OAuth value.
-Refresh or credential-resolution failures are logged; when possible, OMP
+Refresh or credential-resolution failures are logged; when possible, NGODEAI
 continues with the existing access token.
 
 ### Header/env value resolution

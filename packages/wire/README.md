@@ -1,6 +1,6 @@
 # @ngodeai/wire
 
-Shared TypeScript wire contracts for omp collab live sessions.
+Shared TypeScript wire contracts for ngodeai collab live sessions.
 
 The package contains only JSON-safe protocol shapes and constants. It has no runtime dependencies and is consumed by both the host CLI (`@ngodeai/coding-agent`) and browser guest (`@ngodeai/collab-web`).
 

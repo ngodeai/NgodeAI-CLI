@@ -672,12 +672,12 @@ export async function listSessionFolders(): Promise<string[]> {
 }
 
 /**
- * Name prefix of the scratch directories `omp gc --compress` creates beside
+ * Name prefix of the scratch directories `ngodeai gc --compress` creates beside
  * the files it copies on APFS. Their `.jsonl` files are transient copies of
  * transcripts, never transcripts of their own; a killed run can leave one
- * behind until the next `omp gc --compress --apply` removes it.
+ * behind until the next `ngodeai gc --compress --apply` removes it.
  */
-export const COMPRESS_SCRATCH_PREFIX = ".omp-gc-compress-";
+export const COMPRESS_SCRATCH_PREFIX = ".ngode-gc-compress-";
 
 /** Whether `relativePath` (from any ancestor directory) lies inside a compress scratch directory. */
 export function isCompressScratchPath(relativePath: string): boolean {
@@ -686,7 +686,7 @@ export function isCompressScratchPath(relativePath: string): boolean {
 
 /**
  * List all session files in a folder, excluding copies inside
- * `omp gc --compress` scratch directories.
+ * `ngodeai gc --compress` scratch directories.
  */
 export async function listSessionFiles(folderPath: string): Promise<string[]> {
 	try {

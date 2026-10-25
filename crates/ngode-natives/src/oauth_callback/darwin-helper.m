@@ -98,9 +98,9 @@ static BOOL PublishCallbackURL(NSString *configuredPath, NSString *callback, NSE
 	if (![configuredPath isKindOfClass:NSString.class] || configuredPath.length == 0 ||
 		!configuredPath.isAbsolutePath) {
 		if (resultError != NULL) {
-			*resultError = [NSError errorWithDomain:@"dev.omp.oauth-callback" code:1
+			*resultError = [NSError errorWithDomain:@"dev.ngodeai.oauth-callback" code:1
 				userInfo:@{NSLocalizedDescriptionKey:
-					@"missing absolute OMPCallbackPath in application Info.plist"}];
+					@"missing absolute NGODECallbackPath in application Info.plist"}];
 		}
 		return NO;
 	}
@@ -117,7 +117,7 @@ static BOOL PublishCallbackURL(NSString *configuredPath, NSString *callback, NSE
 	if (lstat(resolvedParent, &directoryStatus) != 0 || !S_ISDIR(directoryStatus.st_mode) ||
 		directoryStatus.st_uid != getuid() || (directoryStatus.st_mode & 0077) != 0) {
 		if (resultError != NULL) {
-			*resultError = [NSError errorWithDomain:@"dev.omp.oauth-callback" code:2
+			*resultError = [NSError errorWithDomain:@"dev.ngodeai.oauth-callback" code:2
 				userInfo:@{NSLocalizedDescriptionKey:
 					@"callback directory is not private to the current user"}];
 		}
@@ -166,16 +166,16 @@ static BOOL PublishCallbackURL(NSString *configuredPath, NSString *callback, NSE
 	return success;
 }
 
-@interface OMPCallbackDelegate : NSObject <NSApplicationDelegate>
+@interface NGODECallbackDelegate : NSObject <NSApplicationDelegate>
 @property(nonatomic) BOOL delivered;
 @end
 
-@implementation OMPCallbackDelegate
+@implementation NGODECallbackDelegate
 
 - (void)publishAndQuit:(NSString *)callback {
 	if (self.delivered) return;
 	self.delivered = YES;
-	NSString *callbackPath = [NSBundle.mainBundle objectForInfoDictionaryKey:@"OMPCallbackPath"];
+	NSString *callbackPath = [NSBundle.mainBundle objectForInfoDictionaryKey:@"NGODECallbackPath"];
 	NSError *error = nil;
 	if (!PublishCallbackURL(callbackPath, callback, &error)) {
 		gExitStatus = 1;
@@ -228,7 +228,7 @@ static BOOL PublishCallbackURL(NSString *configuredPath, NSString *callback, NSE
 static int RunApplication(void) {
 	@autoreleasepool {
 		NSApplication *application = NSApplication.sharedApplication;
-		OMPCallbackDelegate *delegate = [OMPCallbackDelegate new];
+		NGODECallbackDelegate *delegate = [NGODECallbackDelegate new];
 		application.delegate = delegate;
 		[application setActivationPolicy:NSApplicationActivationPolicyProhibited];
 		[application run];

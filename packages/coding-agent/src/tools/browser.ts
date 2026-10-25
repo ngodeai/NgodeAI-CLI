@@ -99,7 +99,7 @@ const appSchema = type({
 	"path?": type("string").describe("binary path to spawn"),
 	"cdp_url?": type("string").describe("existing cdp endpoint"),
 	"relay?": type("boolean").describe(
-		"true drives the user's own tabs via the omp browser relay; false skips a relay the settings enable",
+		"true drives the user's own tabs via the ngodeai browser relay; false skips a relay the settings enable",
 	),
 	"tern?": type("boolean").describe("inside Tern: true forces a Tern picture-in-picture, false opts out"),
 	"args?": type("string[]").describe("extra cli args"),
@@ -257,7 +257,7 @@ export function createBrowserPrelude(session: ToolSession): EvalPreludeDefinitio
 	return createBrowserPreludeDefinition(session, {
 		invoke: (parameters: unknown, context: EvalPreludeContext) => invokeBrowser(session, parameters, context),
 		status: describeBrowserCall,
-		// The documentation promises omp's own browser for an open without `app`; while
+		// The documentation promises ngodeai's own browser for an open without `app`; while
 		// the relay takes that open, the prompt names where `app.relay: false` goes instead.
 		relayFallback:
 			resolveBrowserKind({ action: "open" }, session).kind === "relay"
@@ -567,7 +567,7 @@ async function listTargets(
 	const kind = resolveBrowserKind({ ...params, app: { ...params.app, target: params.app?.target ?? "" } }, session);
 	if (kind.kind !== "tern" && kind.kind !== "relay") {
 		throw new ToolError(
-			`No pages to adopt here (the browser would be ${describeKind(kind)}): targets exist only inside a Tern pane (its browser blocks) or with the omp relay (app.relay: true or the browser.relay setting).`,
+			`No pages to adopt here (the browser would be ${describeKind(kind)}): targets exist only inside a Tern pane (its browser blocks) or with the ngodeai relay (app.relay: true or the browser.relay setting).`,
 		);
 	}
 	details.browser = kind.kind;
@@ -726,7 +726,7 @@ function ternNotes(tab: TernTabSession): string[] {
 		notes.push(
 			adopted
 				? `Not on screen: the user is viewing another Tern tab or session. Block ${adopted.block} shows once they switch to the tab holding it; tell them where it is.`
-				: `Not on screen: the user hid pictures in picture (⌃⌥⌘P), or this Tern shows them only in the tab holding this omp pane (block ${tab.browser.kind.pane}); tell them where it is.`,
+				: `Not on screen: the user hid pictures in picture (⌃⌥⌘P), or this Tern shows them only in the tab holding this ngodeai pane (block ${tab.browser.kind.pane}); tell them where it is.`,
 		);
 	}
 	return notes;

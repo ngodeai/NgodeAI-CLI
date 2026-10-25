@@ -1,7 +1,7 @@
 /**
  * CDP façade over `chrome.debugger`.
  *
- * Puppeteer clients (the omp browser tool: one supervisor connection plus one
+ * Puppeteer clients (the ngodeai browser tool: one supervisor connection plus one
  * per tab worker) connect to this bridge as if it were Chrome's browser
  * debugging endpoint. Chrome only allows a single debugger attachment per tab,
  * so the bridge owns ONE `chrome.debugger` attachment per tab (via the
@@ -42,7 +42,7 @@ interface CdpCommand {
 /**
  * Per-pseudo-session Runtime domain state.
  * - `default`: never toggled Runtime — still receives the relay's legacy
- *   root-event fan-out, so omp's own patched-puppeteer client (which
+ *   root-event fan-out, so ngodeai's own patched-puppeteer client (which
  *   pull-acquires contexts and never sends `Runtime.enable`) keeps getting
  *   `Runtime.executionContextCreated`.
  * - `enabled`: ran `Runtime.enable`; gets the existing-context replay.
@@ -82,7 +82,7 @@ class CdpConnection {
 	autoAttach = false;
 	/** Minted pseudo-sessions owned by this connection. */
 	readonly sessions = new Map<string, SessionRef>();
-	/** Tabs this connection claimed as drive targets (`OMP.claimTarget` / `Target.createTarget`). */
+	/** Tabs this connection claimed as drive targets (`NGODEAI.claimTarget` / `Target.createTarget`). */
 	readonly claims = new Set<string>();
 	/** Real child session id → the session it was announced on; its events and detach go there. */
 	readonly childParents = new Map<string, string>();
@@ -168,7 +168,7 @@ class TabState {
 	/** Whether `chrome.debugger` is currently attached to this tab. */
 	attached = false;
 	/**
-	 * Why Chrome refused omp this tab (its attach error, or the user cancelling the debugger bar); while set the
+	 * Why Chrome refused ngodeai this tab (its attach error, or the user cancelling the debugger bar); while set the
 	 * tab is not adoptable. Cleared on navigation.
 	 */
 	refusal: string | undefined;
@@ -187,12 +187,12 @@ class TabState {
 	reattachedAfterDetach = false;
 	/** The relay asked the extension to close this tab (`Target.closeTarget`); its coming detach is not Chrome's own. */
 	closing = false;
-	/** True after the relay put this tab in the omp group; `ompGroupId` holds that group. */
+	/** True after the relay put this tab in the ngodeai group; `ngodeGroupId` holds that group. */
 	grouped = false;
 	/** Group RPC in flight — suppresses duplicate requests from load-time tabUpdated bursts. */
 	grouping = false;
-	ompGroupId: number | undefined;
-	/** User pulled the tab out of the omp group — never re-group it. */
+	ngodeGroupId: number | undefined;
+	/** User pulled the tab out of the ngodeai group — never re-group it. */
 	groupOptOut = false;
 	/**
 	 * Real Chrome sessions (OOPIF/worker children) under this tab's attachment: the child session
@@ -273,7 +273,7 @@ export class RelayBridge {
 	#lastHelloInstance: string | null = null;
 	#extensionSeen = false;
 	/**
-	 * Tabs omp opened whose close failed while their browser was offline (see {@link #closeTab}), by tab key, with
+	 * Tabs ngodeai opened whose close failed while their browser was offline (see {@link #closeTab}), by tab key, with
 	 * the URL the tab showed: closed at that browser's next hello, unless the tab is gone or shows another page.
 	 */
 	#closeOnHello = new Map<string, string>();
@@ -284,7 +284,7 @@ export class RelayBridge {
 		{ resolve: (value: unknown) => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
 	>();
 	/**
-	 * Timed-out RPCs whose late success still needs undoing (a tab Chrome created after omp gave up), by
+	 * Timed-out RPCs whose late success still needs undoing (a tab Chrome created after ngodeai gave up), by
 	 * `instance:id`.
 	 */
 	#lateRpc = new Map<string, { onResult: (result: unknown) => void; timer: NodeJS.Timeout }>();
@@ -333,7 +333,7 @@ export class RelayBridge {
 
 	/**
 	 * The browser the caller's tabs live in: the one named by `nearTargetId` (a tab the caller drives on another
-	 * connection; omp gives every tab its own), else one holding a tab this connection drives. Offline or not.
+	 * connection; ngodeai gives every tab its own), else one holding a tab this connection drives. Offline or not.
 	 */
 	#affineInstance(conn: CdpConnection, nearTargetId: unknown): ExtInstance | undefined {
 		const near = typeof nearTargetId === "string" ? parseTargetId(nearTargetId) : null;
@@ -387,7 +387,7 @@ export class RelayBridge {
 		return this.#extensionGoneSince === null ? null : Date.now() - this.#extensionGoneSince;
 	}
 
-	/** Downstream CDP clients (omp browser sessions, puppeteer) connected right now. */
+	/** Downstream CDP clients (ngodeai browser sessions, puppeteer) connected right now. */
 	get cdpClientCount(): number {
 		return this.#conns.size;
 	}
@@ -410,10 +410,10 @@ export class RelayBridge {
 			"V8-Version": "",
 			"WebKit-Version": "",
 			webSocketDebuggerUrl: wsUrl,
-			ompRelayVersion: VERSION,
-			ompRelayDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
-			ompExtensionDiscardedTabsProtocol: String(hasCompatibleExtension ? DISCARDED_TABS_PROTOCOL_VERSION : 0),
-			ompRelayCdpClients: this.#conns.size,
+			ngodeRelayVersion: VERSION,
+			ngodeRelayDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
+			ngodeExtensionDiscardedTabsProtocol: String(hasCompatibleExtension ? DISCARDED_TABS_PROTOCOL_VERSION : 0),
+			ngodeRelayCdpClients: this.#conns.size,
 		};
 	}
 
@@ -467,11 +467,11 @@ export class RelayBridge {
 			tab.attached = false;
 			tab.attaching = null;
 			this.#resetRuntime(tab);
-			// The extension dissolves omp groups on disconnect (or died along
+			// The extension dissolves ngodeai groups on disconnect (or died along
 			// with them); grouping state is unknowable until the next hello.
 			tab.grouped = false;
 			tab.grouping = false;
-			tab.ompGroupId = undefined;
+			tab.ngodeGroupId = undefined;
 		}
 		this.#groupQueue = this.#groupQueue.filter(tab => tab.instanceId !== instanceId);
 		if (!this.ready) this.#extensionGoneSince ??= Date.now();
@@ -652,7 +652,7 @@ export class RelayBridge {
 		}
 		conn.sessions.clear();
 		for (const tabKey of intercepting) this.#releaseFileChooserInterception(tabKey);
-		// Tabs this client claimed leave the omp group unless another claimant
+		// Tabs this client claimed leave the ngodeai group unless another claimant
 		// remains — session holders don't count: the long-lived registry
 		// connection holds sessions on every tab without driving any of them.
 		for (const tabId of conn.claims) {
@@ -877,9 +877,9 @@ export class RelayBridge {
 			this.#reply(conn, msg, {});
 			return true;
 		}
-		// Relay-private claim: the omp tab worker marks the page it was spawned
+		// Relay-private claim: the ngodeai tab worker marks the page it was spawned
 		// to drive. Never forwarded — real Chrome rejects the unknown method.
-		if (msg.method === "OMP.claimTarget") {
+		if (msg.method === "NGODEAI.claimTarget") {
 			this.#claimTab(conn, tabKey);
 			this.#reply(conn, msg, {});
 			return true;
@@ -922,7 +922,7 @@ export class RelayBridge {
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			// Chrome fails the root session's command in flight before it reports the detach. Hold the failure
-			// until the detach is reported, so the client gets `OMP.debuggerDetached` first and knows why.
+			// until the detach is reported, so the client gets `NGODEAI.debuggerDetached` first and knows why.
 			if (realSessionId === undefined && tab.attached && DETACHED_COMMAND_ERROR.test(message)) {
 				await Promise.race([tab.chromeDetach.promise, Bun.sleep(CHROME_DETACH_REPORT_MS)]);
 			}
@@ -1109,7 +1109,7 @@ export class RelayBridge {
 					});
 				})) as { tab: TabSnapshot };
 				this.#onTabUpsert(result.tab, inst.instanceId);
-				// The client left while Chrome created the tab (omp gave up on a slow open), so nobody
+				// The client left while Chrome created the tab (ngodeai gave up on a slow open), so nobody
 				// can learn its id to close it later: close it now instead of leaving it in the user's browser.
 				if (this.#conns.get(conn.id) !== conn) {
 					await this.#closeTab(tabKeyOf(inst.code, result.tab.tabId), result.tab.tabId, inst);
@@ -1189,7 +1189,7 @@ export class RelayBridge {
 				this.#reply(conn, msg, {});
 				return;
 			case "Target.createBrowserContext":
-				this.#replyError(conn, msg, "Browser contexts are not supported by the omp browser relay");
+				this.#replyError(conn, msg, "Browser contexts are not supported by the ngodeai browser relay");
 				return;
 			default:
 				this.#replyError(conn, msg, `'${msg.method}' wasn't found`, CDP_ERROR_METHOD_NOT_FOUND);
@@ -1315,7 +1315,7 @@ export class RelayBridge {
 		// stays adoptable and is announced again at once; an attach Chrome refuses still bans it (#ensureAttached).
 		const cancelledByUser = reason === "canceled_by_user";
 		if (cancelledByUser) tab.refusal = "the user cancelled Chrome's debugging bar";
-		// A user cancel releases the tab's omp-group membership; any other detach keeps it.
+		// A user cancel releases the tab's ngode-group membership; any other detach keeps it.
 		this.#syncTabGrouping(tab);
 		// Relay-private event, ahead of the sessions' detach: a client driving the tab learns that Chrome
 		// ended the attachment, not the page, and can re-adopt it instead of waiting on a dead session. A tab
@@ -1323,7 +1323,7 @@ export class RelayBridge {
 		if (!tab.closing) {
 			for (const conn of this.#conns.values()) {
 				for (const pageSession of conn.sessionsForTab(tabKey, "page")) {
-					this.#emit(conn, "OMP.debuggerDetached", { reason }, pageSession);
+					this.#emit(conn, "NGODEAI.debuggerDetached", { reason }, pageSession);
 				}
 			}
 		}
@@ -1353,9 +1353,9 @@ export class RelayBridge {
 			this.#tabs.set(key, tab);
 		} else {
 			if (tab.url !== snap.url) tab.refusal = undefined;
-			// The user dragging a tab out of the omp group is an opt-out; the
+			// The user dragging a tab out of the ngodeai group is an opt-out; the
 			// relay never fights the user over grouping.
-			if (tab.grouped && tab.ompGroupId !== undefined && snap.groupId !== tab.ompGroupId) {
+			if (tab.grouped && tab.ngodeGroupId !== undefined && snap.groupId !== tab.ngodeGroupId) {
 				tab.grouped = false;
 				tab.groupOptOut = true;
 			}
@@ -1434,7 +1434,7 @@ export class RelayBridge {
 
 	// ---- tab grouping -----------------------------------------------------------
 
-	/** A tab belongs in the omp group when claimed by a client, controllable, unpinned, not user-opted-out, and not already in a user group. */
+	/** A tab belongs in the ngodeai group when claimed by a client, controllable, unpinned, not user-opted-out, and not already in a user group. */
 	#groupWorthy(tab: TabState): boolean {
 		if (!this.#claimed(tab.tabKey) || !this.#eligible(tab) || tab.pinned || tab.groupOptOut) return false;
 		return tab.grouped || tab.groupId === -1;
@@ -1456,7 +1456,7 @@ export class RelayBridge {
 		}
 		if (tab.grouped) {
 			tab.grouped = false;
-			tab.ompGroupId = undefined;
+			tab.ngodeGroupId = undefined;
 			void this.#rpc({ op: "ungroup", tabIds: [tab.tabId] }, this.#instanceFor(tab)).catch(() => {});
 		}
 	}
@@ -1464,7 +1464,7 @@ export class RelayBridge {
 	/**
 	 * Queue tabs for grouping and drain serially. Overlapping group RPCs race
 	 * the extension's non-atomic query→create→set-title sequence and mint
-	 * duplicate omp groups, so at most one group RPC is ever in flight.
+	 * duplicate ngodeai groups, so at most one group RPC is ever in flight.
 	 */
 	#requestGroup(tabs: TabState[]): void {
 		if (!this.#group) return;
@@ -1512,7 +1512,7 @@ export class RelayBridge {
 							const groupId = grouped[String(tab.tabId)];
 							if (typeof groupId !== "number") continue;
 							tab.grouped = true;
-							tab.ompGroupId = groupId;
+							tab.ngodeGroupId = groupId;
 						}
 						this.#log("grouped tabs", { instanceId, tabIds, grouped });
 					} catch (err) {
@@ -1819,7 +1819,7 @@ export class RelayBridge {
 	}
 
 	/**
-	 * Close a tab omp opened. The extension retries a close Chrome refuses before answering, so the caller holds
+	 * Close a tab ngodeai opened. The extension retries a close Chrome refuses before answering, so the caller holds
 	 * its relay lease through the retry. One whose close still fails (its browser offline, the socket dropping
 	 * mid-call, or Chrome refusing every try) is closed at that browser's next hello, unless the user closed it.
 	 */

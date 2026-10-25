@@ -40,7 +40,7 @@ uplinks:
   npmjs:
     url: https://registry.npmjs.org/
 packages:
-  '@oh-my-pi/*':
+  '@ngodeai/*':
     access: $all
     publish: $all
     unpublish: $all
@@ -102,7 +102,7 @@ for pkg in "${PACKAGES[@]}"; do
     
     # Show what we're publishing
     echo "Dependencies:"
-    jq '.dependencies | to_entries[] | select(.value | startswith("@oh-my-pi") or startswith("workspace"))' package.json 2>/dev/null || true
+    jq '.dependencies | to_entries[] | select(.value | startswith("@ngodeai") or startswith("workspace"))' package.json 2>/dev/null || true
     
     # Publish
     npm publish --registry "$REGISTRY"
@@ -133,4 +133,4 @@ RUN verdaccio --config /root/.config/verdaccio/config.yaml &>/dev/null & \
 
 # Verify the installed package works
 ENV PATH="/test/node_modules/.bin:$PATH"
-RUN omp --version
+RUN ngodeai --version

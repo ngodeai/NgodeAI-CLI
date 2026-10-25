@@ -69,7 +69,7 @@ import {
 	preloadPluginRoots,
 	resolveActiveProjectRegistryPath,
 } from "./discovery/helpers";
-import { injectOmpExtensionCliRoots } from "./discovery/omp-extension-roots";
+import { injectOmpExtensionCliRoots } from "./discovery/ngode-extension-roots";
 import { formatExtensionLoadNotifications } from "./extensibility/extensions/load-errors";
 import { loadExtensions } from "./extensibility/extensions/loader";
 import { ExtensionRunner } from "./extensibility/extensions/runner";
@@ -246,8 +246,8 @@ async function checkForNewVersion(currentVersion: string): Promise<string | unde
 		return;
 	}
 	try {
-		// Checkouts update through git and a manager (Tern) updates its omp itself:
-		// "run omp update" would be wrong advice for both.
+		// Checkouts update through git and a manager (Tern) updates its ngodeai itself:
+		// "run ngodeai update" would be wrong advice for both.
 		if (isSourceCheckout() || (await managedInstallName(process.execPath))) return;
 		const channel = cfgUpdateChannel.get(settings);
 		// A compiled binary updates from the build service; naming the running
@@ -261,7 +261,7 @@ async function checkForNewVersion(currentVersion: string): Promise<string | unde
 	}
 }
 
-// Protocol hosts inherit OMP's neutral defaults for settings declaring `protocolDefault`
+// Protocol hosts inherit NGODEAI's neutral defaults for settings declaring `protocolDefault`
 // instead of the local user's interactive preferences. The pin holds only while nothing
 // configures the setting — caller `Settings.isolated` overrides, project `.claude/settings.yml`,
 // `--config` overlays, or global `config.yml` always win (#2598, #3207), including a config
@@ -940,7 +940,7 @@ async function openRelocatedSession(
 		// Its directory is gone, so it cannot be resumed in place either.
 		throw new SessionResolutionError(
 			err.message,
-			"Close the session in the other omp process, then resume it again.",
+			"Close the session in the other ngodeai process, then resume it again.",
 		);
 	}
 }
@@ -1211,7 +1211,7 @@ export function normalizeContinueSessionArgs(parsed: Args, rawArgs?: readonly st
 	parsed.messages.splice(messageIndex, 1);
 }
 const SESSION_NOT_FOUND_HINT =
-	"Run `ngodeai --resume` without an argument to pick from recent sessions, or `omp` to start a new one.";
+	"Run `ngodeai --resume` without an argument to pick from recent sessions, or `ngodeai` to start a new one.";
 
 function validateSessionPersistenceArgs(parsed: Pick<Args, "continue" | "noSession" | "resume">): void {
 	if (!parsed.noSession) return;
@@ -1852,7 +1852,7 @@ export async function runRootCommand(
 		// sibling hooks/tools/commands/MCP content could be discovered implicitly.
 		if (!parsedArgs.trustedExtensions?.length) {
 			// Register CLI-provided extension package paths (`--extension`, `--hook`) so
-			// the `omp-plugins` discovery provider can surface their `skills/`, `hooks/`,
+			// the `ngode-plugins` discovery provider can surface their `skills/`, `hooks/`,
 			// `tools/`, `commands/`, `rules/`, `prompts/`, and `.mcp.json` sub-trees.
 			// Explicit roots remain authorized under `--no-extensions`; only ambient
 			// extension discovery is disabled.
@@ -2055,7 +2055,7 @@ export async function runRootCommand(
 		await runtimeIdentityLoad;
 
 		// Resolve native resume/fork flags or import one foreign transcript into a
-		// fresh persisted OMP session before constructing the AgentSession.
+		// fresh persisted NGODEAI session before constructing the AgentSession.
 		let sessionManager: SessionManager | undefined;
 		let foreignSource: ForeignSessionSource | undefined;
 		try {

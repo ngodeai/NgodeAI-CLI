@@ -77,12 +77,12 @@ export default function myExtension(pi: ExtensionAPI) {
 
 ngodeai loads extension modules from these sources:
 
-1. Native `.omp` locations discovered through the capability system:
+1. Native `.ngodeai` locations discovered through the capability system:
    - project/ancestor `.ngodeai/extensions/` directories within the discovery boundary
    - `~/.ngodeai/agent/extensions/`
    - legacy extension paths listed in `.ngodeai/settings.json#extensions` or `~/.ngodeai/agent/settings.json#extensions`
 2. Discovered JavaScript/TypeScript hook factories (`hooks/pre/` and `hooks/post/`), bound through the extension runner.
-3. Enabled installed plugins under `~/.ngodeai/plugins/node_modules` or a project plugin root — including npm, marketplace, and `ngodeai plugin link` installs — via their `omp.extensions`/`pi.extensions` manifests.
+3. Enabled installed plugins under `~/.ngodeai/plugins/node_modules` or a project plugin root — including npm, marketplace, and `ngodeai plugin link` installs — via their `ngodeai.extensions`/`pi.extensions` manifests.
 4. Explicit configured paths passed by the CLI (`ngodeai --extension ./my-ext.ts`, also `-e`; `--hook` is treated as an alias) and by the `extensions:` setting in config.
 
 The runtime de-duplicates by resolved absolute path — first seen wins.
@@ -93,13 +93,13 @@ The user directory is the active profile's agent directory: the default is `~/.n
 
 When a path points to a directory, NgodeAI resolves the entry point in this order:
 
-1. `package.json` with `omp.extensions` (or legacy `pi.extensions`) field
+1. `package.json` with `ngodeai.extensions` (or legacy `pi.extensions`) field
 2. `index.ts`
 3. `index.js`
 
 When scanning an `extensions/` directory, NgodeAI also loads direct `*.ts`/`*.js` files and one-level subdirectories that have `index.ts`, `index.js`, or a manifest.
 
-Extension packages can also bundle sibling capability directories. When a package is loaded through `extensions:` or `--extension`/`-e`, the `omp-plugins` provider discovers its `skills/`, `hooks/pre|post/`, `tools/`, `commands/`, `rules/`, `prompts/`, and `.mcp.json`.
+Extension packages can also bundle sibling capability directories. When a package is loaded through `extensions:` or `--extension`/`-e`, the `ngode-plugins` provider discovers its `skills/`, `hooks/pre|post/`, `tools/`, `commands/`, `rules/`, `prompts/`, and `.mcp.json`.
 
 ## package.json manifest
 
@@ -107,8 +107,8 @@ To package an extension as an installable plugin, add an `ngodeai` field to `pac
 
 ```json
 {
-  "name": "my-omp-extension",
-  "omp": {
+  "name": "my-ngode-extension",
+  "ngodeai": {
     "extensions": ["./src/main.ts"]
   }
 }
@@ -128,7 +128,7 @@ Multiple entry points are supported:
 
 ```json
 {
-  "omp": {
+  "ngodeai": {
     "extensions": ["./src/safety.ts", "./src/tools.ts"]
   }
 }
@@ -240,7 +240,7 @@ New authoring should use `ExtensionAPI`. Discovered JS/TS hook factories are loa
 ngodeai writes structured logs under the active state root's `logs/` directory (by default `~/.ngodeai/logs/`; debug level is always on, and nothing is written to the console because that would corrupt the TUI). Records are written in batches, so a debug line can take up to a second to appear while `warn` and `error` lines are written immediately. Each filename includes the process ID, and a process creates its file only when it first logs. Tail today's default-profile logs to see extension load diagnostics:
 
 ```
-tail -f ~/.ngodeai/logs/omp.$(date +%F).*.log
+tail -f ~/.ngodeai/logs/ngodeai.$(date +%F).*.log
 ```
 
 Failed extension loads are logged with their path and error. Loaded extensions may also emit their own debug logs via `pi.logger`.

@@ -1,4 +1,4 @@
-package omprpc
+package ngodeairpc
 
 import (
 	"bytes"
@@ -37,7 +37,7 @@ func (c Commands) call(ctx context.Context, command string, params any, timeout 
 		}
 	}
 	if err := json.Unmarshal(data, out); err != nil {
-		return fmt.Errorf("omprpc: %s result: %w", command, err)
+		return fmt.Errorf("ngodeairpc: %s result: %w", command, err)
 	}
 	return nil
 }
@@ -54,7 +54,7 @@ type UnknownNotification struct {
 // MarshalJSON writes the frame verbatim.
 func (v UnknownNotification) MarshalJSON() ([]byte, error) {
 	if len(v.Raw) == 0 {
-		return nil, errors.New("omprpc: UnknownNotification has no Raw frame")
+		return nil, errors.New("ngodeairpc: UnknownNotification has no Raw frame")
 	}
 	return v.Raw, nil
 }

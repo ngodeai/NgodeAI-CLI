@@ -38,7 +38,7 @@ describe("cfg:// approval prompt wiring", () => {
 	let hangSelector = false;
 
 	beforeEach(async () => {
-		tmp = path.join(os.tmpdir(), `omp-cfg-timeout-${Snowflake.next()}`);
+		tmp = path.join(os.tmpdir(), `ngode-cfg-timeout-${Snowflake.next()}`);
 		await fs.mkdir(tmp, { recursive: true });
 		originalProject = getProjectDir();
 		setProjectDir(tmp);

@@ -15,7 +15,7 @@ prints
 ```
 Collab session started!
  • Join from another terminal: NgodeAI join "mgAYTZwEnpRQtca0CTgn-Q.gdJUbTovD94ofDaa8YvhY0-ty16w4fn8PgB6PLnoA30"
- • or any web browser: my.omp.sh/#mgAYTZwEnpRQtca0CTgn-Q.gdJUbTovD94ofDaa8YvhY0-ty16w4fn8PgB6PLnoA30
+ • or any web browser: my.ngodeai.net/#mgAYTZwEnpRQtca0CTgn-Q.gdJUbTovD94ofDaa8YvhY0-ty16w4fn8PgB6PLnoA30
 ```
 
 The browser line is click-to-join (an OSC 8 hyperlink to the full `https://` deep link): the relay serves the web guest client at `/`, and the room id + key ride in the URL fragment. From another NgodeAI (any directory, any machine), either form works:
@@ -23,7 +23,7 @@ The browser line is click-to-join (an OSC 8 hyperlink to the full `https://` dee
 Running `/collab` or `/collab view` starts or displays the active hosting session, rendering terminal/browser join links and a QR code for the browser URL. `/collab` requests control access: if the active room was started view-only, it replaces that room. `/collab view` reuses either access level and prints only the read-only link.
 
 ```
-/join my.omp.sh/#mgAYTZwEnpRQtca0CTgn-Q.gdJU…
+/join my.ngodeai.net/#mgAYTZwEnpRQtca0CTgn-Q.gdJU…
 ```
 
 The guest's previous session is restored on `/leave` (or when the host stops).
@@ -95,7 +95,7 @@ A missing registry directory means no active hosts. An unreadable or symlinked r
 Accepted by `/join <link>` and `ngodeai join "<link>"`:
 
 ```
-<roomId>.<key>                                                    → default relay (wss://my.omp.sh)
+<roomId>.<key>                                                    → default relay (wss://my.ngodeai.net)
 <roomId>#<key>                                                    → legacy bare form
 host[:port]/r/<roomId>.<key>                                     → custom relay, wss:// inferred
 host[:port]/r/<roomId>#<key>                                     → legacy direct relay form
@@ -157,11 +157,11 @@ Set `collab.webUrl` when the browser UI is hosted separately from the websocket 
 
 | Setting               | Default               | Meaning                                                                                                        |
 | --------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `collab.relayUrl`     | `wss://my.omp.sh`     | Relay used by `/collab` when no relay is passed inline                                                         |
+| `collab.relayUrl`     | `wss://my.ngodeai.net`     | Relay used by `/collab` when no relay is passed inline                                                         |
 | `collab.webUrl`       | empty                 | Browser UI URL for `/collab` links; empty derives from relay; explicit `http://` is allowed only for localhost |
 | `collab.displayName`  | OS username           | Name shown to other participants                                                                               |
 | `collab.autoStart`    | `off`                 | `view` / `control`: host every interactive session as it starts and publish it to the local registry            |
-| `share.serverUrl`     | `https://my.omp.sh/s` | Share viewer/upload base used by `/share` (links are `<base>/<id>#<key>`)                                      |
+| `share.serverUrl`     | `https://my.ngodeai.net/s` | Share viewer/upload base used by `/share` (links are `<base>/<id>#<key>`)                                      |
 | `share.store`         | `blob`                | `/share` uploads to the blob server; `gist` uses an authenticated secret gist with blob fallback             |
 | `share.redactSecrets` | `true`                | Run the secret obfuscator over `/share` snapshots before upload                                                |
 

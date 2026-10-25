@@ -29,15 +29,15 @@ const USE_BUNDLED_PI_MODULES = isCompiledBinary() || Boolean(process.env.PI_BUND
 // imports inside runtime-loaded extensions.
 //
 // Compiled binaries and npm bundles retain lazy loaders for host packages and
-// serve requested surfaces through `omp-legacy-pi-bundled:<key>` synthetic modules.
+// serve requested surfaces through `ngode-legacy-pi-bundled:<key>` synthetic modules.
 // `scripts/legacy-pi-virtual-module.ts` derives literal dynamic-import edges
 // from current package exports inside a Bun build plugin: no generated source
 // or duplicate key list exists on disk. Deferring each host module evaluation
 // avoids cycles with an extension-loading command that is itself in the
 // retained package graph.
-const BUNDLED_VIRTUAL_SCHEME = "omp-legacy-pi-bundled:";
-const BUNDLED_VIRTUAL_NAMESPACE = "omp-legacy-pi-bundled";
-const BUNDLED_HOST_NAMESPACE = "omp-legacy-pi-host";
+const BUNDLED_VIRTUAL_SCHEME = "ngode-legacy-pi-bundled:";
+const BUNDLED_VIRTUAL_NAMESPACE = "ngode-legacy-pi-bundled";
+const BUNDLED_HOST_NAMESPACE = "ngode-legacy-pi-host";
 const BUNDLED_HOST_SCHEME = `${BUNDLED_HOST_NAMESPACE}:`;
 const TYPEBOX_BUNDLED_MODULE_KEY = "typebox";
 
@@ -569,9 +569,9 @@ function getExtensionParseCacheDb(): Database | null {
 		try {
 			if (fs.statSync(cachePath).size > EXTENSION_PARSE_CACHE_MAX_BYTES) {
 				// Remove the full WAL set, not just the main db. A leftover
-				// `-wal`/`-shm` pair still owned by a concurrent omp process is
+				// `-wal`/`-shm` pair still owned by a concurrent ngodeai process is
 				// adopted by this fresh connection; when that `-wal` has
-				// uncheckpointed frames (the normal case while another omp is
+				// uncheckpointed frames (the normal case while another ngodeai is
 				// writing its own cache entries), `journal_mode=WAL` fails with
 				// SQLITE_IOERR — disabling the parse cache for the whole process
 				// and forcing a reparse of every extension on startup. See #9549.
@@ -588,7 +588,7 @@ function getExtensionParseCacheDb(): Database | null {
 		// `PRAGMA journal_mode=WAL`, which takes an exclusive lock during WAL
 		// recovery). See #2421. WAL + synchronous=NORMAL avoids the per-entry
 		// journal create/delete + fsync churn that serialized this cache behind
-		// concurrent omp startups and blocked the event loop for ~20s (#9549).
+		// concurrent ngodeai startups and blocked the event loop for ~20s (#9549).
 		db.run(`PRAGMA busy_timeout = ${getDbBusyTimeoutMs()}`);
 		db.run("PRAGMA journal_mode=WAL");
 		db.run("PRAGMA synchronous=NORMAL");
@@ -747,11 +747,11 @@ let bundledModuleLoadersPromise: Promise<BundledModuleLoaders> | null = null;
 /** Load the build-supplied registry without evaluating unrelated host modules. */
 function ensureBundledModuleLoadersLoaded(): Promise<BundledModuleLoaders> {
 	if (!USE_BUNDLED_PI_MODULES) {
-		return Promise.reject(new Error("omp:legacy-pi-shim: bundled modules are only available in bundled mode"));
+		return Promise.reject(new Error("ngodeai:legacy-pi-shim: bundled modules are only available in bundled mode"));
 	}
 	if (!bundledModuleLoadersPromise) {
 		// This virtual module exists only in compiled/npm builds; source mode cannot import it statically.
-		bundledModuleLoadersPromise = import("omp-legacy-pi-modules").then(module => module.BUNDLED_PI_MODULE_LOADERS);
+		bundledModuleLoadersPromise = import("ngode-legacy-pi-modules").then(module => module.BUNDLED_PI_MODULE_LOADERS);
 	}
 	return bundledModuleLoadersPromise;
 }
@@ -762,7 +762,7 @@ async function loadBundledModule(moduleKey: string): Promise<BundledModule> {
 	const loaders = await ensureBundledModuleLoadersLoaded();
 	const loader = loaders[moduleKey];
 	if (!loader) {
-		throw new Error(`omp:legacy-pi-shim: no bundled module registered for ${moduleKey}`);
+		throw new Error(`ngodeai:legacy-pi-shim: no bundled module registered for ${moduleKey}`);
 	}
 	const module = await loader();
 	loadedBundledModules[moduleKey] = module;
@@ -793,14 +793,14 @@ function resolveBundledVirtualSpecifier(
 	const scheme = `${namespace}:`;
 	const registryKey = specifier.startsWith(scheme) ? specifier.slice(scheme.length) : specifier;
 	if (!registryKey) {
-		throw new Error("omp:legacy-pi-shim: bundled virtual specifier has no registry key");
+		throw new Error("ngodeai:legacy-pi-shim: bundled virtual specifier has no registry key");
 	}
 	return { path: registryKey, namespace };
 }
 
 // Canonical scope for in-process host packages. Plugins published against any
 // of the aliased scopes below (mariozechner's original publish, earendil-works'
-// fork, the previous @oh-my-pi scope, or our own @ngodeai scope) are remapped to
+// fork, the previous @ngodeai scope, or our own @ngodeai scope) are remapped to
 // this scope and resolved against the bundled copy that ships inside the
 // binary. This keeps plugins running against the exact runtime state of the
 // host (single module registry, single tool registry, etc.) regardless of which
@@ -811,7 +811,7 @@ const CANONICAL_PI_SCOPE = "@ngodeai";
 // packages. `ngodeai` is intentionally included so direct canonical imports
 // still pass through the same host-bundled package resolution path instead of
 // pulling a duplicate copy from plugin node_modules.
-const PI_SCOPE_ALIASES = ["ngodeai", "oh-my-pi", "mariozechner", "earendil-works"] as const;
+const PI_SCOPE_ALIASES = ["ngodeai", "ngodeai", "mariozechner", "earendil-works"] as const;
 
 /**
  * Historical package basename → current basename.
@@ -832,8 +832,8 @@ const PI_PACKAGE_RENAMES: Readonly<Record<string, string>> = {
 	"pi-utils": "utils",
 	"pi-wire": "wire",
 	"pi-mnemopi": "mnemopi",
-	"omp-stats": "stats",
-	omptype: "omptype",
+	"ngode-stats": "stats",
+	ngodetype: "ngodetype",
 };
 
 /** Every accepted basename: the current names plus their historical spellings. */
@@ -918,15 +918,15 @@ function clearLegacyPiResolutionCaches(): void {
 registerPluginCacheInvalidator(clearLegacyPiResolutionCaches);
 const PACKAGE_IMPORT_EXCLUDED = Symbol("packageImportExcluded");
 
-// Extensions importing TypeBox directly are redirected to omptype's TypeBox
-// facade, keeping legacy builders while producing callable omptype schemas at
+// Extensions importing TypeBox directly are redirected to ngodetype's TypeBox
+// facade, keeping legacy builders while producing callable ngodetype schemas at
 // the tool wire boundary. Submodules such as `@sinclair/typebox/compiler` are
 // intentionally not remapped: plugins relying on those TypeBox-only APIs must
 // vendor TypeBox directly.
 const TYPEBOX_SPECIFIER_FILTER = /^(?:@sinclair\/typebox|typebox)$/;
 
 // Compat-shim path resolution. In compiled-binary mode every bundled surface
-// is served through the `omp-legacy-pi-bundled:` virtual namespace (see the
+// is served through the `ngode-legacy-pi-bundled:` virtual namespace (see the
 // bundled-module block above) — bunfs paths are unreachable on Bun 1.3.14+, so the
 // pre-#3423 helpers that derived `/$bunfs/root/...` paths from
 // `import.meta.dir` are gone. Dev / source-link / installed-package modes
@@ -970,12 +970,12 @@ function sourceShimPath(file: string): string {
 }
 
 /**
- * Resolve the coding-agent compatibility surface that composes omptype's
+ * Resolve the coding-agent compatibility surface that composes ngodetype's
  * TypeBox facade with legacy `Type.Unsafe`, then drop the remap when that
  * entrypoint is missing.
  *
  * In compiled binaries and npm bundles the surface is served through the
- * `omp-legacy-pi-bundled:` virtual namespace (issue #3423). Dev and source SDK
+ * `ngode-legacy-pi-bundled:` virtual namespace (issue #3423). Dev and source SDK
  * imports use the shipped source module.
  *
  * Exported for tests; production callers use `TYPEBOX_SHIM_PATH`.
@@ -998,7 +998,7 @@ const TYPEBOX_SHIM_PATH = __resolveTypeBoxShimPath(USE_BUNDLED_PI_MODULES, sourc
 // export (see `packages/ai/CHANGELOG.md`), so the bare canonical specifier no
 // longer satisfies those imports. The override below redirects only the bare
 // pi-ai package root onto a sibling shim that re-exports the canonical surface
-// plus the borrowed `Type` runtime from the omptype TypeBox facade. Subpath
+// plus the borrowed `Type` runtime from the ngodetype TypeBox facade. Subpath
 // imports such as `@ngodeai/ai/oauth` continue to resolve directly
 // against the bundled pi-ai package.
 const LEGACY_PI_AI_SHIM_PATH = USE_BUNDLED_PI_MODULES
@@ -1032,14 +1032,14 @@ const LEGACY_PI_TUI_SHIM_PATH = USE_BUNDLED_PI_MODULES
 // source-tree path would miss installs where bundled packages live at
 // `node_modules/@ngodeai/*`.
 //
-// Bundled entries are `omp-legacy-pi-bundled:<key>` specifiers handed to the
+// Bundled entries are `ngode-legacy-pi-bundled:<key>` specifiers handed to the
 // synthetic onLoad in `installLegacyPiSpecifierShim()`. Filesystem-shaped
 // overrides are still validated against on-disk presence so a missing dev-mode
 // shim falls through to `getResolvedSpecifier`.
 
 /**
  * Drop overrides whose filesystem targets are missing so they can fall
- * through to the canonical-resolution path. Virtual `omp-legacy-pi-bundled:`
+ * through to the canonical-resolution path. Virtual `ngode-legacy-pi-bundled:`
  * entries always pass because live bundled module references are the source of
  * truth.
  *
@@ -1133,7 +1133,7 @@ function getResolvedSpecifier(specifier: string): string {
 }
 
 /**
- * Resolve a canonical `@oh-my-pi/*` specifier to a filesystem path, preferring
+ * Resolve a canonical `@ngodeai/*` specifier to a filesystem path, preferring
  * a bundled compat shim when one is registered for the package root.
  *
  * Falls back to `getResolvedSpecifier` (which may throw under compiled binary
@@ -1149,7 +1149,7 @@ function resolveCanonicalPiSpecifier(remappedSpecifier: string): string {
 }
 
 function toImportSpecifier(resolvedPath: string): string {
-	// Virtual `omp-legacy-pi-bundled:` specifiers are served by the synthetic
+	// Virtual `ngode-legacy-pi-bundled:` specifiers are served by the synthetic
 	// onLoad in `installLegacyPiSpecifierShim()`; wrapping them as `file://`
 	// would corrupt the scheme.
 	if (isBundledVirtualSpecifier(resolvedPath)) {
@@ -1159,7 +1159,7 @@ function toImportSpecifier(resolvedPath: string): string {
 }
 
 /**
- * Rewrite the extension-owned specifiers OMP must host-resolve — legacy
+ * Rewrite the extension-owned specifiers NGODEAI must host-resolve — legacy
  * `@(scope)/pi-*`, bare TypeBox packages, package `imports` aliases like
  * `#src/*`, and extension-local bare dependencies — to absolute `file://` URLs
  * or compiled-mode virtual specifiers. Relative siblings and built-in modules
@@ -2267,7 +2267,7 @@ interface ExtensionModuleGraph {
 
 /**
  * Walk the extension's import graph starting at `entryRealPath`, returning the
- * realpath of every reachable source module OMP must rewrite at load time.
+ * realpath of every reachable source module NGODEAI must rewrite at load time.
  * Relative imports, package `imports` aliases, and ESM bare dependencies are
  * graph-owned recursively because compiled Bun cannot resolve runtime
  * `node_modules` from those modules. Graph-owned CommonJS modules also own
@@ -2537,7 +2537,7 @@ function prepareGraphCommonJsDefinition(modulePath: string, source: string, targ
 }
 
 /**
- * Linkedom's canvas bridge uses its bundled fallback because OMP does not ship
+ * Linkedom's canvas bridge uses its bundled fallback because NGODEAI does not ship
  * native canvas.
  */
 async function prepareGraphCommonJsModule(modulePath: string, source: string): Promise<void> {
@@ -2581,7 +2581,7 @@ async function installExtensionGraphHook(
 		const filter = new RegExp(`^(?:${alternation})(?:\\?mtime=\\d+)?$`);
 		const hookId = Bun.hash(`${entryRealPath}\0async\0${[...asyncModules.keys()].join("\0")}`).toString(36);
 		Bun.plugin({
-			name: `omp:legacy-pi-ext:${hookId}`,
+			name: `ngodeai:legacy-pi-ext:${hookId}`,
 			setup(build) {
 				build.onLoad({ filter, namespace: "file" }, args => {
 					const queryIndex = args.path.indexOf("?mtime=");
@@ -2622,7 +2622,7 @@ async function installExtensionGraphHook(
 		const filter = new RegExp(`^(?:${alternation})(?:\\?mtime=\\d+)?$`);
 		const hookId = Bun.hash(`${entryRealPath}\0commonjs\0${[...commonJsPaths].join("\0")}`).toString(36);
 		Bun.plugin({
-			name: `omp:legacy-pi-ext:${hookId}`,
+			name: `ngodeai:legacy-pi-ext:${hookId}`,
 			setup(build) {
 				build.onLoad({ filter, namespace: "file" }, args => {
 					const queryIndex = args.path.indexOf("?mtime=");
@@ -2651,7 +2651,7 @@ async function installExtensionGraphHook(
 		const filter = new RegExp(`^(?:${alternation})(?:\\?mtime=\\d+)?$`);
 		const hookId = Bun.hash(`${entryRealPath}\0sync-source\0${[...synchronousSourcePaths].join("\0")}`).toString(36);
 		Bun.plugin({
-			name: `omp:legacy-pi-ext:${hookId}`,
+			name: `ngodeai:legacy-pi-ext:${hookId}`,
 			setup(build) {
 				build.onLoad({ filter, namespace: "file" }, args => {
 					const queryIndex = args.path.indexOf("?mtime=");
@@ -2853,7 +2853,7 @@ function resolveRemappedLegacyPiSpecifier(
 	remappedSpecifier: string,
 	args: { path: string; importer: string },
 ): LegacyPiResolveResult | undefined {
-	// Primary: resolve the canonical @oh-my-pi/* specifier from the host binary
+	// Primary: resolve the canonical @ngodeai/* specifier from the host binary
 	// location. Works in dev mode and in source-link installs.
 	try {
 		return toLegacyPiResolveResult(resolveCanonicalPiSpecifier(remappedSpecifier));
@@ -2861,7 +2861,7 @@ function resolveRemappedLegacyPiSpecifier(
 		// Fallback for compiled binary mode: the bundled packages live inside
 		// /$bunfs/root and aren't reachable by filesystem resolution. Prefer the
 		// canonical specifier against the importing file's directory when the
-		// plugin installed @oh-my-pi peer deps, then try the original legacy
+		// plugin installed @ngodeai peer deps, then try the original legacy
 		// specifier for plugins that still vendor only @mariozechner or
 		// @earendil-works peer deps.
 		const importerDir = path.dirname(args.importer);
@@ -2888,14 +2888,14 @@ export function installLegacyPiSpecifierShim(): void {
 	isLegacyPiSpecifierShimInstalled = true;
 
 	Bun.plugin({
-		name: "omp:legacy-pi-shim",
+		name: "ngodeai:legacy-pi-shim",
 		setup(build) {
 			build.onResolve({ filter: LEGACY_PI_SPECIFIER_FILTER, namespace: "file" }, resolveLegacyPiSpecifier);
 			build.onResolve({ filter: TYPEBOX_SPECIFIER_FILTER, namespace: "file" }, resolveTypeBoxSpecifier);
-			build.onResolve({ filter: /^omp-legacy-pi-bundled:.+$/, namespace: "file" }, args =>
+			build.onResolve({ filter: /^ngode-legacy-pi-bundled:.+$/, namespace: "file" }, args =>
 				resolveBundledVirtualSpecifier(args.path),
 			);
-			build.onResolve({ filter: /^omp-legacy-pi-host:.+$/, namespace: "file" }, args =>
+			build.onResolve({ filter: /^ngode-legacy-pi-host:.+$/, namespace: "file" }, args =>
 				resolveBundledVirtualSpecifier(args.path, BUNDLED_HOST_NAMESPACE),
 			);
 			build.onResolve({ filter: /.*/, namespace: BUNDLED_VIRTUAL_NAMESPACE }, args =>

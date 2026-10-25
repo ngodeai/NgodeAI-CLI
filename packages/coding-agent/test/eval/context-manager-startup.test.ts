@@ -12,7 +12,7 @@ import type { ToolSession } from "@ngodeai/coding-agent/tools";
 
 setDefaultTimeout(2_000);
 
-const EXECUTION_MARKER = `OMP_EVAL_HOST_EXECUTION_${crypto.randomUUID().replaceAll("-", "_")}`;
+const EXECUTION_MARKER = `NGODEAI_EVAL_HOST_EXECUTION_${crypto.randomUUID().replaceAll("-", "_")}`;
 
 interface FailingHandleState {
 	runMessages: number;

@@ -30,7 +30,7 @@ interface Harness {
 let root: string;
 
 beforeEach(async () => {
-	root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-ratchet-"));
+	root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-ratchet-"));
 	await Bun.write(path.join(root, "eval/cases.jsonl"), CASES.map(id => JSON.stringify({ id })).join("\n"));
 	await Bun.write(path.join(root, "eval/run.ts"), "// runner\n");
 	await Bun.write(path.join(root, "src/prompt.md"), "route emails\n");
@@ -40,7 +40,7 @@ afterEach(async () => {
 	await fs.rm(root, { recursive: true, force: true });
 });
 
-const flowPath = (...parts: string[]) => path.join(root, ".omp/ratchet", FLOW, ...parts);
+const flowPath = (...parts: string[]) => path.join(root, ".ngodeai/ratchet", FLOW, ...parts);
 
 async function setup(options: { hold?: string[]; models?: unknown[] } = {}): Promise<Harness> {
 	const session = {

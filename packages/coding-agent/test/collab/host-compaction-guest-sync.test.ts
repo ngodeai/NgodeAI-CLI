@@ -145,7 +145,7 @@ async function settleFrames(predicate: () => boolean, timeoutMs = 10_000): Promi
 }
 
 // The guest writes its replica under getConfigRootDir(); redirect the config
-// root to a temp HOME so the test never touches the real ~/.omp.
+// root to a temp HOME so the test never touches the real ~/.ngodeai.
 let homedirSpy: Mock<typeof os.homedir> | undefined;
 let homeDir: TempDir | undefined;
 let authStorage: AuthStorage;
@@ -242,7 +242,7 @@ describe("collab guest replica identity", () => {
 		const replicaId = replica.getSessionId();
 		expect(replicaId).not.toBe(hostManager.getSessionId());
 		expect(replica.getHeader()?.parentSession).toBe(hostManager.getSessionId());
-		// `omp gc` probes this lease: an idle joined guest's replica is live.
+		// `ngodeai gc` probes this lease: an idle joined guest's replica is live.
 		const leaseFree = () => {
 			const probe = tryAcquireSessionLease(replicaId);
 			probe?.release();

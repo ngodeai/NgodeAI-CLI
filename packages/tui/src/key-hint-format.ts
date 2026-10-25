@@ -1,6 +1,6 @@
 /**
  * Key-hint formatting, kept free of the native addon: it imports only types
- * plus the theme symbol mirror, so addon-free CLI paths (`omp --version`,
+ * plus the theme symbol mirror, so addon-free CLI paths (`ngodeai --version`,
  * help text in cli/command-help.ts) can format keys without loading
  * `@ngodeai/natives` through the keybindings registry.
  */

@@ -1,7 +1,7 @@
 /**
  * `mr://` protocol handler tests.
  *
- * Every test isolates `OMP_GITHUB_CACHE_DB` to a temp file and resets the
+ * Every test isolates `NGODEAI_GITHUB_CACHE_DB` to a temp file and resets the
  * cache, router, and default-project singletons. `gitlab.json` / `gitlab.text`
  * are spied per-test and restored in `afterEach`.
  */
@@ -31,7 +31,7 @@ diff --git a/src/two.ts b/src/two.ts
 const secondSection = diffText.slice(diffText.indexOf("diff --git a/src/two.ts"));
 
 const ENV_KEYS = [
-	"OMP_GITHUB_CACHE_DB",
+	"NGODEAI_GITHUB_CACHE_DB",
 	"GITLAB_TOKEN",
 	"GITLAB_ACCESS_TOKEN",
 	"OAUTH_TOKEN",
@@ -49,7 +49,7 @@ beforeEach(async () => {
 		savedEnv[key] = process.env[key];
 		delete process.env[key];
 	}
-	process.env.OMP_GITHUB_CACHE_DB = path.join(tempDir, "github-cache.db");
+	process.env.NGODEAI_GITHUB_CACHE_DB = path.join(tempDir, "github-cache.db");
 	process.env.GITLAB_TOKEN = "test-token";
 	process.env.GITLAB_HOST = "gitlab.example.com";
 	// Empty dir: no glab config.yml hosts unless a test writes one.

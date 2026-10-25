@@ -13,8 +13,8 @@ import {
 
 const source = {
 	provider: "native",
-	providerName: "OMP (User)",
-	path: "/home/sf/.omp/agent/mcp.json",
+	providerName: "NGODEAI (User)",
+	path: "/home/sf/.ngodeai/agent/mcp.json",
 	level: "user",
 };
 

@@ -79,7 +79,7 @@ function hideActivePythonEnv(): () => void {
 	};
 }
 
-describe("omp setup python", () => {
+describe("ngodeai setup python", () => {
 	let projectDir: TempDir | undefined;
 
 	afterEach(async () => {
@@ -91,12 +91,12 @@ describe("omp setup python", () => {
 	it.skipIf(process.platform === "win32")(
 		"probes the project-configured interpreter instead of the PATH interpreter",
 		async () => {
-			projectDir = TempDir.createSync("@omp-setup-python-");
+			projectDir = TempDir.createSync("@ngode-setup-python-");
 			const cwd = projectDir.path();
 			const interpreter = path.join(cwd, "configured-python");
 			await Bun.write(interpreter, "#!/bin/sh\nexit 0\n");
 			await fs.chmod(interpreter, 0o755);
-			await Bun.write(path.join(cwd, ".omp", "config.yml"), `python:\n  interpreter: ${interpreter}\n`);
+			await Bun.write(path.join(cwd, ".ngodeai", "config.yml"), `python:\n  interpreter: ${interpreter}\n`);
 
 			const result = await runSetupPython(cwd);
 
@@ -110,7 +110,7 @@ describe("omp setup python", () => {
 		},
 	);
 	it.skipIf(process.platform === "win32")("prefers the project venv over the PATH interpreter", async () => {
-		projectDir = TempDir.createSync("@omp-setup-python-");
+		projectDir = TempDir.createSync("@ngode-setup-python-");
 		const cwd = projectDir.path();
 		const interpreter = path.join(cwd, ".venv", "bin", "python");
 		await Bun.write(interpreter, "#!/bin/sh\nexit 0\n");
@@ -130,7 +130,7 @@ describe("omp setup python", () => {
 		}
 	});
 	it.skipIf(process.platform === "win32")("does not let the global probe bypass skip setup validation", async () => {
-		projectDir = TempDir.createSync("@omp-setup-python-");
+		projectDir = TempDir.createSync("@ngode-setup-python-");
 		const cwd = projectDir.path();
 		const interpreter = path.join(cwd, "configured-python");
 		await Bun.write(interpreter, "#!/bin/sh\nexit 23\n");
@@ -152,7 +152,7 @@ describe("omp setup python", () => {
 	});
 });
 
-describe("omp setup without a component", () => {
+describe("ngodeai setup without a component", () => {
 	let projectDir: TempDir | undefined;
 
 	afterEach(async () => {
@@ -165,7 +165,7 @@ describe("omp setup without a component", () => {
 	// scripted `--json` health checks. It must now fail loudly on stderr.
 	for (const flags of [["--check"], ["--json"]]) {
 		it(`fails on stderr with a non-zero exit for ${["setup", ...flags].join(" ")}`, async () => {
-			projectDir = TempDir.createSync("@omp-setup-noarg-");
+			projectDir = TempDir.createSync("@ngode-setup-noarg-");
 			const result = await runSetup(projectDir.path(), ...flags);
 
 			expect(result.exitCode).not.toBe(0);

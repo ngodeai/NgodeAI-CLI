@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { OmpErrors, type Type } from "@ngodeai/ngodetype";
+import { NgodeErrors, type Type } from "@ngodeai/ngodetype";
 import { getAgentDir, isEnoent, logger, stringifyYamlConfig } from "@ngodeai/utils";
 import { JSONC, YAML } from "bun";
 import { writeFileAtomicallySync } from "../utils/atomic-file";
@@ -248,7 +248,7 @@ export class ConfigFile<T> implements IConfigFile<T> {
 			}
 
 			const checked = this.schema(parsed);
-			if (checked instanceof OmpErrors) {
+			if (checked instanceof NgodeErrors) {
 				const schemaErrors: ConfigSchemaError[] = checked.map(error => ({
 					instancePath: error.path.length === 0 ? "root" : error.path.join("."),
 					message: error.problem,

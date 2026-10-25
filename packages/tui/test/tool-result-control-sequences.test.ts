@@ -79,7 +79,7 @@ describe("tool result details with raw control sequences", () => {
 	it.skipIf(process.platform === "win32")(
 		"keeps a control-byte filename as the hyperlink target while cleaning its label",
 		async () => {
-			const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-read-link-"));
+			const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-read-link-"));
 			const filename = path.join(dir, `fixture${FILE_ESCAPES}.txt`);
 			try {
 				await Bun.write(filename, "needle");
@@ -131,7 +131,7 @@ describe("tool result details with raw control sequences", () => {
 		"standalone read cards keep the original file hyperlink target",
 		async () => {
 			applyHyperlinkSetting("always");
-			const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-read-single-link-"));
+			const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-read-single-link-"));
 			const filename = path.join(dir, `fixture${FILE_ESCAPES}.txt`);
 			try {
 				await Bun.write(filename, "needle");

@@ -118,7 +118,7 @@ describe("grepToolRenderer", () => {
 		expect(theme).toBeDefined();
 		const uiTheme = theme!;
 
-		const projectRoot = path.resolve("/tmp/omp-project");
+		const projectRoot = path.resolve("/tmp/ngode-project");
 		const filePath = path.join(projectRoot, "src", "file.ts");
 		const result = {
 			content: [{ type: "text", text: "" }],
@@ -252,7 +252,7 @@ describe("grepToolRenderer", () => {
 		expect(theme).toBeDefined();
 		const uiTheme = theme!;
 
-		const filePath = path.resolve("/tmp/omp-project/file.ts");
+		const filePath = path.resolve("/tmp/ngode-project/file.ts");
 		const result = {
 			content: [{ type: "text", text: "" }],
 			details: {
@@ -289,7 +289,7 @@ describe("grepToolRenderer", () => {
 			})
 			.join("\n");
 
-		const filePath = path.resolve("/tmp/omp-project/renderer.ts");
+		const filePath = path.resolve("/tmp/ngode-project/renderer.ts");
 		const result = {
 			content: [{ type: "text", text: "" }],
 			details: {

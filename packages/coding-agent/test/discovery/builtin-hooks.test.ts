@@ -23,7 +23,7 @@ const HOOK_SOURCE = `export default function(pi) {
  * would leave the flag undefined and skip the test on every host.
  */
 const probeSymlinks = (): boolean => {
-	const dir = nodeFs.mkdtempSync(path.join(os.tmpdir(), "omp-symlink-probe-"));
+	const dir = nodeFs.mkdtempSync(path.join(os.tmpdir(), "ngode-symlink-probe-"));
 	try {
 		const target = path.join(dir, "target.ts");
 		nodeFs.writeFileSync(target, HOOK_SOURCE);
@@ -53,19 +53,19 @@ describe("native hook discovery", () => {
 		clearFsCache();
 		originalHome = process.env.HOME;
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
-		originalOmpProfileEnv = process.env.OMP_PROFILE;
+		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
-		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-builtin-hooks-"));
+		root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-builtin-hooks-"));
 		const home = path.join(root, "home");
 		project = path.join(root, "project");
-		projectPre = path.join(project, ".omp", "hooks", "pre");
+		projectPre = path.join(project, ".ngodeai", "hooks", "pre");
 		sharedHooks = path.join(root, "shared-hooks");
 		process.env.HOME = home;
 		vi.spyOn(os, "homedir").mockReturnValue(home);
-		setAgentDir(path.join(home, ".omp", "agent"));
+		setAgentDir(path.join(home, ".ngodeai", "agent"));
 		await Promise.all([
 			fs.mkdir(projectPre, { recursive: true }),
-			fs.mkdir(path.join(home, ".omp", "agent", "hooks", "pre"), { recursive: true }),
+			fs.mkdir(path.join(home, ".ngodeai", "agent", "hooks", "pre"), { recursive: true }),
 			fs.mkdir(sharedHooks, { recursive: true }),
 			fs.mkdir(path.join(project, ".git"), { recursive: true }),
 		]);
@@ -77,7 +77,7 @@ describe("native hook discovery", () => {
 		clearFsCache();
 		vi.restoreAllMocks();
 		restoreEnvValue("HOME", originalHome);
-		restoreEnvValue("OMP_PROFILE", originalOmpProfileEnv);
+		restoreEnvValue("NGODEAI_PROFILE", originalOmpProfileEnv);
 		restoreEnvValue("PI_PROFILE", originalPiProfileEnv);
 		restoreEnvValue("PI_CODING_AGENT_DIR", originalAgentDirEnv);
 		__resetDirsFromEnvForTests();

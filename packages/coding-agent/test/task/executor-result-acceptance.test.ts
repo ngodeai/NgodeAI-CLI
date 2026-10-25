@@ -383,7 +383,7 @@ describe("runSubprocess result acceptance", () => {
 	});
 
 	it("reads the latest message-result completion after an IRC wake instead of the first result", async () => {
-		const tempDir = TempDir.createSync("@omp-latest-agent-result-");
+		const tempDir = TempDir.createSync("@ngode-latest-agent-result-");
 		const artifactsDir = tempDir.path();
 		const harness = createHarness();
 		harness.session.sessionManager.getArtifactsDir = () => artifactsDir;
@@ -449,7 +449,7 @@ describe("runSubprocess result acceptance", () => {
 	});
 
 	it("preserves the accepted message result and sidecar when a peer wakes the agent", async () => {
-		const tempDir = TempDir.createSync("@omp-peer-agent-result-");
+		const tempDir = TempDir.createSync("@ngode-peer-agent-result-");
 		const artifactsDir = tempDir.path();
 		const harness = createHarness();
 		harness.session.sessionManager.getArtifactsDir = () => artifactsDir;
@@ -490,7 +490,7 @@ describe("runSubprocess result acceptance", () => {
 	});
 
 	it("delivers a user-resumed message result when all execution slots are occupied", async () => {
-		const tempDir = TempDir.createSync("@omp-user-resumed-result-");
+		const tempDir = TempDir.createSync("@ngode-user-resumed-result-");
 		const artifactsDir = tempDir.path();
 		const manager = new AsyncJobManager({ maxRunningJobs: 1 });
 		const blocker = Promise.withResolvers<string>();
@@ -546,7 +546,7 @@ describe("runSubprocess result acceptance", () => {
 	});
 
 	it("keeps the accepted artifact and sidecar when the parent cancels its wake job before finalization", async () => {
-		const tempDir = TempDir.createSync("@omp-cancelled-wake-result-");
+		const tempDir = TempDir.createSync("@ngode-cancelled-wake-result-");
 		const artifactsDir = tempDir.path();
 		const manager = new AsyncJobManager({});
 		const harness = createHarness({ asyncJobManager: manager });
@@ -590,7 +590,7 @@ describe("runSubprocess result acceptance", () => {
 	});
 
 	it("gives a turn the owner woke a job whose widget reads the turn's tool calls and whose progress wait reads", async () => {
-		const tempDir = TempDir.createSync("@omp-wake-job-widget-");
+		const tempDir = TempDir.createSync("@ngode-wake-job-widget-");
 		const artifactsDir = tempDir.path();
 		const manager = new AsyncJobManager({});
 		const harness = createHarness({ asyncJobManager: manager });
@@ -637,7 +637,7 @@ describe("runSubprocess result acceptance", () => {
 	});
 
 	it("keeps the accepted artifact and sidecar when an unstructured follow-up starts aborted", async () => {
-		const tempDir = TempDir.createSync("@omp-aborted-agent-result-");
+		const tempDir = TempDir.createSync("@ngode-aborted-agent-result-");
 		const artifactsDir = tempDir.path();
 		const harness = createHarness();
 		registerRunning(harness.session);

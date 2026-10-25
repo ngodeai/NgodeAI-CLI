@@ -3,7 +3,7 @@ import Plugin from "@ngodeai/coding-agent/commands/plugin";
 import type { CliConfig } from "@ngodeai/utils/cli";
 
 const TEST_CONFIG: CliConfig = {
-	bin: "omp",
+	bin: "ngodeai",
 	version: "0.0.0-test",
 	commands: new Map(),
 };

@@ -22,8 +22,8 @@ function makePlugin(pluginPath: string, manifest: PluginManifest): InstalledPlug
 }
 
 describe("plugin manifest path resolution", () => {
-	it("resolves a directory tools entry to its index, not the omp.extensions modules", () => {
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-manifest-paths-"));
+	it("resolves a directory tools entry to its index, not the ngodeai.extensions modules", () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-manifest-paths-"));
 		try {
 			// The package declares both extensions and a directory-based tool entry.
 			// `ngodeai.extensions` and the sub-extension scan are extensions-specific and
@@ -31,7 +31,11 @@ describe("plugin manifest path resolution", () => {
 			// directory resolver returned the extension module for every key).
 			fs.writeFileSync(
 				path.join(dir, "package.json"),
-				JSON.stringify({ name: "fixture-plugin", version: "1.0.0", omp: { extensions: ["./ext.ts"], tools: "." } }),
+				JSON.stringify({
+					name: "fixture-plugin",
+					version: "1.0.0",
+					ngodeai: { extensions: ["./ext.ts"], tools: "." },
+				}),
 			);
 			fs.writeFileSync(path.join(dir, "index.ts"), "export default {};");
 			fs.writeFileSync(path.join(dir, "ext.ts"), "export default function () {};");
@@ -50,13 +54,13 @@ describe("plugin manifest path resolution", () => {
 	});
 
 	it("reports an unresolved extension directory whose authoritative manifest entries are missing", () => {
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-manifest-paths-"));
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ngode-manifest-paths-"));
 		try {
 			const extensionsDir = path.join(dir, "extensions");
 			fs.mkdirSync(extensionsDir);
 			fs.writeFileSync(
 				path.join(extensionsDir, "package.json"),
-				JSON.stringify({ omp: { extensions: ["./missing.ts"] } }),
+				JSON.stringify({ ngodeai: { extensions: ["./missing.ts"] } }),
 			);
 			fs.writeFileSync(path.join(extensionsDir, "index.ts"), "export default function () {};");
 			const plugin = makePlugin(dir, {

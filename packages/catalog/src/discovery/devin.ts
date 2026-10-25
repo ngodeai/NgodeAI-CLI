@@ -227,7 +227,7 @@ function collectDevinFamilyLane(lanes: Map<string, DevinFamilyLane>, config: Cli
 	// effort label; its explicit Thinking axis decides whether the route is off.
 	if (thinking === false) effort = "off";
 
-	// Family label as an OMP id: "GPT-5.6 Sol" -> "gpt-5-6-sol".
+	// Family label as an NGODEAI id: "GPT-5.6 Sol" -> "gpt-5-6-sol".
 	const baseId = slugify(label);
 	if (!baseId) return;
 	const laneId = `${baseId}${oneMillionContext ? "-1m" : ""}${fast ? "-fast" : ""}`;
@@ -372,7 +372,7 @@ export async function fetchDevinModels(
  * image was attached, while SWE-1.7, SWE-1.7 Lightning, and every proxied
  * frontier model (Claude/Gemini/GPT/Kimi) read the same field correctly.
  * Declaring text-only lets clients use their image fallback path instead of
- * silently losing attachments ([#6072](https://github.com/can1357/oh-my-pi/issues/6072)).
+ * silently losing attachments ([#6072](https://github.com/can1357/ngodeai/issues/6072)).
  * Remove entries if Devin ever wires SWE-1.6 vision up.
  */
 const DEVIN_IMAGE_BLIND_UIDS = new Set(["swe-1-6", "swe-1-6-fast"]);
@@ -443,7 +443,7 @@ function devinFusionLeadUid(uid: string, liveUids: ReadonlyMap<string, unknown>)
 }
 
 /**
- * Point a Fusion pairing at its lead. omp runs only the lead (the sidekick is
+ * Point a Fusion pairing at its lead. ngodeai runs only the lead (the sidekick is
  * paired by the native client), so the limits and pricing a caller budgets
  * against are the lead's, not the composite card's. The composite uid names no
  * model, so `buildModel` resolves the row under its `requestModelId` and the

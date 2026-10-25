@@ -128,7 +128,7 @@ export function isPuppeteerTimeout(error: unknown): boolean {
 }
 
 /**
- * Build Puppeteer's `TimeoutError` for a deadline omp enforces in place of one of Puppeteer's waits.
+ * Build Puppeteer's `TimeoutError` for a deadline ngodeai enforces in place of one of Puppeteer's waits.
  * Its `name` stays "TimeoutError" in release builds: back/forward/reload pass this error to the agent's cell as is.
  */
 export function puppeteerTimeoutError(message: string): Error {
@@ -237,7 +237,7 @@ export async function connectPuppeteer(puppeteer: typeof Puppeteer, options: Con
 }
 
 /**
- * The connection's root session, which answers browser-level `Target.*` commands. The omp relay serves
+ * The connection's root session, which answers browser-level `Target.*` commands. The ngodeai relay serves
  * those but exposes no attachable browser target, so `browser.target().createCDPSession()` fails there.
  */
 export function browserConnection(browser: Browser): Connection {
@@ -562,9 +562,9 @@ export interface LaunchHeadlessOptions extends HeadlessLaunchFeatures {
 export interface LaunchHeadlessResult {
 	browser: Browser;
 	/**
-	 * OMP-owned temporary Chromium profile directory to remove after the browser
+	 * NGODEAI-owned temporary Chromium profile directory to remove after the browser
 	 * process tree exits, or `undefined` when the caller supplied its own
-	 * `--user-data-dir` (which OMP must not delete).
+	 * `--user-data-dir` (which NGODEAI must not delete).
 	 */
 	userDataDir?: string;
 }
@@ -631,7 +631,7 @@ export async function launchHeadlessBrowser(opts: LaunchHeadlessOptions): Promis
 	// (issue #7058). `removeUserDataDir` cleans it up on our terms instead.
 	let userDataDir: string | undefined;
 	if (!launchArgs.some(arg => arg.startsWith("--user-data-dir"))) {
-		userDataDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "omp-chrome-profile-"));
+		userDataDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ngode-chrome-profile-"));
 		launchArgs.push(`--user-data-dir=${userDataDir}`);
 	}
 	try {
@@ -655,7 +655,7 @@ export async function launchHeadlessBrowser(opts: LaunchHeadlessOptions): Promis
 }
 
 /**
- * Pin automation-safe preferences in a Chromium profile OMP owns. Password leak
+ * Pin automation-safe preferences in a Chromium profile NGODEAI owns. Password leak
  * detection answers a password form submit with a tab-modal "Change your
  * password" dialog; while it is open Chromium drops `Input.dispatchMouseEvent`
  * input for the tab, and a hidden browser offers no way to close it. Chromium
@@ -687,7 +687,7 @@ async function writeOwnedProfilePreferences(file: string): Promise<void> {
 	if (profile.password_manager_leak_detection === false) return;
 	profile.password_manager_leak_detection = false;
 	prefs.profile = profile;
-	const staged = `${file}.omp-${process.pid}`;
+	const staged = `${file}.ngode-${process.pid}`;
 	try {
 		await Bun.write(staged, JSON.stringify(prefs));
 		await fs.promises.rename(staged, file);
@@ -698,11 +698,11 @@ async function writeOwnedProfilePreferences(file: string): Promise<void> {
 }
 
 /**
- * Discard Chromium's session-restore state in a persistent profile OMP owns.
+ * Discard Chromium's session-restore state in a persistent profile NGODEAI owns.
  * When the first window of a new Chromium process opens, it reopens every page
  * recorded in `Default/Sessions`, however the previous process exited. On the
  * project-shared browser that resurrects whatever was open when its
- * predecessor stopped or was killed, and no omp process owns those pages:
+ * predecessor stopped or was killed, and no ngodeai process owns those pages:
  * target ownership dies with the browser instance, so neither idle-close nor
  * the orphan reaper ever closes them. Call this before a Chromium process
  * starts on the profile. Best-effort: a failure is logged and never blocks the
@@ -755,7 +755,7 @@ export async function resolveSharedBrowserLaunchSpec(opts: {
 }
 
 /**
- * Remove an OMP-owned headless Chromium profile directory, tolerating the brief
+ * Remove an NGODEAI-owned headless Chromium profile directory, tolerating the brief
  * window on Windows in which Chromium (or an orphaned browser subprocess) still
  * holds the profile lock. The shared temp remover centralizes retry handling
  * for EBUSY/EPERM/ENOTEMPTY; if the directory is still busy afterwards we warn

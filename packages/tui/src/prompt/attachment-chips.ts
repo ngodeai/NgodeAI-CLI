@@ -22,7 +22,7 @@ import { cachedImageDimensions, setCachedImageDimensions } from "./image-referen
 import { theme } from "../theme/theme";
 import type { ComposerChipDescriptor, CustomEditor, TextAttachment } from "./custom-editor";
 
-/** Chip card geometry (mirrors omp2): a 12x4 content area inside a 1-cell rounded border. */
+/** Chip card geometry (mirrors ngodeai2): a 12x4 content area inside a 1-cell rounded border. */
 const INNER_COLS = 12;
 const INNER_ROWS = 4;
 const CARD_COLS = INNER_COLS + 2;

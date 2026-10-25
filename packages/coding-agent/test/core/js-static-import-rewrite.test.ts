@@ -191,70 +191,70 @@ describe("wrapCode cross-cell persistence", () => {
 	it("publishes top-level function declarations and their sibling consts from async-wrapped cells", async () => {
 		const globals = globalThis as Record<string, unknown>;
 		const wrapped = await wrapCode(
-			"async function ompPersistedFn(n) { return (await Promise.resolve(n)) + 1; }\nconst ompPersistedTotal = await ompPersistedFn(41);",
+			"async function ngodePersistedFn(n) { return (await Promise.resolve(n)) + 1; }\nconst ngodePersistedTotal = await ngodePersistedFn(41);",
 		);
 		expect(wrapped.asyncWrapped).toBe(true);
 		try {
 			await indirectEval(wrapped.source);
-			const fn = globals.ompPersistedFn as (n: number) => Promise<number>;
+			const fn = globals.ngodePersistedFn as (n: number) => Promise<number>;
 			expect(typeof fn).toBe("function");
 			expect(await fn(1)).toBe(2);
-			expect(globals.ompPersistedTotal).toBe(42);
+			expect(globals.ngodePersistedTotal).toBe(42);
 		} finally {
-			delete globals.ompPersistedFn;
-			delete globals.ompPersistedTotal;
+			delete globals.ngodePersistedFn;
+			delete globals.ngodePersistedTotal;
 		}
 	});
 
 	it("keeps async-cell function closures attached to retained global bindings", async () => {
 		const globals = globalThis as Record<string, unknown>;
 		const wrapped = await wrapCode(
-			"await Promise.resolve();\nvar ompClosureTotal = 42;\nfunction ompClosureAnswer() { return ompClosureTotal; }",
+			"await Promise.resolve();\nvar ngodeClosureTotal = 42;\nfunction ngodeClosureAnswer() { return ngodeClosureTotal; }",
 		);
 		expect(wrapped.asyncWrapped).toBe(true);
 		try {
 			await indirectEval(wrapped.source);
-			expect((globals.ompClosureAnswer as () => number)()).toBe(42);
-			indirectEval("ompClosureTotal += 1;");
-			expect(globals.ompClosureTotal).toBe(43);
-			expect((globals.ompClosureAnswer as () => number)()).toBe(43);
+			expect((globals.ngodeClosureAnswer as () => number)()).toBe(42);
+			indirectEval("ngodeClosureTotal += 1;");
+			expect(globals.ngodeClosureTotal).toBe(43);
+			expect((globals.ngodeClosureAnswer as () => number)()).toBe(43);
 		} finally {
-			delete globals.ompClosureAnswer;
-			delete globals.ompClosureTotal;
+			delete globals.ngodeClosureAnswer;
+			delete globals.ngodeClosureTotal;
 		}
 	});
 
 	it("publishes explicit top-level var declarations from async-wrapped cells", async () => {
 		const globals = globalThis as Record<string, unknown>;
-		const wrapped = await wrapCode("await Promise.resolve();\nvar ompPersistedVar = 5;");
+		const wrapped = await wrapCode("await Promise.resolve();\nvar ngodePersistedVar = 5;");
 		expect(wrapped.asyncWrapped).toBe(true);
 		try {
 			await indirectEval(wrapped.source);
-			expect(globals.ompPersistedVar).toBe(5);
+			expect(globals.ngodePersistedVar).toBe(5);
 		} finally {
-			delete globals.ompPersistedVar;
+			delete globals.ngodePersistedVar;
 		}
 	});
 	it("retains block var bindings after await without exposing block lexicals or function locals", async () => {
 		const global = globalThis;
 		const wrapped = await wrapCode(`await Promise.resolve();
-if (true) { var ompBranchVar = 47; let ompBlockLet = 12; }
-if (false) { var ompSkippedVar = 1; }
-function nested() { var ompLocalVar = 9; return ompLocalVar; }
-function readBranch() { return ompBranchVar; }
+if (true) { var ngodeBranchVar = 47; let ngodeBlockLet = 12; }
+if (false) { var ngodeSkippedVar = 1; }
+function nested() { var ngodeLocalVar = 9; return ngodeLocalVar; }
+function readBranch() { return ngodeBranchVar; }
 if (nested() !== 9) throw new Error("function local was lost");`);
 		try {
 			await indirectEval(wrapped.source);
-			expect(indirectEval("ompBranchVar")).toBe(47);
-			expect(indirectEval("typeof ompSkippedVar")).toBe("undefined");
-			expect(Reflect.has(global, "ompSkippedVar")).toBe(true);
-			expect(indirectEval("typeof ompBlockLet")).toBe("undefined");
-			expect(indirectEval("typeof ompLocalVar")).toBe("undefined");
-			indirectEval("ompBranchVar = 48");
+			expect(indirectEval("ngodeBranchVar")).toBe(47);
+			expect(indirectEval("typeof ngodeSkippedVar")).toBe("undefined");
+			expect(Reflect.has(global, "ngodeSkippedVar")).toBe(true);
+			expect(indirectEval("typeof ngodeBlockLet")).toBe("undefined");
+			expect(indirectEval("typeof ngodeLocalVar")).toBe("undefined");
+			indirectEval("ngodeBranchVar = 48");
 			expect(indirectEval("readBranch()")).toBe(48);
 		} finally {
-			Reflect.deleteProperty(global, "ompBranchVar");
-			Reflect.deleteProperty(global, "ompSkippedVar");
+			Reflect.deleteProperty(global, "ngodeBranchVar");
+			Reflect.deleteProperty(global, "ngodeSkippedVar");
 			Reflect.deleteProperty(global, "nested");
 			Reflect.deleteProperty(global, "readBranch");
 		}
@@ -263,30 +263,30 @@ if (nested() !== 9) throw new Error("function local was lost");`);
 	it("keeps a catch-parameter var initializer on the catch binding after await", async () => {
 		const global = globalThis;
 		const wrapped = await wrapCode(`await Promise.resolve();
-try { throw 0; } catch (ompCaught) { var ompCaught = 1; var ompAfterCatch = ompCaught + 1; }`);
+try { throw 0; } catch (ngodeCaught) { var ngodeCaught = 1; var ngodeAfterCatch = ngodeCaught + 1; }`);
 		try {
 			await indirectEval(wrapped.source);
-			expect(indirectEval("[typeof ompCaught, ompAfterCatch]")).toEqual(["undefined", 2]);
-			expect(Reflect.has(global, "ompCaught")).toBe(true);
+			expect(indirectEval("[typeof ngodeCaught, ngodeAfterCatch]")).toEqual(["undefined", 2]);
+			expect(Reflect.has(global, "ngodeCaught")).toBe(true);
 		} finally {
-			Reflect.deleteProperty(global, "ompCaught");
-			Reflect.deleteProperty(global, "ompAfterCatch");
+			Reflect.deleteProperty(global, "ngodeCaught");
+			Reflect.deleteProperty(global, "ngodeAfterCatch");
 		}
 	});
 
 	it("retains var bindings declared by top-level for loops after await", async () => {
 		const global = globalThis;
 		const wrapped = await wrapCode(`await Promise.resolve();
-for (var ompLoopIndex = 0; ompLoopIndex < 2; ompLoopIndex++) {}
-for (var ompLoopItem of [3, 5]) {}
-for (var ompLoopKey in { a: 1 }) {}`);
+for (var ngodeLoopIndex = 0; ngodeLoopIndex < 2; ngodeLoopIndex++) {}
+for (var ngodeLoopItem of [3, 5]) {}
+for (var ngodeLoopKey in { a: 1 }) {}`);
 		try {
 			await indirectEval(wrapped.source);
-			expect(indirectEval("[ompLoopIndex, ompLoopItem, ompLoopKey]")).toEqual([2, 5, "a"]);
+			expect(indirectEval("[ngodeLoopIndex, ngodeLoopItem, ngodeLoopKey]")).toEqual([2, 5, "a"]);
 		} finally {
-			Reflect.deleteProperty(global, "ompLoopIndex");
-			Reflect.deleteProperty(global, "ompLoopItem");
-			Reflect.deleteProperty(global, "ompLoopKey");
+			Reflect.deleteProperty(global, "ngodeLoopIndex");
+			Reflect.deleteProperty(global, "ngodeLoopItem");
+			Reflect.deleteProperty(global, "ngodeLoopKey");
 		}
 	});
 });

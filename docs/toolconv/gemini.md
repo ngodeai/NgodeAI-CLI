@@ -1,6 +1,6 @@
 # Gemini Pythonic tool-calling format (`tool_code` / `default_api`)
 
-Pythonic text convention handled by OMP's **`gemini` owned dialect**, used for prompt-driven **Gemma 3** tool calling and seen in malformed hosted **Gemini** output. Calls are Python-like expressions such as `default_api.<function_name>(<kwargs>)`, optionally wrapped in `print(...)`, inside a fenced ```` ```tool_code ```` block; results return in ```` ```tool_outputs ```` blocks. This is not the hosted Gemini native API protocol, which uses structured `functionCall` / `functionResponse` parts.
+Pythonic text convention handled by NGODEAI's **`gemini` owned dialect**, used for prompt-driven **Gemma 3** tool calling and seen in malformed hosted **Gemini** output. Calls are Python-like expressions such as `default_api.<function_name>(<kwargs>)`, optionally wrapped in `print(...)`, inside a fenced ```` ```tool_code ```` block; results return in ```` ```tool_outputs ```` blocks. This is not the hosted Gemini native API protocol, which uses structured `functionCall` / `functionResponse` parts.
 
 The NgodeAI behavior below follows `packages/ai/src/dialect/gemini.ts`, the shared rendering helpers, and the owned history/stream converters. The external guides and malformed-call reports listed under *Sources* provide background on the text convention.
 
@@ -39,7 +39,7 @@ Tools are advertised in the prompt as a JSON-Schema catalog. Gemma 3's official 
 2. **JSON** (the sibling convention — see `qwen3.md` for the closely related Hermes shape):
    > … you MUST put it in the format of `{"name": function name, "parameters": dictionary of argument name and its value}`
 
-OMP's owned prompt advertises tools as one compact OpenAI-style JSON object per line inside `<tools>` (`{"type":"function","function":{name,description,parameters}}`), using each tool's normalized wire schema, followed by the Gemini format guide. Native Gemini requests instead use `functionDeclarations`. OMP's text renderer emits `default_api.NAME(...)` without `print`; its scanner also accepts the wrapped and bare variants below.
+NGODEAI's owned prompt advertises tools as one compact OpenAI-style JSON object per line inside `<tools>` (`{"type":"function","function":{name,description,parameters}}`), using each tool's normalized wire schema, followed by the Gemini format guide. Native Gemini requests instead use `functionDeclarations`. NGODEAI's text renderer emits `default_api.NAME(...)` without `print`; its scanner also accepts the wrapped and bare variants below.
 
 ## Tool-call format
 
@@ -135,13 +135,13 @@ It's currently 11.4°C in London.
 - **Strip the wrapper.** Normalize away `print(...)`, a `default_api.` (or any `module.`) prefix, and an `LHS =` assignment before reading the call name. `print` is never a tool name.
 - **Skip string contents when scanning.** A call like `search(pattern="foo(")` contains a `(` inside a string; a naive `\w+\(` scan mis-detects `foo` as a callee. Track string state and only treat top-level `(` as a call opener.
 - **Fence ambiguity.** A `tool_code` body terminates at the first ` ``` ` substring, even inside an argument string or mid-line. This is separate from the fence-aware thinking close-matcher.
-- **Text vs native calls.** Malformed hosted responses may expose the text convention. OMP's owned stream also forwards named native tool calls if a provider emits them despite native tools being absent; the first native/in-band call channel wins, preventing double dispatch.
+- **Text vs native calls.** Malformed hosted responses may expose the text convention. NGODEAI's owned stream also forwards named native tool calls if a provider emits them despite native tools being absent; the first native/in-band call channel wins, preventing double dispatch.
 - **NgodeAI streaming behavior.** The scanner buffers the entire `tool_code` body and emits tool events only after the closing fence; it does not stream partial arguments. An unterminated block is discarded on flush rather than exposed as text. Positional arguments and malformed keyword segments are skipped. In addition to ordinary quoted strings, the literal decoder accepts Python raw/byte/unicode prefixes, triple quotes, octal escapes, and `\x`/`\u`/`\U` escapes.
 - **Transcript rendering.** `renderTranscript` wraps history in `<bos>` and Gemma-style `<start_of_turn>user|model` turns. `developer` text is prepended to the next user turn, or emitted as its own user turn before an intervening assistant/result; consecutive results become one user turn. Thinking precedes visible text and calls. Currently even an assistant without calls gets an empty `tool_code` list (`[]`); the renderer does not append a generation prompt.
 - **Owned request history.** `encodeInbandToolHistory` is separate from `renderTranscript`: assistant turns with calls become prose plus a fenced call block, dropping their thinking/image blocks; call-free assistant turns remain unchanged. Consecutive results become one synthetic user message, with result images retained after the text.
 - **Fabricated results.** The owned stream discards assistant output from ` ```tool_outputs ` onward. `tools.abortOnFabricatedResult` defaults to `true` and aborts the provider there; disabling it drains the provider but still discards that continuation.
 - **Variant divergence.** Gemma **4** uses the token-delimited brace syntax (`<|tool_call>call:NAME{…}<tool_call|>`) documented in [gemma.md](gemma.md), not this Pythonic text dialect.
-- **Gemma 3 automatic-selection caveat.** OMP's current family affinity maps every recognized Gemma version—including Gemma 3—to the `gemma` dialect. Therefore, when a Gemma 3 model is marked `supportsTools: false` and falls back from native tools, `tools.format=auto` selects the incompatible Gemma 4 grammar. Set `tools.format=gemini` explicitly for the Pythonic Gemma 3 convention documented here.
+- **Gemma 3 automatic-selection caveat.** NGODEAI's current family affinity maps every recognized Gemma version—including Gemma 3—to the `gemma` dialect. Therefore, when a Gemma 3 model is marked `supportsTools: false` and falls back from native tools, `tools.format=auto` selects the incompatible Gemma 4 grammar. Set `tools.format=gemini` explicitly for the Pythonic Gemma 3 convention documented here.
 
 ## Selection
 

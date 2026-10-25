@@ -34,7 +34,7 @@ describe("snapcompact archive persistence", () => {
 	const originalAgentDir = getAgentDir();
 
 	async function makeTempDir(): Promise<string> {
-		const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "omp-archive-persist-"));
+		const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "ngode-archive-persist-"));
 		tempDirs.push(dir);
 		return dir;
 	}

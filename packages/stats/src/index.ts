@@ -48,7 +48,7 @@ function formatCost(n: number, unpricedRequests = 0): string {
 }
 
 /**
- * Print the dashboard summary to the console. Shared by `omp stats --summary`
+ * Print the dashboard summary to the console. Shared by `ngodeai stats --summary`
  * and the standalone `ngodeai-stats --sync`.
  */
 export async function printStatsSummary(): Promise<void> {

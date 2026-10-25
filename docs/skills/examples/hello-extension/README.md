@@ -38,4 +38,4 @@ After loading, type `/hello` or `/hello Ada` in the NgodeAI prompt. The command 
 - `pi.on("session_start", ...)` — session lifecycle hook
 - `pi.registerCommand(...)` — slash command registration
 - `ctx.ui.notify(...)` — user-facing notification
-- `package.json` with `omp.extensions` manifest field
+- `package.json` with `ngodeai.extensions` manifest field

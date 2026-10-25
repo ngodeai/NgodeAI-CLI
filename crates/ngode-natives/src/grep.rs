@@ -40,9 +40,9 @@ use crate::{glob_util, iofs, shell::vfs::ShellFilesystem, task};
 
 const MAX_FILE_BYTES: u64 = 4 * 1024 * 1024;
 /// PCRE2 JIT toggle read once from the process environment; see
-/// [`ngode_builtins::pcre2_jit_enabled`] for the `OMP_PCRE2_JIT` values.
+/// [`ngode_builtins::pcre2_jit_enabled`] for the `NGODEAI_PCRE2_JIT` values.
 static PCRE2_JIT_ENABLED: LazyLock<bool> =
-	LazyLock::new(|| ngode_builtins::pcre2_jit_enabled(std::env::var("OMP_PCRE2_JIT").ok().as_deref()));
+	LazyLock::new(|| ngode_builtins::pcre2_jit_enabled(std::env::var("NGODEAI_PCRE2_JIT").ok().as_deref()));
 
 /// Upper bound on entries per streamed `onMatches` batch; a file with more
 /// content matches streams several batches while it is still being searched.
@@ -3611,7 +3611,7 @@ mod tests {
 	#[test]
 	fn grep_single_file_count_mode_reports_every_match() {
 		let dir = std::env::temp_dir().join(format!(
-			"omp-grep-count-{}-{:?}",
+			"ngode-grep-count-{}-{:?}",
 			std::process::id(),
 			std::thread::current().id()
 		));

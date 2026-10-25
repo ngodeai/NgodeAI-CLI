@@ -36,13 +36,13 @@ describe("native executable custom tool discovery", () => {
 		clearFsCache();
 		originalHome = process.env.HOME;
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
-		originalOmpProfileEnv = process.env.OMP_PROFILE;
+		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
-		root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-builtin-tools-"));
+		root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-builtin-tools-"));
 		const home = path.join(root, "home");
 		project = path.join(root, "project");
-		projectTools = path.join(project, ".omp", "tools");
-		userTools = path.join(home, ".omp", "agent", "tools");
+		projectTools = path.join(project, ".ngodeai", "tools");
+		userTools = path.join(home, ".ngodeai", "agent", "tools");
 		process.env.HOME = home;
 		vi.spyOn(os, "homedir").mockReturnValue(home);
 		setAgentDir(path.dirname(userTools));
@@ -60,7 +60,7 @@ describe("native executable custom tool discovery", () => {
 		clearFsCache();
 		vi.restoreAllMocks();
 		restoreEnvValue("HOME", originalHome);
-		restoreEnvValue("OMP_PROFILE", originalOmpProfileEnv);
+		restoreEnvValue("NGODEAI_PROFILE", originalOmpProfileEnv);
 		restoreEnvValue("PI_PROFILE", originalPiProfileEnv);
 		restoreEnvValue("PI_CODING_AGENT_DIR", originalAgentDirEnv);
 		__resetDirsFromEnvForTests();

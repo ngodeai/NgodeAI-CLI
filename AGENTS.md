@@ -32,7 +32,7 @@ This repo contains multiple packages, but **`packages/coding-agent/`** is the pr
 
 ### Pull requests
 
-When authorized to create or edit a contributor-submitted PR, follow the checklist below. RoboOMP-managed PRs follow their dedicated workflow and enforced body format in `python/robomp/src/prompts/system_append.md` instead.
+When authorized to create or edit a contributor-submitted PR, follow the checklist below. ngodebot-managed PRs follow their dedicated workflow and enforced body format in `python/ngodebot/src/prompts/system_append.md` instead.
 
 - MUST read `CONTRIBUTING.md` and `.github/PULL_REQUEST_TEMPLATE.md` first. Preserve the template sections and checklist, including when shortening an existing description.
 - MUST obtain at least one sentence written by the contributor in their own words explaining what changed and why, as required by `CONTRIBUTING.md`. If it is missing, ask the contributor; NEVER generate a substitute. Preserve that sentence during edits.
@@ -335,8 +335,8 @@ Location: `packages/*/CHANGELOG.md` (per package).
 
 **Attribution:**
 
-- Internal (from issues): `Fixed foo bar ([#123](https://github.com/can1357/oh-my-pi/issues/123))`.
-- External contributions: `Added feature X ([#456](https://github.com/can1357/oh-my-pi/pull/456) by [@username](https://github.com/username))`.
+- Internal (from issues): `Fixed foo bar ([#123](https://github.com/can1357/ngodeai/issues/123))`.
+- External contributions: `Added feature X ([#456](https://github.com/can1357/ngodeai/pull/456) by [@username](https://github.com/username))`.
 
 ## Releasing
 

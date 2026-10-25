@@ -281,7 +281,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 		expect(reported.hostname).toBe(os.hostname());
 		// Default identity carries the app label so broker-side attribution can
 		// answer "what did app X use" even for broker-direct installs.
-		expect(reported.providers.every(p => p.app === "omp")).toBe(true);
+		expect(reported.providers.every(p => p.app === "ngodeai")).toBe(true);
 
 		const anthropic = reported.providers.find(p => p.provider === "anthropic");
 		expect(anthropic).toMatchObject({
@@ -327,14 +327,14 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 					costUsd: 0.05,
 				},
 			],
-			{ installId: "robomp-install", hostname: "robomp-box", app: "robomp" },
+			{ installId: "ngodebot-install", hostname: "ngodebot-box", app: "ngodebot" },
 		);
 		await waitUntil(() => storage!.usage.clientSummary(0).clients.length === 2);
-		const attributed = storage!.usage.clientSummary(0).clients.find(c => c.installId === "robomp-install");
-		expect(attributed?.hostname).toBe("robomp-box");
+		const attributed = storage!.usage.clientSummary(0).clients.find(c => c.installId === "ngodebot-install");
+		expect(attributed?.hostname).toBe("ngodebot-box");
 		expect(attributed?.providers).toEqual([
 			{
-				app: "robomp",
+				app: "ngodebot",
 				provider: "anthropic",
 				requests: 1,
 				inputTokens: 7,
@@ -347,7 +347,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 	});
 
 	test("a process that quits before the flush interval still reports its observed usage", async () => {
-		// Mirrors `omp -p`: one turn, then postmortem.quit() well inside the default 10s flush interval.
+		// Mirrors `ngodeai -p`: one turn, then postmortem.quit() well inside the default 10s flush interval.
 		const script = [
 			'import { postmortem } from "@ngodeai/utils";',
 			`import { AuthBrokerClient, RemoteAuthCredentialStore } from ${JSON.stringify(AUTH_BROKER_MODULE)};`,
@@ -355,7 +355,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 			"const remote = new RemoteAuthCredentialStore({ client, streamSnapshots: false });",
 			"remote.recordObservedUsage(",
 			'	[{ at: Date.now(), provider: "anthropic", model: "claude-x", requests: 1, inputTokens: 12, outputTokens: 4, cacheReadTokens: 0, cacheWriteTokens: 0, costUsd: 0.01 }],',
-			'	{ installId: "print-mode-install", hostname: "print-mode-host", app: "omp" },',
+			'	{ installId: "print-mode-install", hostname: "print-mode-host", app: "ngodeai" },',
 			");",
 			"await postmortem.quit(0);",
 		].join("\n");
@@ -371,7 +371,7 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 		const reported = storage!.usage.clientSummary(0).clients.find(c => c.installId === "print-mode-install");
 		expect(reported?.providers).toEqual([
 			{
-				app: "omp",
+				app: "ngodeai",
 				provider: "anthropic",
 				requests: 1,
 				inputTokens: 12,
@@ -542,9 +542,9 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 
 		await withEnv(
 			{
-				OMP_AUTH_BROKER_URL: handle!.url,
-				OMP_AUTH_BROKER_TOKEN: token,
-				OMP_AUTH_BROKER_ACCOUNT_POOL_FILE: poolPath,
+				NGODEAI_AUTH_BROKER_URL: handle!.url,
+				NGODEAI_AUTH_BROKER_TOKEN: token,
+				NGODEAI_AUTH_BROKER_ACCOUNT_POOL_FILE: poolPath,
 			},
 			async () => {
 				const discovered = await discoverAuthStorage({
@@ -585,9 +585,9 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 
 		await withEnv(
 			{
-				OMP_AUTH_BROKER_URL: handle!.url,
-				OMP_AUTH_BROKER_TOKEN: token,
-				OMP_AUTH_BROKER_ACCOUNT_POOL_FILE: poolPath,
+				NGODEAI_AUTH_BROKER_URL: handle!.url,
+				NGODEAI_AUTH_BROKER_TOKEN: token,
+				NGODEAI_AUTH_BROKER_ACCOUNT_POOL_FILE: poolPath,
 			},
 			async () => {
 				const discovered = await discoverAuthStorage({
@@ -617,9 +617,9 @@ describe("RemoteAuthCredentialStore SSE integration", () => {
 	test("prefers a programmatic SDK account pool over the environment file", async () => {
 		await withEnv(
 			{
-				OMP_AUTH_BROKER_URL: handle!.url,
-				OMP_AUTH_BROKER_TOKEN: token,
-				OMP_AUTH_BROKER_ACCOUNT_POOL_FILE: path.join(tempDir, "missing-account-pool.json"),
+				NGODEAI_AUTH_BROKER_URL: handle!.url,
+				NGODEAI_AUTH_BROKER_TOKEN: token,
+				NGODEAI_AUTH_BROKER_ACCOUNT_POOL_FILE: path.join(tempDir, "missing-account-pool.json"),
 			},
 			async () => {
 				const discovered = await discoverAuthStorage({

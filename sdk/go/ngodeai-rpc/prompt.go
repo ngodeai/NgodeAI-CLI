@@ -1,4 +1,4 @@
-package omprpc
+package ngodeairpc
 
 import (
 	"context"
@@ -82,7 +82,7 @@ func (c *Client) PromptAndWait(ctx context.Context, p PromptCommand, timeout tim
 	c.mu.Lock()
 	if _, taken := c.prompts[id]; taken {
 		c.mu.Unlock()
-		return PromptTurn{}, fmt.Errorf("omprpc: prompt id %q is already waiting", id)
+		return PromptTurn{}, fmt.Errorf("ngodeairpc: prompt id %q is already waiting", id)
 	}
 	c.prompts[id] = wait
 	c.mu.Unlock()
@@ -112,7 +112,7 @@ func (c *Client) PromptAndWait(ctx context.Context, p PromptCommand, timeout tim
 			return PromptTurn{}, c.Err()
 		}
 	case <-ctx.Done():
-		return PromptTurn{}, fmt.Errorf("omprpc: waiting for prompt_result: %w", ctx.Err())
+		return PromptTurn{}, fmt.Errorf("ngodeairpc: waiting for prompt_result: %w", ctx.Err())
 	}
 	c.mu.Lock()
 	events, result, failure := wait.events, wait.result, wait.err
@@ -191,7 +191,7 @@ func completeAgentEndMessages(before []RpcAgentEvent, end AgentEndEvent) ([]Agen
 	}
 	prefix := int(*end.MessageCount) - len(end.Messages)
 	if prefix > len(streamed) {
-		return nil, fmt.Errorf("omprpc: compacted agent_end references %d streamed messages, but only %d were retained", prefix, len(streamed))
+		return nil, fmt.Errorf("ngodeairpc: compacted agent_end references %d streamed messages, but only %d were retained", prefix, len(streamed))
 	}
 	return append(streamed[:prefix:prefix], end.Messages...), nil
 }
@@ -228,7 +228,7 @@ func (c *Client) pageMessages(ctx context.Context) ([]AgentMessage, error) {
 			return nil, err
 		}
 		if total >= 0 && page.TotalMessages != total {
-			return nil, errors.New("omprpc: RPC message pagination returned an inconsistent total")
+			return nil, errors.New("ngodeairpc: RPC message pagination returned an inconsistent total")
 		}
 		total = page.TotalMessages
 		messages = append(messages, page.Messages...)
@@ -237,12 +237,12 @@ func (c *Client) pageMessages(ctx context.Context) ([]AgentMessage, error) {
 			break
 		}
 		if seen[*cursor] {
-			return nil, errors.New("omprpc: RPC message pagination repeated a cursor")
+			return nil, errors.New("ngodeairpc: RPC message pagination repeated a cursor")
 		}
 		seen[*cursor] = true
 	}
 	if int64(len(messages)) != total {
-		return nil, errors.New("omprpc: RPC message pagination ended before the advertised total")
+		return nil, errors.New("ngodeairpc: RPC message pagination ended before the advertised total")
 	}
 	return messages, nil
 }

@@ -756,7 +756,7 @@ const SESSION_CWD_CHANGE_REJECTED = Symbol("sessionCwdChangeRejected");
 export function powerAssertionOptions(mode: "off" | "idle" | "display" | "system"): PowerAssertionOptions | undefined {
 	if (mode === "off") return undefined;
 	return {
-		reason: "omp agent session",
+		reason: "ngodeai agent session",
 		idle: true,
 		display: mode === "display" || mode === "system",
 		system: mode === "system",
@@ -1600,7 +1600,7 @@ export class AgentSession implements SettingsScope {
 	 * Finishes a turn observation once the turn's owned async work has settled.
 	 * Call only after the turn released its in-flight bracket: the bracket
 	 * withholds the yield-queue's idle flush, so settling inside it would deadlock
-	 * the very delivery the settle awaits (robomp review on #13703).
+	 * the very delivery the settle awaits (ngodebot review on #13703).
 	 *
 	 * Owner-scoped background work continues past the turn: the async-result
 	 * continuation is where the agent may finally yield. Keeping the observer
@@ -5773,7 +5773,7 @@ export class AgentSession implements SettingsScope {
 	 * `metadata.user_id` shaped like real Claude Code's `getAPIMetadata` output:
 	 * `{ session_id, account_uuid, device_id }`. `account_uuid` is included only
 	 * when an Anthropic OAuth credential with a known account UUID is loaded;
-	 * `device_id` is derived from both the persistent omp install id and that
+	 * `device_id` is derived from both the persistent ngodeai install id and that
 	 * account UUID. Resolving live keeps the value in sync with auth-state changes
 	 * (login/logout, token refresh that surfaces a new account UUID) without
 	 * needing to re-call `#syncAgentSessionId()` on every such event.
@@ -5969,7 +5969,7 @@ export class AgentSession implements SettingsScope {
 	 * Turn-settle checkpoint for owned headless browser tabs (issue #8246).
 	 * Close tabs idle past `browser.idleCloseSec` as the memory backstop,
 	 * then freeze the survivors so idle animated pages stop burning CPU/GPU
-	 * while keeping their state for millisecond resume. Scoped to OMP-owned
+	 * while keeping their state for millisecond resume. Scoped to NGODEAI-owned
 	 * headless tabs of this session only — relay/CDP/spawned tabs, other
 	 * sessions' tabs, and `persist` tabs are never touched. Best-effort:
 	 * never throws, so teardown cannot break the event flow.
@@ -8698,7 +8698,7 @@ export class AgentSession implements SettingsScope {
 				// Await the idempotent dispose() before exiting so the browser
 				// reaper and other bounded teardown complete — a fire-and-forget
 				// `void this.dispose()` raced process.exit() and could leave an
-				// OMP-owned Chromium alive (#5643).
+				// NGODEAI-owned Chromium alive (#5643).
 				void this.dispose().finally(() => process.exit(0));
 			},
 			resolvePlanReview: () => false,
@@ -13040,7 +13040,7 @@ export class AgentSession implements SettingsScope {
 			 * (extensions, hooks, ACP, session-extension actions) leaves this
 			 * unset and gets the pre-#5642 plain leaf move onto `ask`
 			 * toolResults instead — they have no picker to re-open and would
-			 * otherwise report a successful no-op navigation (roboomp review on
+			 * otherwise report a successful no-op navigation (ngodebot review on
 			 * #5895).
 			 */
 			allowAskReopen?: boolean;
@@ -13119,7 +13119,7 @@ export class AgentSession implements SettingsScope {
 		// the actual sibling-branch construction once the caller has an answer.
 		// Gated on `allowAskReopen` — callers that don't understand `reopenAsk`
 		// fall straight through to the plain leaf move below instead of
-		// reporting a successful no-op (roboomp review on #5895).
+		// reporting a successful no-op (ngodebot review on #5895).
 		if (
 			options.allowAskReopen &&
 			!options.reanswerAskResult &&
@@ -13398,7 +13398,7 @@ export class AgentSession implements SettingsScope {
 	 * up from the toolResult's parent past any interleaved ancestor entries
 	 * — sibling toolResults from other tool calls in the same turn (`ask`
 	 * runs `exclusive`, which only serializes *execution*, not persistence
-	 * order — roboomp review on #5895), and bookkeeping entries such as the
+	 * order — ngodebot review on #5895), and bookkeeping entries such as the
 	 * `tool_execution_start` custom entry `#recordToolExecutionStart()`
 	 * appends before every toolResult in real persisted sessions (chatgpt-codex
 	 * review on #5895) — until it finds the assistant entry that actually
@@ -13439,7 +13439,7 @@ export class AgentSession implements SettingsScope {
 	 * so this mirrors `refreshMCPTools()`'s `getCustomToolContext` factory
 	 * with real session state instead of a `{ ... } as unknown as
 	 * AgentToolContext` cast that could silently compile with an incomplete
-	 * context (roboomp review on #5895) — every `CustomToolContext` field is
+	 * context (ngodebot review on #5895) — every `CustomToolContext` field is
 	 * backed by live session state, so a future required field fails to
 	 * compile here instead of surfacing as `undefined` at runtime.
 	 */
@@ -14309,7 +14309,7 @@ export class AgentSession implements SettingsScope {
 			entries.push([`subagents/${key}.md`, `${text}\n`]);
 			subagentCount++;
 		}
-		const filePath = path.join(os.tmpdir(), `omp-dump-${Snowflake.next()}.zip`);
+		const filePath = path.join(os.tmpdir(), `ngode-dump-${Snowflake.next()}.zip`);
 		await writeArchive(filePath, "zip", entries);
 		return { path: filePath, files: entries.map(([name]) => name), subagentCount, subagentError };
 	}
@@ -14330,7 +14330,7 @@ export class AgentSession implements SettingsScope {
 			sessionFile: this.sessionManager.getSessionFile(),
 			malformedRecords: this.sessionManager.loadedMalformedRecords,
 		});
-		const filePath = path.join(os.tmpdir(), `omp-dump-anon-${Snowflake.next()}.zip`);
+		const filePath = path.join(os.tmpdir(), `ngode-dump-anon-${Snowflake.next()}.zip`);
 		await writeArchive(filePath, "zip", result.files);
 		return {
 			path: filePath,
@@ -14358,7 +14358,7 @@ export class AgentSession implements SettingsScope {
 	async dumpLlmRequestToTmpDir(): Promise<string | undefined> {
 		const messages = this.messages;
 		if (messages.length === 0) return undefined;
-		const filePath = path.join(os.tmpdir(), `omp-llm-request-${Snowflake.next()}.json`);
+		const filePath = path.join(os.tmpdir(), `ngode-llm-request-${Snowflake.next()}.json`);
 		await Bun.write(filePath, await this.#formatLlmRequestJson(messages));
 		return filePath;
 	}

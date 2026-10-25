@@ -16,7 +16,7 @@ import {
 	emptyAgentRunCoverage,
 	emptyAgentRunSummary,
 } from "@ngodeai/agent-core/run-collector";
-import { EXECUTE_TOOL_STATUS_ATTR, GenAIAttr, OmpGenAIAggregateAttr } from "@ngodeai/agent-core/telemetry";
+import { EXECUTE_TOOL_STATUS_ATTR, GenAIAttr, NgodeGenAIAggregateAttr } from "@ngodeai/agent-core/telemetry";
 import type { AgentEvent, AgentLoopConfig, AgentMessage, AgentTool } from "@ngodeai/agent-core/types";
 import type { AssistantMessage, Message } from "@ngodeai/ai";
 import { createMockModel } from "@ngodeai/ai/providers/mock";
@@ -299,7 +299,7 @@ describe("AgentRunSummary aggregation", () => {
 		expect(blockedSpan?.attributes[GenAIAttr.ErrorType]).toBe("tool_blocked");
 	});
 
-	it("populates aggregate omp.gen_ai.agent.* attributes on the invoke_agent span", async () => {
+	it("populates aggregate ngodeai.gen_ai.agent.* attributes on the invoke_agent span", async () => {
 		const tracer = new RecordingTracer();
 		const tool = buildTool({ name: "alpha", behavior: "ok" });
 		const mock = createMockModel({
@@ -324,12 +324,12 @@ describe("AgentRunSummary aggregation", () => {
 		await detailed.detailed();
 		const invokeSpan = tracer.findSpan("invoke_agent");
 		expect(invokeSpan).toBeDefined();
-		expect(invokeSpan?.attributes[OmpGenAIAggregateAttr.ChatsCount]).toBe(2);
-		expect(invokeSpan?.attributes[OmpGenAIAggregateAttr.ToolsCount]).toBe(1);
-		expect(invokeSpan?.attributes[OmpGenAIAggregateAttr.ToolsOkCount]).toBe(1);
-		expect(invokeSpan?.attributes[OmpGenAIAggregateAttr.UsageInputTokensTotal]).toBe(6);
-		expect(invokeSpan?.attributes[OmpGenAIAggregateAttr.UsageTotalTokensTotal]).toBe(13);
-		expect(invokeSpan?.attributes[OmpGenAIAggregateAttr.ToolsInvoked]).toEqual(["alpha"]);
+		expect(invokeSpan?.attributes[NgodeGenAIAggregateAttr.ChatsCount]).toBe(2);
+		expect(invokeSpan?.attributes[NgodeGenAIAggregateAttr.ToolsCount]).toBe(1);
+		expect(invokeSpan?.attributes[NgodeGenAIAggregateAttr.ToolsOkCount]).toBe(1);
+		expect(invokeSpan?.attributes[NgodeGenAIAggregateAttr.UsageInputTokensTotal]).toBe(6);
+		expect(invokeSpan?.attributes[NgodeGenAIAggregateAttr.UsageTotalTokensTotal]).toBe(13);
+		expect(invokeSpan?.attributes[NgodeGenAIAggregateAttr.ToolsInvoked]).toEqual(["alpha"]);
 	});
 });
 

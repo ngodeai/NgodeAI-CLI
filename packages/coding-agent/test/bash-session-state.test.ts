@@ -20,7 +20,7 @@ let cwd: string;
 let manager: AsyncJobManager;
 
 beforeEach(async () => {
-	cwd = await fs.mkdtemp(path.join(os.tmpdir(), "omp-bash-session-state-"));
+	cwd = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-bash-session-state-"));
 	manager = new AsyncJobManager({});
 });
 

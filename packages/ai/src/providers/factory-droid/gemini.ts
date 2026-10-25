@@ -29,7 +29,7 @@ import { factoryDroidToolNamesByWire, sanitizeFactoryDroidToolName } from "./too
 
 /** Factory's Gemini endpoint speaks native generateContent SSE at `/api/llm/g/v1/generate`. */
 
-/** OMP effort → Gemini thinkingLevel (low/minimal→LOW, medium→MEDIUM when supported, else HIGH). */
+/** NGODEAI effort → Gemini thinkingLevel (low/minimal→LOW, medium→MEDIUM when supported, else HIGH). */
 function geminiThinkingLevel(effort: string | undefined, supportsMedium: boolean): "LOW" | "MEDIUM" | "HIGH" {
 	switch (effort) {
 		case "low":
@@ -54,7 +54,7 @@ const FACTORY_DROID_BLOCK_REASONS: Record<string, true> = {
 };
 
 /**
- * Map a generateContent `finishReason` to OMP's StopReason using the CLI's
+ * Map a generateContent `finishReason` to NGODEAI's StopReason using the CLI's
  * table: STOP→stop, MAX_TOKENS→length, content-filter family→error (with a
  * category), MALFORMED_FUNCTION_CALL→error, anything else→error. The CLI's
  * "unknown" bucket has no StopReason equivalent, so unknown terminators

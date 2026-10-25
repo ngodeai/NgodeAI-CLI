@@ -242,7 +242,7 @@ OLLAMA_BASE_URL=http://127.0.0.1:11434
 
 - keys must match `[A-Za-z_][A-Za-z0-9_]*` — other names are dropped;
 - values containing a NUL byte are dropped;
-- an `OMP_`-prefixed key is mirrored to the matching `PI_` name, overriding a same-file `PI_` entry.
+- an `NGODEAI_`-prefixed key is mirrored to the matching `PI_` name, overriding a same-file `PI_` entry.
 
 ## Built-in local engines
 
@@ -268,7 +268,7 @@ For installing and running these engines, see [Local models](./local-models.md).
 Use the `disabledProviders` setting to remove a provider's models from selection:
 
 ```yaml
-# ~/.ngodeai/agent/config.yml or <project>/.omp/config.yml
+# ~/.ngodeai/agent/config.yml or <project>/.ngodeai/config.yml
 disabledProviders:
   - anthropic
   - openai
@@ -290,10 +290,10 @@ Disabling a provider does not delete its stored credentials — re-enable it by 
 
 ## Project-specific provider control
 
-Project settings live in `<project>/.omp/config.yml`. Use them when one repository must allow or hide a different provider set than your global default:
+Project settings live in `<project>/.ngodeai/config.yml`. Use them when one repository must allow or hide a different provider set than your global default:
 
 ```yaml
-# <project>/.omp/config.yml
+# <project>/.ngodeai/config.yml
 disabledProviders:
   - openai
   - openrouter
@@ -308,7 +308,7 @@ disabledProviders:
   - openai
   - google
 
-# <project>/.omp/config.yml
+# <project>/.ngodeai/config.yml
 disabledProviders:
   - groq
 ```
@@ -450,7 +450,7 @@ disabledProviders:
 
 **The wrong key is being used (a stale key from `.env`).** Resolution favors runtime `--api-key`, then a `models.yml` config key, stored OAuth, a key saved by `/login`, extension config fallbacks, environment or `.env`, and other stored API keys. A non-empty process environment variable also beats every `.env` file, and a non-empty `<project>/.env` value beats `~/.env`. If an unexpected key wins, check for an exported shell variable and the four `.env` files in precedence order, and clear the one that should not apply.
 
-**A provider still appears even though I disabled it.** `disabledProviders` arrays are replaced, not merged: a project `<project>/.omp/config.yml` array fully overrides the global one. Verify the _effective_ list for the directory you are in (path-scoped entries only apply at or under their configured path), and confirm the ID is spelled exactly. Use `ngodeai config get disabledProviders` to inspect the merged value (see [Settings](./settings.md)).
+**A provider still appears even though I disabled it.** `disabledProviders` arrays are replaced, not merged: a project `<project>/.ngodeai/config.yml` array fully overrides the global one. Verify the _effective_ list for the directory you are in (path-scoped entries only apply at or under their configured path), and confirm the ID is spelled exactly. Use `ngodeai config get disabledProviders` to inspect the merged value (see [Settings](./settings.md)).
 
 **A discovery provider name had no effect on models (or vice-versa).** The ID namespace is shared. `gemini`, `codex`, `claude`, `native`, and `agents` are discovery-source IDs; the Google model backend is `google`. Make sure you are disabling the right kind of provider.
 

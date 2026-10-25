@@ -933,7 +933,7 @@ describe("OpenCode provider discovery", () => {
 
 	test("sends attribution headers on live gateway discovery", async () => {
 		// The gateway requires x-opencode-session from 09/06 and uses it for
-		// optimization; without omp's UA the request arrives as "Bun fetch".
+		// optimization; without ngodeai's UA the request arrives as "Bun fetch".
 		for (const makeOptions of [opencodeGoModelManagerOptions, opencodeZenModelManagerOptions]) {
 			const seen: Array<Record<string, string>> = [];
 			const options = makeOptions({

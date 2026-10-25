@@ -7,7 +7,7 @@ This document describes how slash commands are discovered, deduplicated, surface
 - [`src/extensibility/slash-commands.ts`](../packages/coding-agent/src/extensibility/slash-commands.ts)
 - [`src/capability/slash-command.ts`](../packages/coding-agent/src/capability/slash-command.ts)
 - [`src/discovery/builtin.ts`](../packages/coding-agent/src/discovery/builtin.ts)
-- [`src/discovery/omp-plugins.ts`](../packages/coding-agent/src/discovery/omp-plugins.ts)
+- [`src/discovery/ngode-plugins.ts`](../packages/coding-agent/src/discovery/ngode-plugins.ts)
 - [`src/discovery/claude.ts`](../packages/coding-agent/src/discovery/claude.ts)
 - [`src/discovery/codex.ts`](../packages/coding-agent/src/discovery/codex.ts)
 - [`src/discovery/claude-plugins.ts`](../packages/coding-agent/src/discovery/claude-plugins.ts)
@@ -15,7 +15,7 @@ This document describes how slash commands are discovered, deduplicated, surface
 - [`src/discovery/opencode.ts`](../packages/coding-agent/src/discovery/opencode.ts)
 - [`src/capability/index.ts`](../packages/coding-agent/src/capability/index.ts)
 - [`src/discovery/helpers.ts`](../packages/coding-agent/src/discovery/helpers.ts)
-- [`src/discovery/omp-extension-roots.ts`](../packages/coding-agent/src/discovery/omp-extension-roots.ts)
+- [`src/discovery/ngode-extension-roots.ts`](../packages/coding-agent/src/discovery/ngode-extension-roots.ts)
 - [`src/config/claude-paths.ts`](../packages/coding-agent/src/config/claude-paths.ts)
 - [`src/utils/command-args.ts`](../packages/coding-agent/src/utils/command-args.ts)
 - [`src/slash-commands/builtin-registry.ts`](../packages/coding-agent/src/slash-commands/builtin-registry.ts)
@@ -36,8 +36,8 @@ The capability registry loads enabled providers in parallel, consumes their resu
 
 Current slash-command providers and priorities:
 
-1. `native` (OMP) — priority `100`
-2. `omp-plugins` (extension packages) — priority `90`
+1. `native` (NGODEAI) — priority `100`
+2. `ngode-plugins` (extension packages) — priority `90`
 3. `claude` — priority `80`
 4. `claude-plugins` — priority `70`
 5. `agents` (`.agent`/`.agents` standard dirs) — priority `70`
@@ -75,15 +75,15 @@ So hidden files/directories are not loaded, ignored paths are skipped, and file 
 
 ## `native` provider (`builtin.ts`)
 
-Search roots come from `.omp` directories:
+Search roots come from `.ngodeai` directories:
 
 - project: `<cwd>/.ngodeai/commands/*.md`
 - user: active profile agent directory `commands/*.md` (`~/.ngodeai/agent/commands/*.md` for the default profile; `~/.ngodeai/profiles/<name>/agent/commands/*.md` for a named profile)
 
 `getConfigDirs()` returns project first, then user, so **project native commands beat user native commands** when names collide.
-The default paths above can be relocated by `PI_CONFIG_DIR`, the default-profile `PI_CODING_AGENT_DIR`, or an SDK discovery `agentDir`; the project directory remains `.omp`.
+The default paths above can be relocated by `PI_CONFIG_DIR`, the default-profile `PI_CODING_AGENT_DIR`, or an SDK discovery `agentDir`; the project directory remains `.ngodeai`.
 
-## `omp-plugins` provider (`omp-plugins.ts`)
+## `ngode-plugins` provider (`ngode-plugins.ts`)
 
 Scans `commands/*.md` in explicit extension-package directories, the effective `extensions` setting, and enabled npm/link plugins, in that order. The configured array follows settings replacement precedence; project and user arrays are not concatenated. Session-supplied effective roots are reused on reload. Explicit-only discovery omits configured and installed roots, and file entrypoints contribute no subdirectory resources. Marketplace roots are excluded here to avoid duplicate discovery and are handled by `claude-plugins`.
 

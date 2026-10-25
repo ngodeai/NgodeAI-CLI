@@ -98,7 +98,7 @@ async function advance(auth: AuthStorage, provider: Provider, ms: number): Promi
 }
 
 beforeEach(async () => {
-	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-account-reclaim-"));
+	tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-account-reclaim-"));
 	store = await SqliteAuthCredentialStore.open(path.join(tempDir, "agent.db"));
 	usage.clear();
 	clock = 0;

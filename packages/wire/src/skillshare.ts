@@ -1,6 +1,6 @@
 /**
  * Wire contract for Skillshare (`skills.ngodeai.net`): an npm-style registry for
- * omp skills. Shared by the omp CLI (`omp skill …`), the Go server
+ * ngodeai skills. Shared by the ngodeai CLI (`ngodeai skill …`), the Go server
  * (`stencil/apps/skills`), and its web UI (which mirrors this file).
  *
  * Packages are scoped: `@scope/name`. A scope is a Stencil username claimed on
@@ -82,7 +82,7 @@ export interface SkillUser {
 }
 
 export interface SkillReportedProvenance {
-	ompVersion: string;
+	ngodeVersion: string;
 	gitRemote?: string;
 	gitCommit?: string;
 }

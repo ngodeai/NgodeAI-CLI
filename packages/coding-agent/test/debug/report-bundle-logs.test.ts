@@ -21,12 +21,12 @@ function restoreEnv(name: string, value: string | undefined): void {
 
 // Points the report dir at `root`. XDG_STATE_HOME is only honored on Linux/macOS;
 // elsewhere the config root follows the home dir, so redirect that instead —
-// otherwise the bundle lands in the user's real ~/.omp/reports. A test process's
+// otherwise the bundle lands in the user's real ~/.ngodeai/reports. A test process's
 // logs dir lives under the temp dir, so point that at `root` too.
 async function isolateLogsRoot(root: string): Promise<void> {
 	if (process.platform === "linux" || process.platform === "darwin") {
 		const xdgStateHome = path.join(root, "state");
-		await fs.mkdir(path.join(xdgStateHome, "omp"), { recursive: true });
+		await fs.mkdir(path.join(xdgStateHome, "ngodeai"), { recursive: true });
 		process.env.XDG_STATE_HOME = xdgStateHome;
 	} else {
 		process.env.HOME = root;
@@ -55,7 +55,7 @@ afterEach(async () => {
 
 describe("report bundle logs", () => {
 	it("collects every same-day PID log, not only the current process", async () => {
-		cleanupRoot = await fs.mkdtemp(path.join(os.tmpdir(), "omp-report-logs-"));
+		cleanupRoot = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-report-logs-"));
 		await isolateLogsRoot(cleanupRoot);
 
 		const logsDir = getLogsDir();
@@ -99,7 +99,7 @@ describe("report bundle logs", () => {
 	});
 
 	it("includes this process's records still buffered by the batching file transport", async () => {
-		cleanupRoot = await fs.mkdtemp(path.join(os.tmpdir(), "omp-report-buffered-"));
+		cleanupRoot = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-report-buffered-"));
 		await isolateLogsRoot(cleanupRoot);
 		const logsDir = getLogsDir();
 		logger.setTransports({ console: false, file: logsDir });

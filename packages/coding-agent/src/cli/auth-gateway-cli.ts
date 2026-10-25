@@ -2,14 +2,14 @@
  * `ngodeai auth-gateway` command handlers.
  *
  * Boots a forward-proxy server that lets less-trusted clients (the macOS
- * usage widget, robomp containers, …) make provider API calls without ever
+ * usage widget, ngodebot containers, …) make provider API calls without ever
  * seeing the access token. The gateway is itself a broker client and
  * resolves credentials through the configured broker (via the same
- * `OMP_AUTH_BROKER_URL` / `auth.broker.url` precedence used elsewhere).
+ * `NGODEAI_AUTH_BROKER_URL` / `auth.broker.url` precedence used elsewhere).
  *
  * Sub-verbs:
  *   - `serve [--bind=…] [--trust-proxy-headers] [--clients=<file>]` — boots the gateway against the configured broker.
- *   - `stdio` — serves the same routes as JSON lines on stdin/stdout with this omp's own credentials
+ *   - `stdio` — serves the same routes as JSON lines on stdin/stdout with this ngodeai's own credentials
  *     and model roles (`auth-gateway-stdio.ts`).
  *   - `token` / `token --regenerate` — manages the gateway bearer token file.
  *   - `status` — prints the locally-stored gateway token and bind hint.
@@ -321,7 +321,7 @@ async function runServe(flags: AuthGatewayCommandArgs["flags"]): Promise<void> {
 	const brokerConfig = await resolveAuthBrokerConfig();
 	if (!brokerConfig) {
 		throw new Error(
-			"`ngodeai auth-gateway serve` requires OMP_AUTH_BROKER_URL (or `auth.broker.url`/`auth.broker.token` in config.yml). The gateway is itself a broker client.",
+			"`ngodeai auth-gateway serve` requires NGODEAI_AUTH_BROKER_URL (or `auth.broker.url`/`auth.broker.token` in config.yml). The gateway is itself a broker client.",
 		);
 	}
 	if (flags.clients !== undefined && flags.noAuth) {
@@ -370,7 +370,7 @@ async function runServe(flags: AuthGatewayCommandArgs["flags"]): Promise<void> {
 	// Build the model resolver + catalog from the ModelRegistry — the same
 	// component the TUI/CLI use — scoped to providers we hold credentials for.
 	// `getAll()` is a superset of the bundled catalog (bundled first, then
-	// cached + broker-discovered), so the discovery-only models omp itself
+	// cached + broker-discovered), so the discovery-only models ngodeai itself
 	// reaches become routable through the gateway instead of freezing on the
 	// compiled snapshot. `ignoreLocalModelConfig` keeps the host's `models.yml`
 	// out of the picture: client-side provider overrides (baseUrl/apiKey/headers/
@@ -541,7 +541,7 @@ async function runStatus(flags: AuthGatewayCommandArgs["flags"]): Promise<void> 
 		if (flags.json) {
 			process.stdout.write(`${JSON.stringify(status)}\n`);
 		} else {
-			process.stdout.write(`${chalk.yellow("No broker configured.")} Set OMP_AUTH_BROKER_URL.\n`);
+			process.stdout.write(`${chalk.yellow("No broker configured.")} Set NGODEAI_AUTH_BROKER_URL.\n`);
 			process.stdout.write(
 				`token: ${status.tokenPresent ? chalk.green("present") : chalk.red("missing")} at ${status.tokenFile}\n`,
 			);
@@ -819,7 +819,7 @@ async function runCheck(flags: AuthGatewayCommandArgs["flags"]): Promise<void> {
 	const brokerConfig = await resolveAuthBrokerConfig();
 	if (!brokerConfig) {
 		throw new Error(
-			"`ngodeai auth-gateway check` requires OMP_AUTH_BROKER_URL (or `auth.broker.url`/`auth.broker.token` in config.yml). It probes the same credentials the gateway would serve.",
+			"`ngodeai auth-gateway check` requires NGODEAI_AUTH_BROKER_URL (or `auth.broker.url`/`auth.broker.token` in config.yml). It probes the same credentials the gateway would serve.",
 		);
 	}
 

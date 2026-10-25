@@ -44,17 +44,17 @@ export default class Usage extends Command {
 	};
 
 	static examples = [
-		"# Detailed per-account usage breakdown across all providers\n  omp usage",
-		"# Only Anthropic accounts\n  omp usage --provider anthropic",
-		"# Redact account identifiers for screenshots\n  omp usage --redact",
-		"# Machine-readable output\n  omp usage --json",
-		"# Usage-limit trend over the last 30 days\n  omp usage --history --days 30",
-		"# Per-client token burn (which machine/app spent what) over the last 30 days\n  omp usage clients --days 30",
-		"# OAuth identity keys for task.agentAccountPools (no tokens)\n  omp usage accounts",
-		"# Saved Codex and Claude rate-limit resets per account, with each account's credential id\n  omp usage reset",
-		"# Spend one saved reset on a listed account\n  omp usage reset codex/3",
-		"# Invalidate cached usage reports for all providers\n  omp usage invalidate",
-		"# Invalidate cached usage reports for a specific provider\n  omp usage invalidate --provider anthropic",
+		"# Detailed per-account usage breakdown across all providers\n  ngodeai usage",
+		"# Only Anthropic accounts\n  ngodeai usage --provider anthropic",
+		"# Redact account identifiers for screenshots\n  ngodeai usage --redact",
+		"# Machine-readable output\n  ngodeai usage --json",
+		"# Usage-limit trend over the last 30 days\n  ngodeai usage --history --days 30",
+		"# Per-client token burn (which machine/app spent what) over the last 30 days\n  ngodeai usage clients --days 30",
+		"# OAuth identity keys for task.agentAccountPools (no tokens)\n  ngodeai usage accounts",
+		"# Saved Codex and Claude rate-limit resets per account, with each account's credential id\n  ngodeai usage reset",
+		"# Spend one saved reset on a listed account\n  ngodeai usage reset codex/3",
+		"# Invalidate cached usage reports for all providers\n  ngodeai usage invalidate",
+		"# Invalidate cached usage reports for a specific provider\n  ngodeai usage invalidate --provider anthropic",
 	];
 
 	async run(): Promise<void> {

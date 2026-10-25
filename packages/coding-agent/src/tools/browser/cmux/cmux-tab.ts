@@ -977,7 +977,7 @@ export class CmuxTab implements InProcessRunTab {
 		if (!Number.isFinite(duration) || duration < 0) {
 			throw new ToolError("highlight duration must be a non-negative number");
 		}
-		const id = `omp-highlight-${crypto.randomUUID()}`;
+		const id = `ngode-highlight-${crypto.randomUUID()}`;
 		await this.#selectorAction(selector, "highlight", { id });
 		await untilAborted(this.#runContext?.signal, () => Bun.sleep(duration));
 		await this.#evalScript(`document.getElementById(${JSON.stringify(id)})?.remove()`);
@@ -1117,7 +1117,7 @@ export class CmuxTab implements InProcessRunTab {
 					context.session.browserScreenshotDir,
 					`screenshot-${new Date().toISOString().replace(/[:.]/g, "-").slice(0, -1)}.${ext}`,
 				)
-			: path.join(os.tmpdir(), `omp-sshots-${Snowflake.next()}.${ext}`);
+			: path.join(os.tmpdir(), `ngode-sshots-${Snowflake.next()}.${ext}`);
 		await fs.promises.mkdir(path.dirname(dest), { recursive: true });
 		await Bun.write(dest, savedBuffer);
 		const info: ScreenshotResult = {
@@ -1156,7 +1156,7 @@ export class CmuxTab implements InProcessRunTab {
 		const changed = diff.pixelChangeRatio > threshold;
 		const diffPath = opts.output
 			? resolveToCwd(opts.output, context.session.cwd)
-			: path.join(os.tmpdir(), `omp-screenshot-diff-${Snowflake.next()}.png`);
+			: path.join(os.tmpdir(), `ngode-screenshot-diff-${Snowflake.next()}.png`);
 		await fs.promises.mkdir(path.dirname(diffPath), { recursive: true });
 		await Bun.write(diffPath, diff.png);
 		const resized = await resizeImage(
@@ -1922,7 +1922,7 @@ export class CmuxTab implements InProcessRunTab {
 					const rect = element.getBoundingClientRect();
 					const overlay = document.createElement("div");
 					overlay.id = String(args.id);
-					overlay.dataset.ompHighlightOverlay = "";
+					overlay.dataset.ngodeHighlightOverlay = "";
 					overlay.setAttribute("aria-hidden", "true");
 					overlay.setAttribute("role", "presentation");
 					overlay.inert = true;

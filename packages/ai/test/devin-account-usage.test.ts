@@ -251,7 +251,7 @@ describe("Devin account usage", () => {
 	});
 
 	test("encodes the credential by its shape, whichever way it is stored", async () => {
-		// OMP's Devin login stores the bare session token as an API key; legacy
+		// NGODEAI's Devin login stores the bare session token as an API key; legacy
 		// Windsurf keys can be stored as either kind and are rejected when prefixed.
 		const payload = userStatusPayload({ planName: "Devin Pro" }, { userId: "user-1" });
 		const sent = async (token: string, type: "oauth" | "api_key") => {

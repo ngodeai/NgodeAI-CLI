@@ -18,9 +18,9 @@ describe("plugin runtime lockfile permissions", () => {
 	let lockfile: string;
 
 	beforeEach(async () => {
-		tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "omp-plugin-lock-"));
+		tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-plugin-lock-"));
 		pluginsDir = path.join(tmpRoot, "plugins");
-		lockfile = path.join(pluginsDir, "omp-plugins.lock.json");
+		lockfile = path.join(pluginsDir, "ngode-plugins.lock.json");
 
 		spyOn(piUtils, "getPluginsDir").mockReturnValue(pluginsDir);
 		spyOn(piUtils, "getPluginsLockfile").mockReturnValue(lockfile);
@@ -44,7 +44,7 @@ describe("plugin runtime lockfile permissions", () => {
 			await fs.chmod(lockfile, 0o644);
 			const before = (await fs.stat(lockfile)).ino;
 
-			await new PluginManager(tmpRoot).setPluginSetting("omp-commit", "apiToken", "sk-live-secret");
+			await new PluginManager(tmpRoot).setPluginSetting("ngode-commit", "apiToken", "sk-live-secret");
 
 			expect(await fs.readFile(lockfile, "utf8")).toContain("sk-live-secret");
 			expect(await modeOf(lockfile)).toBe(0o600);
@@ -56,11 +56,11 @@ describe("plugin runtime lockfile permissions", () => {
 	test.skipIf(process.platform === "win32")(
 		"the marketplace plugin state is written to an owner-only lockfile",
 		async () => {
-			const installPath = path.join(pluginsDir, "cache", "omp-commit");
+			const installPath = path.join(pluginsDir, "cache", "ngode-commit");
 			await fs.mkdir(installPath, { recursive: true });
 			await fs.writeFile(
 				path.join(installPath, "package.json"),
-				JSON.stringify({ name: "omp-commit", version: "1.0.0" }),
+				JSON.stringify({ name: "ngode-commit", version: "1.0.0" }),
 			);
 			const installedRegistryPath = path.join(pluginsDir, "installed_plugins.json");
 			await fs.writeFile(
@@ -68,7 +68,7 @@ describe("plugin runtime lockfile permissions", () => {
 				JSON.stringify({
 					version: 2,
 					plugins: {
-						"omp-commit@sample": [
+						"ngode-commit@sample": [
 							{
 								scope: "user",
 								installPath,
@@ -86,8 +86,8 @@ describe("plugin runtime lockfile permissions", () => {
 			await fs.writeFile(
 				lockfile,
 				JSON.stringify({
-					plugins: { "omp-commit": { version: "1.0.0", enabledFeatures: null, enabled: true } },
-					settings: { "omp-commit": { apiToken: "sk-live-secret" } },
+					plugins: { "ngode-commit": { version: "1.0.0", enabledFeatures: null, enabled: true } },
+					settings: { "ngode-commit": { apiToken: "sk-live-secret" } },
 				}),
 			);
 			await fs.chmod(lockfile, 0o644);
@@ -98,12 +98,12 @@ describe("plugin runtime lockfile permissions", () => {
 				marketplacesCacheDir: path.join(pluginsDir, "cache", "marketplaces"),
 				pluginsCacheDir: path.join(pluginsDir, "cache", "plugins"),
 			});
-			await manager.setPluginEnabled("omp-commit@sample", false);
+			await manager.setPluginEnabled("ngode-commit@sample", false);
 
 			expect(await modeOf(lockfile)).toBe(0o600);
 			const runtime = JSON.parse(await fs.readFile(lockfile, "utf8"));
-			expect(runtime.plugins["omp-commit"].enabled).toBe(false);
-			expect(runtime.settings["omp-commit"].apiToken).toBe("sk-live-secret");
+			expect(runtime.plugins["ngode-commit"].enabled).toBe(false);
+			expect(runtime.settings["ngode-commit"].apiToken).toBe("sk-live-secret");
 		},
 	);
 });

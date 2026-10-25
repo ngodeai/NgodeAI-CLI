@@ -49,7 +49,7 @@ import * as logger from "@ngodeai/utils/logger";
 function makeKind(socketSuffix: string): CmuxKind {
 	return {
 		kind: "cmux",
-		socketPath: `/tmp/omp-test-${socketSuffix}.sock`,
+		socketPath: `/tmp/ngode-test-${socketSuffix}.sock`,
 		surface: `surface-${socketSuffix}`,
 	};
 }
@@ -527,7 +527,7 @@ describe("browser tab-supervisor — cmux tab close mid-run (#4499)", () => {
 			},
 		);
 
-		const screenshotDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-cmux-screenshot-"));
+		const screenshotDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-cmux-screenshot-"));
 		try {
 			const browser = await acquireBrowser(makeKind("screenshot-configured"), { cwd: "/tmp" });
 			await acquireTab("screenshot-configured", browser, {

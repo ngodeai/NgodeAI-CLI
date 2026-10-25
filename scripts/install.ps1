@@ -1,4 +1,4 @@
-# OMP Coding Agent Installer for Windows
+# NGODEAI Coding Agent Installer for Windows
 # Usage: irm https://ngodeai.net/install.ps1 | iex
 #
 # Or with options:
@@ -31,7 +31,7 @@ if ($PSVersionTable.PSVersion -lt [version]"5.1") {
 
 $Repo = "ngodeai/NgodeAI-CLI"
 $Package = "@ngodeai/coding-agent"
-$InstallDir = if ($env:PI_INSTALL_DIR) { $env:PI_INSTALL_DIR } else { "$env:LOCALAPPDATA\omp" }
+$InstallDir = if ($env:PI_INSTALL_DIR) { $env:PI_INSTALL_DIR } else { "$env:LOCALAPPDATA\ngodeai" }
 $BuildUrl = if ($env:PI_BUILD_URL) { $env:PI_BUILD_URL.TrimEnd("/") } else { "https://build.stencil.so" }
 # Windows PowerShell 5.1 (.NET Framework) does not reliably resolve
 # [System.Runtime.InteropServices.RuntimeInformation] without an
@@ -151,7 +151,7 @@ function Find-BashShell {
 
 function Configure-BashShell {
     try {
-        $settingsDir = Join-Path $env:USERPROFILE ".omp\agent"
+        $settingsDir = Join-Path $env:USERPROFILE ".ngodeai\agent"
         $settingsFile = Join-Path $settingsDir "settings.json"
 
         # Check if settings.json already has a shellPath configured
@@ -200,7 +200,7 @@ function Configure-BashShell {
             Write-Host "[OK] Configured shell path in $settingsFile" -ForegroundColor Green
         } else {
             Write-Host ""
-            Write-Host "No bash shell found - OMP will use its built-in shell." -ForegroundColor Cyan
+            Write-Host "No bash shell found - NGODEAI will use its built-in shell." -ForegroundColor Cyan
             Write-Host "  For shell snapshots and interactive terminals, install Git for Windows:" -ForegroundColor Cyan
             Write-Host "    https://git-scm.com/download/win" -ForegroundColor Cyan
             Write-Host "  Or set a custom path in:" -ForegroundColor Cyan
@@ -227,7 +227,7 @@ function Install-ViaBun {
             throw "git is required for -Ref when installing from source"
         }
 
-        $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("omp-install-" + [System.Guid]::NewGuid().ToString("N"))
+        $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("ngode-install-" + [System.Guid]::NewGuid().ToString("N"))
         New-Item -ItemType Directory -Force -Path $tmpRoot | Out-Null
 
         try {
@@ -279,11 +279,11 @@ function Install-ViaBun {
     }
 
     Write-Host ""
-    Write-Host "[OK] Installed omp via bun" -ForegroundColor Green
+    Write-Host "[OK] Installed ngodeai via bun" -ForegroundColor Green
 
     Configure-BashShell
 
-    Write-Host "Run 'omp' to get started!"
+    Write-Host "Run 'ngodeai' to get started!"
 }
 
 function Install-Binary {
@@ -292,16 +292,16 @@ function Install-Binary {
             throw "Binary installs take a release tag (v<version>) for -Ref, got: $Ref`nFor branch/commit installs, use -Source with -Ref."
         }
         $RequestedVersion = $Matches[1]
-        Write-Host "Fetching omp $RequestedVersion..."
-        $ApiUrl = "$BuildUrl/api/products/omp/versions/$RequestedVersion/$BuildTarget"
+        Write-Host "Fetching ngodeai $RequestedVersion..."
+        $ApiUrl = "$BuildUrl/api/products/ngodeai/versions/$RequestedVersion/$BuildTarget"
     } else {
         Write-Host "Fetching latest release..."
-        $ApiUrl = "$BuildUrl/api/products/omp/latest/${BuildTarget}?channel=stable"
+        $ApiUrl = "$BuildUrl/api/products/ngodeai/latest/${BuildTarget}?channel=stable"
     }
     try {
         $Answer = Invoke-RestMethod -Uri $ApiUrl -TimeoutSec 60
     } catch {
-        throw "Failed to resolve an omp build for $BuildTarget from ${ApiUrl}: $_"
+        throw "Failed to resolve an ngodeai build for $BuildTarget from ${ApiUrl}: $_"
     }
 
     $Version = $Answer.build.version
@@ -316,10 +316,10 @@ function Install-Binary {
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
     # Download next to the destination and move it into place only once the
-    # checksum matches, so a bad download never replaces a working omp.
+    # checksum matches, so a bad download never replaces a working ngodeai.
     Write-Host "Downloading $BinaryName..."
-    $OutPath = Join-Path $InstallDir "omp.exe"
-    $DownloadPath = Join-Path $InstallDir ".omp.download.exe"
+    $OutPath = Join-Path $InstallDir "ngodeai.exe"
+    $DownloadPath = Join-Path $InstallDir ".ngodeai.download.exe"
     try {
         Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath -TimeoutSec 900
         $ActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $DownloadPath).Hash.ToLowerInvariant()
@@ -332,7 +332,7 @@ function Install-Binary {
     }
 
     Write-Host ""
-    Write-Host "[OK] Installed omp to $OutPath" -ForegroundColor Green
+    Write-Host "[OK] Installed ngodeai to $OutPath" -ForegroundColor Green
 
     # Add to PATH if not already there
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -345,9 +345,9 @@ function Install-Binary {
     Configure-BashShell
 
     if ($needsRestart) {
-        Write-Host "Restart your terminal, then run 'omp' to get started!"
+        Write-Host "Restart your terminal, then run 'ngodeai' to get started!"
     } else {
-        Write-Host "Run 'omp' to get started!"
+        Write-Host "Run 'ngodeai' to get started!"
     }
 }
 

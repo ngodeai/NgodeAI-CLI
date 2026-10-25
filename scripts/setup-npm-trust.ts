@@ -42,7 +42,7 @@ import { packages } from "./ci-release-publish.ts";
 const repoRoot = path.join(import.meta.dir, "..");
 const MIN_NPM = "11.16.0";
 const DEFAULT_WORKFLOW = "ci.yml";
-const FALLBACK_REPO = "can1357/oh-my-pi";
+const FALLBACK_REPO = "can1357/ngodeai";
 const PLACEHOLDER_VERSION = "0.0.0";
 
 interface NativeLeafTarget {
@@ -284,7 +284,7 @@ function placeholderReadme(name: string, target: NativeLeafTarget): string {
 }
 
 async function publishNativeLeafPlaceholder(name: string, target: NativeLeafTarget, repo: string): Promise<boolean> {
-	const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-native-placeholder-"));
+	const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-native-placeholder-"));
 	try {
 		await Bun.write(
 			path.join(tmpDir, "package.json"),

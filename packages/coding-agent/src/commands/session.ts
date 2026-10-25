@@ -24,9 +24,9 @@ const ACTIONS = ["pack", "unpack", "moved"] as const;
 type SessionAction = (typeof ACTIONS)[number];
 
 const USAGE: Record<SessionAction, string> = {
-	pack: "omp session pack <session> <out.tar>",
-	unpack: "omp session unpack <archive.tar> --cwd <dir>",
-	moved: "omp session moved <session> --to <label>",
+	pack: "ngodeai session pack <session> <out.tar>",
+	unpack: "ngodeai session unpack <archive.tar> --cwd <dir>",
+	moved: "ngodeai session moved <session> --to <label>",
 };
 
 const UNPACK_NOTE: Record<UnpackMode, string> = {
@@ -64,9 +64,9 @@ export default class Session extends Command {
 	};
 
 	static examples = [
-		"# Pack a session with its artifacts and image blobs\n  omp session pack ~/.ngodeai/agent/sessions/<project>/<file>.jsonl /tmp/session.tar",
-		"# Unpack it on another machine; prints the session file path\n  omp session unpack /tmp/session.tar --cwd ~/src/project",
-		"# Mark the local copy stale; resuming it later forks it\n  omp session moved <file>.jsonl --to cloud",
+		"# Pack a session with its artifacts and image blobs\n  ngodeai session pack ~/.ngodeai/agent/sessions/<project>/<file>.jsonl /tmp/session.tar",
+		"# Unpack it on another machine; prints the session file path\n  ngodeai session unpack /tmp/session.tar --cwd ~/src/project",
+		"# Mark the local copy stale; resuming it later forks it\n  ngodeai session moved <file>.jsonl --to cloud",
 	];
 
 	async run(): Promise<void> {

@@ -21,7 +21,7 @@ const WORKOS_TOKEN_WITH_USER = workosJwt({ sub: "user_123", external_org_id: "or
 
 function context() {
 	return {
-		systemPrompt: ["OMP prompt"],
+		systemPrompt: ["NGODEAI prompt"],
 		messages: [{ role: "user" as const, content: "hello", timestamp: 1 }],
 		tools: [readTool],
 	};

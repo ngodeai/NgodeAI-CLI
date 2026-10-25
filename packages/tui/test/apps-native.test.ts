@@ -20,7 +20,7 @@ function nodes(children: readonly NativeChild[] | undefined): NativeNode[] {
 	return out;
 }
 
-const scope: PsScope = { kind: "project", runtimeDir: "/tmp/omp/run", projectDir: "/work/app", brokerPid: 42 };
+const scope: PsScope = { kind: "project", runtimeDir: "/tmp/ngodeai/run", projectDir: "/work/app", brokerPid: 42 };
 
 function snapshot(name: string): DaemonSnapshot {
 	return {

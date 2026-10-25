@@ -3,7 +3,7 @@
  * the advisor `Agent` constructed by `#buildAdvisorRuntime` inherits them so
  * its OpenRouter/OpenAI requests cache and route like the main turn.
  *
- * Regression for can1357/oh-my-pi#3639: before the fix, the advisor was built
+ * Regression for can1357/ngodeai#3639: before the fix, the advisor was built
  * with only `sessionId`/`getApiKey`/telemetry — it dropped the session's
  * `streamFn` wrapper (so `providers.openrouterVariant` and `loopGuard` never
  * landed on advisor requests), its `promptCacheKey` (so OpenAI Responses
@@ -55,7 +55,7 @@ describe("AgentSession advisor provider-options parity", () => {
 		authStorage = createInMemoryAuthStorage();
 		authStorage.keys.setRuntime("anthropic", "test-key");
 		// An isolated discovery cache keeps the bundled catalog authoritative; the
-		// developer's `~/.omp` models.db can drop models these tests select.
+		// developer's `~/.ngodeai` models.db can drop models these tests select.
 		cacheDir = TempDir.createSync("@pi-advisor-parity-cache-");
 		modelRegistry = new ModelRegistry(authStorage, undefined, { cacheDbPath: cacheDir.join("models.db") });
 		const bundled = getBundledModel("anthropic", "claude-sonnet-4-5");

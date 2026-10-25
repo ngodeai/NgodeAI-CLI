@@ -1,5 +1,5 @@
 /**
- * Entry points for the omp commit command.
+ * Entry points for the ngodeai commit command.
  */
 
 export * from "./conventional";

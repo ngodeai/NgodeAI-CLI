@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { memo } from "react";
 import type { ConnectionPhase } from "../../lib/client";
 import { fmtPercent, shortenPath } from "../../lib/format";
-import { OmpMark } from "./OmpMark";
+import { NgodeMark } from "./NgodeMark";
 import { ThemeToggle } from "./ThemeToggle";
 
 const PHASE_LABEL: Record<ConnectionPhase, string> = {
@@ -51,8 +51,8 @@ export const HeaderBar = memo(function HeaderBar({
 	return (
 		<header className="sh-header">
 			<div className="sh-header-left">
-				<span className="sh-brand" aria-label="omp collab">
-					<OmpMark />
+				<span className="sh-brand" aria-label="ngodeai collab">
+					<NgodeMark />
 					<span className="sh-brand-slash">/</span>
 				</span>
 				<span className="sh-title" title={title}>

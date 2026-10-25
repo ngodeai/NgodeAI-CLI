@@ -10,7 +10,7 @@
  * and the JSON Schema emitter (`json-schema.ts`).
  */
 
-import { type ErrorConfig, OmpErrors, OmpTypeError } from "./errors";
+import { type ErrorConfig, NgodeErrors, NgodeTypeError } from "./errors";
 import { keywordIR, patternIR, templateIR } from "./keywords";
 
 /** Brand carried by `Type` instances so the parser can embed them in defs. */
@@ -71,9 +71,9 @@ export type Constructor = abstract new (...args: never[]) => object;
 /** Context available to in-definition morph callbacks. */
 export interface MorphContext {
 	/** Return a validation error at the current path. */
-	error(expectation: string): OmpErrors;
+	error(expectation: string): NgodeErrors;
 	/** Alias of `error` matching ArkType's rejection vocabulary. */
-	reject(expectation: string): OmpErrors;
+	reject(expectation: string): NgodeErrors;
 }
 
 /** One fixed tuple position, optionally absent or defaulted. */
@@ -135,7 +135,7 @@ export type IR = IRAnalysis &
 		| {
 				k: "refine";
 				base: IR;
-				pred: (value: unknown) => boolean | OmpErrors;
+				pred: (value: unknown) => boolean | NgodeErrors;
 				expected: string;
 				json?: Record<string, unknown>;
 				desc?: string;
@@ -194,10 +194,10 @@ function tokenize(src: string): Tok[] {
 		if (c === "d" && (src[i + 1] === "'" || src[i + 1] === '"')) {
 			const quote = src[i + 1];
 			const end = src.indexOf(quote, i + 2);
-			if (end < 0) throw new OmpTypeError(`unterminated date literal in "${src}"`);
+			if (end < 0) throw new NgodeTypeError(`unterminated date literal in "${src}"`);
 			const source = src.slice(i + 2, end).trim();
 			const value = /^\d+$/.test(source) ? new Date(Number(source)) : new Date(source);
-			if (Number.isNaN(value.valueOf())) throw new OmpTypeError(`invalid date literal in "${src}"`);
+			if (Number.isNaN(value.valueOf())) throw new NgodeTypeError(`invalid date literal in "${src}"`);
 			toks.push({ t: "date", v: value });
 			i = end + 1;
 			continue;
@@ -212,7 +212,7 @@ function tokenize(src: string): Tok[] {
 				}
 				value += src[j];
 			}
-			if (j >= n) throw new OmpTypeError(`unterminated string literal in "${src}"`);
+			if (j >= n) throw new NgodeTypeError(`unterminated string literal in "${src}"`);
 			toks.push({ t: "str", v: value });
 			i = j + 1;
 			continue;
@@ -223,7 +223,7 @@ function tokenize(src: string): Tok[] {
 				if (src[j] === "\\") j++;
 				else if (src[j] === "/") break;
 			}
-			if (j >= n) throw new OmpTypeError(`unterminated regular expression in "${src}"`);
+			if (j >= n) throw new NgodeTypeError(`unterminated regular expression in "${src}"`);
 			let end = j + 1;
 			while (end < n && /[dgimsuvy]/.test(src[end])) end++;
 			const source = src.slice(i + 1, j);
@@ -231,7 +231,7 @@ function tokenize(src: string): Tok[] {
 			try {
 				toks.push({ t: "regex", v: new RegExp(source, flags) });
 			} catch {
-				throw new OmpTypeError(`invalid regular expression "${src.slice(i, end)}"`);
+				throw new NgodeTypeError(`invalid regular expression "${src.slice(i, end)}"`);
 			}
 			i = end;
 			continue;
@@ -245,7 +245,7 @@ function tokenize(src: string): Tok[] {
 			} else {
 				const valid =
 					/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(raw) && !Object.is(Number(raw), -0) && String(Number(raw)) === raw;
-				if (!valid) throw new OmpTypeError(`Malformed number literal '${raw}'`);
+				if (!valid) throw new NgodeTypeError(`Malformed number literal '${raw}'`);
 				toks.push({ t: "num", v: Number(raw) });
 			}
 			i = j;
@@ -278,7 +278,7 @@ function tokenize(src: string): Tok[] {
 			i++;
 			continue;
 		}
-		throw new OmpTypeError(`unexpected character '${c}' in "${src}"`);
+		throw new NgodeTypeError(`unexpected character '${c}' in "${src}"`);
 	}
 	return toks;
 }
@@ -349,7 +349,7 @@ class StrParser {
 
 	#next(): Tok {
 		const t = this.#toks[this.#pos++];
-		if (!t) throw new OmpTypeError(`unexpected end of definition "${this.#src}"`);
+		if (!t) throw new NgodeTypeError(`unexpected end of definition "${this.#src}"`);
 		return t;
 	}
 
@@ -373,7 +373,7 @@ class StrParser {
 			else if (t.t === "id" && (t.v === "true" || t.v === "false")) def = t.v === "true";
 			else if (t.t === "id" && t.v === "null") def = null;
 			else if (t.t === "id" && t.v === "undefined") def = undefined;
-			else throw new OmpTypeError(`unsupported default literal in "${this.#src}"`);
+			else throw new NgodeTypeError(`unsupported default literal in "${this.#src}"`);
 			hasDefault = true;
 		}
 		const optional = this.#eatOp("?");
@@ -383,7 +383,7 @@ class StrParser {
 
 	#expectEnd(): void {
 		if (this.#pos < this.#toks.length) {
-			throw new OmpTypeError(`trailing tokens in definition "${this.#src}"`);
+			throw new NgodeTypeError(`trailing tokens in definition "${this.#src}"`);
 		}
 	}
 
@@ -410,7 +410,7 @@ class StrParser {
 						(member.min !== undefined && (member.xmin ? literal.v <= member.min : literal.v < member.min)) ||
 						(member.max !== undefined && (member.xmax ? literal.v >= member.max : literal.v > member.max)))
 				) {
-					throw new OmpTypeError("literal is excluded by intersection");
+					throw new NgodeTypeError("literal is excluded by intersection");
 				}
 			}
 			return literal;
@@ -433,15 +433,15 @@ class StrParser {
 			node = applyBound(node, flip(t1.v), lo, this.#src);
 			const t2 = this.#peek();
 			if (!(t2?.t === "op" && CMP[t2.v])) {
-				throw new OmpTypeError(`left bound requires a corresponding right bound in "${this.#src}"`);
+				throw new NgodeTypeError(`left bound requires a corresponding right bound in "${this.#src}"`);
 			}
 			if (t2.v === ">" || t2.v === ">=") {
-				throw new OmpTypeError(`right bound must use < or <= in "${this.#src}"`);
+				throw new NgodeTypeError(`right bound must use < or <= in "${this.#src}"`);
 			}
 			this.#pos++;
 			const hi = this.#next();
 			if (hi.t !== "num" && hi.t !== "date") {
-				throw new OmpTypeError(`expected bound after comparator in "${this.#src}"`);
+				throw new NgodeTypeError(`expected bound after comparator in "${this.#src}"`);
 			}
 			node = applyBound(node, t2.v, hi.v, this.#src);
 			return this.#eatArraySuffixes(node);
@@ -452,7 +452,7 @@ class StrParser {
 			this.#pos++;
 			const limit = this.#next();
 			if (limit.t !== "num" && limit.t !== "bigint" && limit.t !== "date") {
-				throw new OmpTypeError(`expected literal after == in "${this.#src}"`);
+				throw new NgodeTypeError(`expected literal after == in "${this.#src}"`);
 			}
 			node = applyEquality(node, limit.v, this.#src);
 		} else if (t2?.t === "op" && CMP[t2.v] && (this.#peek(1)?.t === "num" || this.#peek(1)?.t === "date")) {
@@ -467,10 +467,10 @@ class StrParser {
 	#eatDivisor(node: IR): IR {
 		if (!this.#eatOp("%")) return node;
 		const divisor = this.#next();
-		if (divisor.t !== "num") throw new OmpTypeError(`expected number after % in "${this.#src}"`);
-		if (node.k !== "number") throw new OmpTypeError(`% requires number in "${this.#src}"`);
+		if (divisor.t !== "num") throw new NgodeTypeError(`expected number after % in "${this.#src}"`);
+		if (node.k !== "number") throw new NgodeTypeError(`% requires number in "${this.#src}"`);
 		if (!Number.isFinite(divisor.v) || !Number.isInteger(divisor.v) || divisor.v === 0)
-			throw new OmpTypeError(`divisor must be a non-zero integer in "${this.#src}"`);
+			throw new NgodeTypeError(`divisor must be a non-zero integer in "${this.#src}"`);
 		// Copy-on-write: the primary may be a shared node (string-def cache,
 		// generic arguments); stamping it in place would leak into other schemas.
 		return { ...node, divisor: Math.abs(divisor.v) };
@@ -482,7 +482,7 @@ class StrParser {
 			const t = this.#peek();
 			if (!(t?.t === "op" && t.v === "[")) return node;
 			this.#pos++;
-			if (!this.#eatOp("]")) throw new OmpTypeError(`expected ']' in "${this.#src}"`);
+			if (!this.#eatOp("]")) throw new NgodeTypeError(`expected ']' in "${this.#src}"`);
 			node = { k: "array", el: node };
 		}
 	}
@@ -493,14 +493,14 @@ class StrParser {
 			const t = this.#peek();
 			if (t?.t === "op" && t.v === "[") {
 				this.#pos++;
-				if (!this.#eatOp("]")) throw new OmpTypeError(`expected ']' in "${this.#src}"`);
+				if (!this.#eatOp("]")) throw new NgodeTypeError(`expected ']' in "${this.#src}"`);
 				node = { k: "array", el: node };
 				continue;
 			}
 			if (t?.t === "op" && t.v === "#") {
 				this.#pos++;
 				const name = this.#next();
-				if (name.t !== "id") throw new OmpTypeError(`expected brand name after # in "${this.#src}"`);
+				if (name.t !== "id") throw new NgodeTypeError(`expected brand name after # in "${this.#src}"`);
 				continue;
 			}
 			break;
@@ -515,10 +515,10 @@ class StrParser {
 		for (;;) {
 			arguments_.push(this.parseUnion());
 			if (this.#eatOp(">")) return arguments_;
-			if (!this.#eatOp(",")) throw new OmpTypeError(`expected ',' or '>' in "${this.#src}"`);
+			if (!this.#eatOp(",")) throw new NgodeTypeError(`expected ',' or '>' in "${this.#src}"`);
 			const next = this.#peek();
 			if (next?.t === "op" && (next.v === "," || next.v === ">")) {
-				throw new OmpTypeError(`generic arguments cannot be empty in "${this.#src}"`);
+				throw new NgodeTypeError(`generic arguments cannot be empty in "${this.#src}"`);
 			}
 		}
 	}
@@ -527,7 +527,7 @@ class StrParser {
 		const t = this.#next();
 		if (t.t === "op" && t.v === "(") {
 			const inner = this.parseUnion();
-			if (!this.#eatOp(")")) throw new OmpTypeError(`expected ')' in "${this.#src}"`);
+			if (!this.#eatOp(")")) throw new NgodeTypeError(`expected ')' in "${this.#src}"`);
 			return inner;
 		}
 		if (t.t === "str" || t.t === "num" || t.t === "bigint" || t.t === "date") return { k: "lit", v: t.v };
@@ -537,14 +537,14 @@ class StrParser {
 				try {
 					return keyOf(this.parsePostfix());
 				} catch (error) {
-					if (error instanceof OmpTypeError) throw new OmpTypeError("keyof operand must be an object");
+					if (error instanceof NgodeTypeError) throw new NgodeTypeError("keyof operand must be an object");
 					throw error;
 				}
 			}
 			if (t.v === "Array.liftFrom" && this.#peek()?.t === "op" && this.#peek()?.v === "<") {
 				this.#pos++;
 				const element = this.parsePrimary();
-				if (!this.#eatOp(">")) throw new OmpTypeError(`expected '>' in "${this.#src}"`);
+				if (!this.#eatOp(">")) throw new NgodeTypeError(`expected '>' in "${this.#src}"`);
 				const array: IR = { k: "array", el: element, desc: "an object" };
 				return {
 					k: "morph",
@@ -555,22 +555,22 @@ class StrParser {
 			}
 			if (t.v === "Record" && this.#peek()?.t === "op" && this.#peek()?.v === "<") {
 				const arguments_ = this.#parseGenericArguments();
-				if (arguments_.length !== 2) throw new OmpTypeError("Record requires two arguments");
+				if (arguments_.length !== 2) throw new NgodeTypeError("Record requires two arguments");
 				return { k: "object", props: [], index: arguments_[1], extras: "keep" };
 			}
 			if (this.#peek()?.t === "op" && this.#peek()?.v === "<" && this.#resolve?.hasGeneric?.(t.v)) {
 				const arguments_ = this.#parseGenericArguments();
 				const instantiated = this.#resolve.generic?.(t.v, arguments_);
-				if (!instantiated) throw new OmpTypeError(`unknown generic "${t.v}" in "${this.#src}"`);
+				if (!instantiated) throw new NgodeTypeError(`unknown generic "${t.v}" in "${this.#src}"`);
 				return instantiated;
 			}
 			const scoped = this.#resolve?.(t.v);
 			const make = KEYWORDS[t.v];
 			const keyword = scoped ?? make?.() ?? keywordIR(t.v);
-			if (!keyword) throw new OmpTypeError(`unknown keyword "${t.v}" in "${this.#src}"`);
+			if (!keyword) throw new NgodeTypeError(`unknown keyword "${t.v}" in "${this.#src}"`);
 			return keyword;
 		}
-		throw new OmpTypeError(`unexpected token in "${this.#src}"`);
+		throw new NgodeTypeError(`unexpected token in "${this.#src}"`);
 	}
 }
 
@@ -659,7 +659,7 @@ function genericKeys(ir: IR): Set<PropertyKey> {
 function resolveStructuralIR(ir: IR): IR {
 	const seen = new Set<IR>();
 	while (ir.k === "alias") {
-		if (seen.has(ir)) throw new OmpTypeError(`cannot structurally transform recursive alias "${ir.name}"`);
+		if (seen.has(ir)) throw new NgodeTypeError(`cannot structurally transform recursive alias "${ir.name}"`);
 		seen.add(ir);
 		ir = ir.resolve();
 	}
@@ -670,7 +670,7 @@ function mergeObjectIR(left: IR, right: IR): IR {
 	left = resolveStructuralIR(left);
 	right = resolveStructuralIR(right);
 	if (left.k !== "object" || right.k !== "object") {
-		throw new OmpTypeError("Merge requires object arguments");
+		throw new NgodeTypeError("Merge requires object arguments");
 	}
 	const props = [...left.props];
 	for (const prop of right.props) {
@@ -716,13 +716,13 @@ function parseGeneric(src: string, resolve?: AliasResolver): IR | undefined {
 	}
 	if ((generic.name === "Partial" || generic.name === "Required") && generic.args.length === 1) {
 		const object = resolveStructuralIR(parseDef(generic.args[0], resolve));
-		if (object.k !== "object") throw new OmpTypeError(`${generic.name} requires an object`);
+		if (object.k !== "object") throw new NgodeTypeError(`${generic.name} requires an object`);
 		const optional = generic.name === "Partial";
 		return { ...object, props: object.props.map(prop => ({ ...prop, opt: optional })) };
 	}
 	if ((generic.name === "Pick" || generic.name === "Omit") && generic.args.length === 2) {
 		const object = resolveStructuralIR(parseDef(generic.args[0], resolve));
-		if (object.k !== "object") throw new OmpTypeError(`${generic.name} requires an object`);
+		if (object.k !== "object") throw new NgodeTypeError(`${generic.name} requires an object`);
 		const keys = genericKeys(parseDef(generic.args[1], resolve));
 		const pick = generic.name === "Pick";
 		return { ...object, props: object.props.filter(prop => keys.has(prop.key) === pick) };
@@ -760,12 +760,12 @@ export function distributeFilter(base: IR, target: IR, keepAssignable: boolean):
 function parseRegexExec(src: string): IR | undefined {
 	if (!src.startsWith("x/")) return undefined;
 	const end = src.lastIndexOf("/");
-	if (end < 2) throw new OmpTypeError(`unterminated regular expression in "${src}"`);
+	if (end < 2) throw new NgodeTypeError(`unterminated regular expression in "${src}"`);
 	let regex: RegExp;
 	try {
 		regex = new RegExp(src.slice(2, end), src.slice(end + 1));
 	} catch {
-		throw new OmpTypeError(`invalid regular expression "${src.slice(1)}"`);
+		throw new NgodeTypeError(`invalid regular expression "${src.slice(1)}"`);
 	}
 	return {
 		k: "morph",
@@ -788,11 +788,11 @@ function parseStringDef(src: string, resolve?: AliasResolver): ParsedTop {
 		const input = src.slice(0, pipeIndex).trim();
 		const output = src.slice(pipeIndex + 2).trim();
 		if (input.length === 0 || output.length === 0) {
-			throw new OmpTypeError(`pipe expression requires operands in "${src}"`);
+			throw new NgodeTypeError(`pipe expression requires operands in "${src}"`);
 		}
 		const parsedInput = parseStringDef(input, resolve);
 		if (parsedInput.hasDefault) {
-			throw new OmpTypeError(`unexpected pipe expression after default in "${src}"`);
+			throw new NgodeTypeError(`unexpected pipe expression after default in "${src}"`);
 		}
 		const parsed: ParsedTop = {
 			ir: {
@@ -836,18 +836,18 @@ function applyEquality(node: IR, value: number | bigint | Date, src: string): IR
 		return { k: "union", members: node.members.map(member => applyEquality(member, value, src)) };
 	}
 	if (value instanceof Date) {
-		if (!acceptsDate(node)) throw new OmpTypeError(`Date equality requires Date in "${src}"`);
+		if (!acceptsDate(node)) throw new NgodeTypeError(`Date equality requires Date in "${src}"`);
 		return { k: "lit", v: value };
 	}
 	if (node.k === "number" && typeof value === "number") return { k: "lit", v: value };
 	if (node.k === "bigint" && typeof value === "bigint") return { k: "lit", v: value };
 	if ((node.k === "string" || node.k === "array") && typeof value === "number") {
 		if (!Number.isInteger(value) || value < 0) {
-			throw new OmpTypeError(`exact length must be a non-negative integer in "${src}"`);
+			throw new NgodeTypeError(`exact length must be a non-negative integer in "${src}"`);
 		}
 		return { ...node, min: value, max: value };
 	}
-	throw new OmpTypeError(`equality literal is incompatible with ${node.k} in "${src}"`);
+	throw new NgodeTypeError(`equality literal is incompatible with ${node.k} in "${src}"`);
 }
 
 /**
@@ -862,14 +862,14 @@ function applyBound(node: IR, op: string, value: number | Date, src: string): IR
 	}
 	if (node.k === "union") {
 		const kinds = new Set(node.members.map(boundKind));
-		if (kinds.size !== 1) throw new OmpTypeError(`cannot apply one bound to multiple bound kinds in "${src}"`);
+		if (kinds.size !== 1) throw new NgodeTypeError(`cannot apply one bound to multiple bound kinds in "${src}"`);
 		return { k: "union", members: node.members.map(member => applyBound(member, op, value, src)) };
 	}
 	if (!(value instanceof Date) && acceptsDate(node)) {
 		return applyBound(node, op, new Date(value), src);
 	}
 	if (value instanceof Date) {
-		if (!acceptsDate(node)) throw new OmpTypeError(`date bound requires Date in "${src}"`);
+		if (!acceptsDate(node)) throw new NgodeTypeError(`date bound requires Date in "${src}"`);
 		const limit = value.valueOf();
 		const relation =
 			op === ">=" ? "on or after" : op === ">" ? "later than" : op === "<=" ? "on or before" : "earlier than";
@@ -909,13 +909,13 @@ function applyBound(node: IR, op: string, value: number | Date, src: string): IR
 			bounded.max !== undefined &&
 			(bounded.min > bounded.max || (bounded.min === bounded.max && (bounded.xmin || bounded.xmax)))
 		) {
-			throw new OmpTypeError(`numeric range is unsatisfiable in "${src}"`);
+			throw new NgodeTypeError(`numeric range is unsatisfiable in "${src}"`);
 		}
 		return bounded;
 	}
 	if (node.k === "string" || node.k === "array") {
 		if (!Number.isInteger(value) || value < 0) {
-			throw new OmpTypeError(`length bound must be a non-negative integer in "${src}"`);
+			throw new NgodeTypeError(`length bound must be a non-negative integer in "${src}"`);
 		}
 		const bounded = { ...node };
 		switch (op) {
@@ -936,11 +936,11 @@ function applyBound(node: IR, op: string, value: number | Date, src: string): IR
 			(bounded.min !== undefined && bounded.max !== undefined && bounded.min > bounded.max) ||
 			(bounded.max ?? 0) < 0
 		) {
-			throw new OmpTypeError(`length range is unsatisfiable in "${src}"`);
+			throw new NgodeTypeError(`length range is unsatisfiable in "${src}"`);
 		}
 		return bounded;
 	}
-	throw new OmpTypeError(`cannot bound ${node.k} in "${src}"`);
+	throw new NgodeTypeError(`cannot bound ${node.k} in "${src}"`);
 }
 
 function acceptsDate(node: IR): boolean {
@@ -1016,26 +1016,26 @@ function hasOptionalPrefix(tuple: TupleIR): boolean {
 function appendTupleItem(tuple: TupleIR, item: TupleItemIR): void {
 	if (tuple.variadic !== undefined) {
 		if (item.opt || item.hasDefault) {
-			throw new OmpTypeError("An optional element may not follow a variadic element");
+			throw new NgodeTypeError("An optional element may not follow a variadic element");
 		}
 		if (hasOptionalPrefix(tuple)) {
-			throw new OmpTypeError("A postfix required element cannot follow an optional or defaultable element");
+			throw new NgodeTypeError("A postfix required element cannot follow an optional or defaultable element");
 		}
 		tuple.postfix.push(item.val);
 		return;
 	}
 	if (item.hasDefault && tuple.prefix.some(prefixItem => prefixItem.opt && !prefixItem.hasDefault)) {
-		throw new OmpTypeError("A defaultable element may not follow an optional element without a default");
+		throw new NgodeTypeError("A defaultable element may not follow an optional element without a default");
 	}
 	if (hasOptionalPrefix(tuple) && !item.opt) {
-		throw new OmpTypeError("required tuple elements cannot follow optional elements");
+		throw new NgodeTypeError("required tuple elements cannot follow optional elements");
 	}
 	tuple.prefix.push(item);
 }
 
 function appendTuple(target: TupleIR, spread: TupleIR): void {
 	if (target.variadic !== undefined && spread.variadic !== undefined) {
-		throw new OmpTypeError("a tuple may have one spread followed by an array definition");
+		throw new NgodeTypeError("a tuple may have one spread followed by an array definition");
 	}
 	for (const item of spread.prefix) appendTupleItem(target, { ...item });
 	if (spread.variadic !== undefined) {
@@ -1050,7 +1050,7 @@ function spreadAlternatives(spread: IR): TupleIR[] {
 	if (spread.k === "union") return spread.members.flatMap(spreadAlternatives);
 	if (spread.k === "array") return [{ k: "tuple", prefix: [], variadic: spread.el, postfix: [] }];
 	if (spread.k === "tuple") return [spread];
-	throw new OmpTypeError("tuple spread element must be an array");
+	throw new NgodeTypeError("tuple spread element must be an array");
 }
 
 function parseTuple(def: readonly unknown[], resolve?: AliasResolver): IR {
@@ -1058,7 +1058,7 @@ function parseTuple(def: readonly unknown[], resolve?: AliasResolver): IR {
 	for (let index = 0; index < def.length; index++) {
 		if (def[index] === "...") {
 			if (index + 1 >= def.length) {
-				throw new OmpTypeError("a tuple may have one spread followed by an array definition");
+				throw new NgodeTypeError("a tuple may have one spread followed by an array definition");
 			}
 			const alternatives = spreadAlternatives(parseDef(def[++index], resolve));
 			const distributed: TupleIR[] = [];
@@ -1115,11 +1115,11 @@ export function keyOf(node: IR): IR {
 			return keys;
 		});
 		const common = [...literalSets[0]].filter(key => literalSets.slice(1).every(keys => keys.has(key)));
-		if (common.length === 0) throw new OmpTypeError("keyof operand must be an object");
+		if (common.length === 0) throw new NgodeTypeError("keyof operand must be an object");
 		const members = common.map(value => ({ k: "lit", v: value }) satisfies IR);
 		return members.length === 1 ? members[0] : { k: "union", members };
 	}
-	throw new OmpTypeError("keyof operand must be an object");
+	throw new NgodeTypeError("keyof operand must be an object");
 }
 
 function parseArrayExpression(def: readonly unknown[], resolve?: AliasResolver): IR {
@@ -1129,7 +1129,7 @@ function parseArrayExpression(def: readonly unknown[], resolve?: AliasResolver):
 		const members: IR[] = [];
 		for (let index = 1; index < def.length; index++) {
 			const ctor = def[index];
-			if (!isConstructor(ctor)) throw new OmpTypeError("instanceof operands must be constructors");
+			if (!isConstructor(ctor)) throw new NgodeTypeError("instanceof operands must be constructors");
 			members.push({
 				k: "instance",
 				ctor,
@@ -1150,14 +1150,14 @@ function parseArrayExpression(def: readonly unknown[], resolve?: AliasResolver):
 		return { k: "intersection", members: [parseDef(def[0], resolve), parseDef(def[2], resolve)] };
 	}
 	if (def.length === 3 && def[1] === "=>") {
-		if (!isCallback(def[2])) throw new OmpTypeError("morph operator requires a function");
+		if (!isCallback(def[2])) throw new NgodeTypeError("morph operator requires a function");
 		return { k: "morph", input: parseDef(def[0], resolve), fn: def[2] };
 	}
 	if (def.length === 3 && def[1] === "|>") {
 		return { k: "morph", input: parseDef(def[0], resolve), fn: value => value, out: parseDef(def[2], resolve) };
 	}
 	if (def.length === 3 && def[1] === ":") {
-		if (!isCallback(def[2])) throw new OmpTypeError("narrow operator requires a predicate");
+		if (!isCallback(def[2])) throw new NgodeTypeError("narrow operator requires a predicate");
 		const predicate = def[2];
 		const name = predicate.name;
 		const expected = name.length === 0 ? "valid according to an anonymous predicate" : `valid according to ${name}`;
@@ -1165,7 +1165,7 @@ function parseArrayExpression(def: readonly unknown[], resolve?: AliasResolver):
 			k: "refine",
 			base: parseDef(def[0], resolve),
 			pred: value => {
-				let errors: OmpErrors | undefined;
+				let errors: NgodeErrors | undefined;
 				const error = (
 					input:
 						| string
@@ -1175,18 +1175,23 @@ function parseArrayExpression(def: readonly unknown[], resolve?: AliasResolver):
 								path?: readonly PropertyKey[];
 								relativePath?: readonly PropertyKey[];
 						  },
-				): OmpErrors => {
+				): NgodeErrors => {
 					const detail = typeof input === "string" ? { expected: input } : input;
-					const next = OmpErrors.single([...(detail.path ?? detail.relativePath ?? [])], detail.expected, value, {
-						preserveActual: true,
-						...(Object.hasOwn(detail, "actual") ? { actual: String(detail.actual) } : {}),
-					});
+					const next = NgodeErrors.single(
+						[...(detail.path ?? detail.relativePath ?? [])],
+						detail.expected,
+						value,
+						{
+							preserveActual: true,
+							...(Object.hasOwn(detail, "actual") ? { actual: String(detail.actual) } : {}),
+						},
+					);
 					if (errors) errors.append(next);
 					else errors = next;
 					return next;
 				};
 				const result = predicate(value, { error, reject: error });
-				return errors ?? (result instanceof OmpErrors ? result : result === true);
+				return errors ?? (result instanceof NgodeErrors ? result : result === true);
 			},
 			expected,
 		};
@@ -1268,7 +1273,7 @@ function indexKeyKind(
 		indexes.patterns.push({ key, val: value });
 		return;
 	}
-	throw new OmpTypeError(`indexed key definition must resolve to a string or symbol (was ${expectedOf(key)})`);
+	throw new NgodeTypeError(`indexed key definition must resolve to a string or symbol (was ${expectedOf(key)})`);
 }
 
 function addObjectProp(props: PropIR[], spreadKeys: Set<PropertyKey> | undefined, prop: PropIR): void {
@@ -1281,7 +1286,7 @@ function addObjectProp(props: PropIR[], spreadKeys: Set<PropertyKey> | undefined
 		props.push(prop);
 		return;
 	}
-	if (!spreadKeys.delete(prop.key)) throw new OmpTypeError(`duplicate object key ${String(prop.key)}`);
+	if (!spreadKeys.delete(prop.key)) throw new NgodeTypeError(`duplicate object key ${String(prop.key)}`);
 	props[previous] = prop;
 }
 
@@ -1307,14 +1312,14 @@ function parseObjectDefinition(def: Record<PropertyKey, unknown>, resolve?: Alia
 				extras = val;
 				if (val === "delete") simple = false;
 			} else if (val === "ignore") extras = "keep";
-			else throw new OmpTypeError(`bad "+" value ${String(val)}`);
+			else throw new NgodeTypeError(`bad "+" value ${String(val)}`);
 			continue;
 		}
 		if (originalKey === "...") {
 			const parsed = parseDef(val, resolve);
 			const spread = spreadObjectOf(parsed);
 			if (spread === undefined) {
-				throw new OmpTypeError(`object spread must resolve to an object literal (was ${expectedOf(parsed)})`);
+				throw new NgodeTypeError(`object spread must resolve to an object literal (was ${expectedOf(parsed)})`);
 			}
 			if (simple && !isSimpleIR(spread)) simple = false;
 			spreadKeys ??= new Set();
@@ -1338,15 +1343,15 @@ function parseObjectDefinition(def: Record<PropertyKey, unknown>, resolve?: Alia
 			let value: IR;
 			if (typeof val === "string") {
 				const parsed = parseStringDef(val, resolve);
-				if (parsed.hasDefault) throw new OmpTypeError("index signatures cannot specify a default");
+				if (parsed.hasDefault) throw new NgodeTypeError("index signatures cannot specify a default");
 				value = parsed.ir;
 			} else {
 				if (Array.isArray(val) && val.length === 3 && val[1] === "=") {
-					throw new OmpTypeError("index signatures cannot specify a default");
+					throw new NgodeTypeError("index signatures cannot specify a default");
 				}
 				value = parseDef(val, resolve);
 				if (isEmbedded(val) && val.hasDefault) {
-					throw new OmpTypeError("index signatures cannot specify a default");
+					throw new NgodeTypeError("index signatures cannot specify a default");
 				}
 			}
 			const keyDefinition = originalKey.slice(1, -1);
@@ -1358,7 +1363,7 @@ function parseObjectDefinition(def: Record<PropertyKey, unknown>, resolve?: Alia
 				try {
 					key = patternIR(new RegExp(regex[1], regex[2]));
 				} catch {
-					throw new OmpTypeError(`invalid index signature pattern ${keyDefinition}`);
+					throw new NgodeTypeError(`invalid index signature pattern ${keyDefinition}`);
 				}
 			}
 			const objectIndexes = indexes ?? { patterns: [] };
@@ -1418,7 +1423,7 @@ function parseObjectDefinition(def: Record<PropertyKey, unknown>, resolve?: Alia
 		}
 		if (key !== originalKey) {
 			if (!spreadKeys?.has(key) && props.some(candidate => candidate.key === key)) {
-				throw new OmpTypeError(`duplicate object key ${String(key)}`);
+				throw new NgodeTypeError(`duplicate object key ${String(key)}`);
 			}
 			if (normalizedKey === undefined) normalizedKey = key;
 			else {
@@ -1426,9 +1431,9 @@ function parseObjectDefinition(def: Record<PropertyKey, unknown>, resolve?: Alia
 				normalizedKeys.push(key);
 			}
 		} else if (!spreadKeys?.has(key) && (key === normalizedKey || normalizedKeys?.includes(key))) {
-			throw new OmpTypeError(`duplicate object key ${String(key)}`);
+			throw new NgodeTypeError(`duplicate object key ${String(key)}`);
 		}
-		if (opt && prop.hasDefault) throw new OmpTypeError(`optional key ${String(key)} cannot specify a default`);
+		if (opt && prop.hasDefault) throw new NgodeTypeError(`optional key ${String(key)} cannot specify a default`);
 		if (simple && (prop.hasDefault || !isSimpleIR(prop.val))) simple = false;
 		addObjectProp(props, spreadKeys, prop);
 	}
@@ -1494,16 +1499,16 @@ export function parseDef(def: unknown, resolve?: AliasResolver): IR {
 	if (typeof def === "string") {
 		const parsed = parseStringDef(def, resolve);
 		if (parsed.hasDefault) {
-			throw new OmpTypeError("A default may only be specified for an object property or tuple element");
+			throw new NgodeTypeError("A default may only be specified for an object property or tuple element");
 		}
 		if (parsed.optional) {
-			throw new OmpTypeError(`optional "?" marker is only valid on object property values`);
+			throw new NgodeTypeError(`optional "?" marker is only valid on object property values`);
 		}
 		return parsed.ir;
 	}
 	if (Array.isArray(def)) {
 		if (def.length === 3 && def[1] === "=") {
-			throw new OmpTypeError("A default may only be specified for an object property or tuple element");
+			throw new NgodeTypeError("A default may only be specified for an object property or tuple element");
 		}
 		return parseArrayExpression(def, resolve);
 	}
@@ -1513,12 +1518,12 @@ export function parseDef(def: unknown, resolve?: AliasResolver): IR {
 	if (typeof def === "function") {
 		const resolved = Reflect.apply(def, undefined, []);
 		if (!isEmbedded(resolved)) {
-			throw new OmpTypeError(`thunk must return a Type (was ${typeof resolved})`);
+			throw new NgodeTypeError(`thunk must return a Type (was ${typeof resolved})`);
 		}
 		return embed(resolved);
 	}
 	if (isObjectDefinition(def)) return parseObjectDefinition(def, resolve);
-	throw new OmpTypeError(`unsupported definition ${String(def)} (was ${typeof def})`);
+	throw new NgodeTypeError(`unsupported definition ${String(def)} (was ${typeof def})`);
 }
 
 /** Whether `ir` needs no construction-time normalization or morph analysis. */

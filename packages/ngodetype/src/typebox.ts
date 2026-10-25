@@ -1,6 +1,6 @@
-import { OmpTypeError } from "./errors";
+import { NgodeTypeError } from "./errors";
 import type { Def, EmbeddableSchema } from "./ir";
-import { type NarrowContext, type Type as OmpType, type ToJsonSchemaOptions, type } from "./type";
+import { type NarrowContext, type Type as NgodeType, type ToJsonSchemaOptions, type } from "./type";
 
 export interface Meta {
 	title?: string;
@@ -81,7 +81,7 @@ export interface TSchema extends AnySchema {
 }
 
 /** Schema carrying a statically known type; every `TXxx` alias resolves here. */
-export type TTyped<T> = OmpType<T> & LegacyTypeBoxCompat<T>;
+export type TTyped<T> = NgodeType<T> & LegacyTypeBoxCompat<T>;
 export type Static<T extends AnySchema> = T["infer"];
 export type TAny = TTyped<unknown>;
 export type TUnknown = TTyped<unknown>;
@@ -123,7 +123,7 @@ type RequiredProps<P extends Record<string, AnySchema>> = {
 	[K in keyof P]: P[K] extends TOptional<infer E> ? E : P[K];
 };
 
-interface RuntimeType<T> extends OmpType<T> {
+interface RuntimeType<T> extends NgodeType<T> {
 	[OPTIONAL_INNER]?: AnySchema;
 	[OBJECT_INFO]?: ObjectInfo;
 	describe(description: string): RuntimeType<T>;
@@ -159,7 +159,7 @@ function validationFailure(message: string): TypeBoxValidationFailure {
 	return { message };
 }
 
-function withLegacyCompat<T>(schema: OmpType<T>): CompatRuntime<T> {
+function withLegacyCompat<T>(schema: NgodeType<T>): CompatRuntime<T> {
 	const compatSchema = schema as unknown as CompatRuntime<T>;
 	if (!Object.hasOwn(compatSchema, "__validator")) {
 		Object.defineProperty(compatSchema, "__validator", {
@@ -199,7 +199,7 @@ function withJsonSchemaKeywords<T>(schema: CompatRuntime<T>, keywords: Record<st
 }
 
 function checkFiniteOption(name: string, value: number | undefined): void {
-	if (value !== undefined && !Number.isFinite(value)) throw new OmpTypeError(`${name} must be finite`);
+	if (value !== undefined && !Number.isFinite(value)) throw new NgodeTypeError(`${name} must be finite`);
 }
 
 function tString(opts?: StringOpts): TString {
@@ -213,7 +213,7 @@ function tString(opts?: StringOpts): TString {
 		try {
 			regex = new RegExp(opts.pattern);
 		} catch {
-			throw new OmpTypeError(`invalid regular expression pattern ${JSON.stringify(opts.pattern)}`);
+			throw new NgodeTypeError(`invalid regular expression pattern ${JSON.stringify(opts.pattern)}`);
 		}
 		schema = schema.narrow((value, ctx) => regex.test(value) || ctx.mustBe(`a string matching ${opts.pattern}`));
 	}
@@ -261,7 +261,7 @@ function tNumber(opts?: NumberOpts, integer = false): TNumber {
 		checkFiniteOption(key, opts?.[key]);
 	}
 	if (opts?.multipleOf !== undefined && opts.multipleOf <= 0)
-		throw new OmpTypeError("multipleOf must be greater than zero");
+		throw new NgodeTypeError("multipleOf must be greater than zero");
 	let lower: { value: number; exclusive: boolean } | undefined;
 	if (opts?.minimum !== undefined) lower = { value: opts.minimum, exclusive: false };
 	if (opts?.exclusiveMinimum !== undefined && (!lower || opts.exclusiveMinimum >= lower.value)) {
@@ -278,7 +278,7 @@ function tNumber(opts?: NumberOpts, integer = false): TNumber {
 		upper &&
 		(lower.value > upper.value || (lower.value === upper.value && (lower.exclusive || upper.exclusive)))
 	) {
-		throw new OmpTypeError("numeric range is unsatisfiable");
+		throw new NgodeTypeError("numeric range is unsatisfiable");
 	}
 	// Fluent bounds write min/max straight into the IR, so decimal and
 	// exponent-form bounds share one path that renders the same structured
@@ -339,7 +339,7 @@ function tIntersect<const E extends readonly AnySchema[]>(
 	try {
 		for (let i = 1; i < schemas.length; i++) result = result.and(schemas[i]);
 	} catch (error) {
-		if (error instanceof OmpTypeError) return applyMeta(validateAll(), opts);
+		if (error instanceof NgodeTypeError) return applyMeta(validateAll(), opts);
 		throw error;
 	}
 	return asSchema<UnionToIntersection<Static<E[number]>>>(applyMeta(result, opts));
@@ -457,7 +457,7 @@ function tNullable<E extends AnySchema>(schema: E, opts?: Meta): TTyped<Static<E
 
 function requireObject(schema: AnySchema, operation: string): ObjectInfo {
 	const info = asRuntime<unknown>(schema)[OBJECT_INFO];
-	if (!info) throw new OmpTypeError(`Type.${operation} requires a schema created by Type.Object`);
+	if (!info) throw new NgodeTypeError(`Type.${operation} requires a schema created by Type.Object`);
 	return info;
 }
 
@@ -511,7 +511,7 @@ function tComposite<const E extends readonly TObject<Record<string, AnySchema>>[
 function tUnsafe<T = unknown>(_jsonSchema: Record<string, unknown> = {}): TUnsafe<T> {
 	// Raw JSON Schema is accepted for source compatibility but is not retained or validated:
 	// ngodetype cannot honestly implement that contract without importing a second validator.
-	return withLegacyCompat(type.unknown as OmpType<T>);
+	return withLegacyCompat(type.unknown as NgodeType<T>);
 }
 
 export const Type = {

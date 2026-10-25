@@ -574,7 +574,7 @@ describe("searchExa", () => {
 			fetch: fetchMock,
 		});
 
-		expect(headers?.get("x-exa-source")).toBe("oh-my-pi");
+		expect(headers?.get("x-exa-source")).toBe("ngodeai");
 		expect(capturedRequestBody?.params).toEqual({
 			name: "web_search_exa",
 			arguments: {

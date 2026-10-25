@@ -98,7 +98,7 @@ providers:
 Set `contextWindow` to the normal prompt window and `maxContextWindow` to the
 larger prompt window accepted by the provider. `/extended-context on` selects
 the larger window; `off` restores the normal one. An override specifying only
-`contextWindow` remains fixed in both modes, as before. This changes OMP's
+`contextWindow` remains fixed in both modes, as before. This changes NGODEAI's
 local context budget, not the provider's server-side limit; verify the endpoint
 accepts requests of the configured size.
 Configured maxima do not replace provider-advertised capacity. Models governed
@@ -290,7 +290,7 @@ providers:
   openai:
     apiKey: "!op read op://dev/openai/api-key"
     headers:
-      X-Team-Key: "!bw get password omp-team-key"
+      X-Team-Key: "!bw get password ngode-team-key"
 ```
 
 Successful command outputs are cached for the process lifetime, and concurrent requests share an in-flight execution. Failures back off for 30 seconds. Refresh callers that request `refreshCommandCredentials` (including the model hub's explicit refresh) and 401 credential recovery invalidate the relevant cached API keys and headers; an ordinary catalog refresh does not. Runtime API-key overrides, including `--api-key`, take precedence over configured credentials.
@@ -401,7 +401,7 @@ For the first-party `deepseek` provider, the catalog follows [DeepSeek's officia
 
 Some catalog prices change on a date without a peak/off-peak tariff. Gemini 4 Argon on `google`, `google-vertex`, `google-antigravity`, and `cursor` is estimated at $2 input / $0.10 cached input / $10 output per million tokens through 2026-11-30, and at Google's $4 / $0.20 / $20 list price from **2026-12-01 08:00 UTC** (midnight US Pacific). The request's timestamp picks the price, so a model loaded before the change prices later requests at the new rate without a catalog update, and the model browser and `ngodeai models --json` show the price in force.
 
-Local estimates use the assistant message's **request-start timestamp** to choose both the rate card and tariff for the whole request. This is OMP's estimation convention: DeepSeek's pricing page does not specify how its server bills a request spanning a boundary. When importing historical usage without recorded cost, the stats importer leaves scheduled pricing unpriced if no request timestamp can be recovered, rather than choosing a wall-clock tariff.
+Local estimates use the assistant message's **request-start timestamp** to choose both the rate card and tariff for the whole request. This is NGODEAI's estimation convention: DeepSeek's pricing page does not specify how its server bills a request spanning a boundary. When importing historical usage without recorded cost, the stats importer leaves scheduled pricing unpriced if no request timestamp can be recovered, rather than choosing a wall-clock tariff.
 
 The status line's `cost` segment appends **↑** for peak or **↓** for off-peak pricing on the **currently active provider/model**, using the current wall clock. It refreshes at tariff boundaries even while idle; the arrow is not a label for the accumulated session total. Models without a peak/off-peak tariff, including dated price changes and explicit flat-price overrides, show no arrow.
 
@@ -607,7 +607,7 @@ If `authHeader: true` and provider `apiKey` is set, models get:
 Resolution does not fail for a missing variable: with `apiKey: MY_PROVIDER_API_KEY`
 and `authHeader: true`, an unset or empty `MY_PROVIDER_API_KEY` produces
 `Authorization: Bearer MY_PROVIDER_API_KEY`. Launchers using env-backed keys must
-check that the variable is set and non-empty before starting OMP.
+check that the variable is set and non-empty before starting NGODEAI.
 
 [Command-resolved secrets](#command-resolved-secrets) do not use this literal
 fallback: a failing command or empty trimmed stdout resolves to no value, so it
@@ -620,9 +620,9 @@ Keyless providers:
 
 ### Broker mode
 
-When `OMP_AUTH_BROKER_URL` (or `auth.broker.url`) is set, the local SQLite credential store is replaced by `RemoteAuthCredentialStore`. Layers 3, 4, and 7 above (stored OAuth and API-key credentials) are served from a broker-supplied snapshot whose `refresh` tokens are redacted; expiry triggers `POST /v1/credential/:id/refresh` on the broker rather than a local refresh.
+When `NGODEAI_AUTH_BROKER_URL` (or `auth.broker.url`) is set, the local SQLite credential store is replaced by `RemoteAuthCredentialStore`. Layers 3, 4, and 7 above (stored OAuth and API-key credentials) are served from a broker-supplied snapshot whose `refresh` tokens are redacted; expiry triggers `POST /v1/credential/:id/refresh` on the broker rather than a local refresh.
 
-`AuthStorage.keys.setConfig` lets a `models.yml` `apiKey` win over a broker-resolved OAuth token without overriding a runtime `--api-key`. See [`auth-broker-gateway.md`](./auth-broker-gateway.md) for the full broker / gateway design and env surface (`OMP_AUTH_BROKER_URL`, `OMP_AUTH_BROKER_TOKEN`, `auth.broker.url`, `auth.broker.token`).
+`AuthStorage.keys.setConfig` lets a `models.yml` `apiKey` win over a broker-resolved OAuth token without overriding a runtime `--api-key`. See [`auth-broker-gateway.md`](./auth-broker-gateway.md) for the full broker / gateway design and env surface (`NGODEAI_AUTH_BROKER_URL`, `NGODEAI_AUTH_BROKER_TOKEN`, `auth.broker.url`, `auth.broker.token`).
 
 ## Model availability vs all models
 

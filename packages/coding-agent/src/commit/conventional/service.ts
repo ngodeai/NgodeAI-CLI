@@ -18,7 +18,7 @@ import {
 	type CommitInferenceRequest,
 	type CommitInferenceResponse,
 	type CommitProgress,
-	OmpCommitInference,
+	NgodeCommitInference,
 } from "./inference";
 import { detectRepositoryContext, formatRepositoryContext } from "./repo-context";
 
@@ -86,7 +86,7 @@ async function createOmpInference(
 	options: GenerateGitCommitOptions,
 	settings: Settings,
 	config: ConventionalGenerationConfig,
-): Promise<OmpCommitInference> {
+): Promise<NgodeCommitInference> {
 	options.signal?.throwIfAborted();
 	const authStorage = await discoverAuthStorage(undefined, { settings });
 	try {
@@ -100,7 +100,7 @@ async function createOmpInference(
 		const cache = config.cacheEnabled
 			? await CommitInferenceCache.open(getCommitCacheDbPath(), config.cacheTtlDays)
 			: null;
-		return new OmpCommitInference({
+		return new NgodeCommitInference({
 			primary,
 			smol,
 			forcePrimaryForEveryRole: options.modelOverride !== undefined,
@@ -163,10 +163,10 @@ async function projectNames(cwd: string): Promise<string[]> {
 }
 
 class LazyCommitInference implements CommitInference {
-	readonly #create: () => Promise<OmpCommitInference>;
-	#instance: Promise<OmpCommitInference> | undefined;
+	readonly #create: () => Promise<NgodeCommitInference>;
+	#instance: Promise<NgodeCommitInference> | undefined;
 
-	constructor(create: () => Promise<OmpCommitInference>) {
+	constructor(create: () => Promise<NgodeCommitInference>) {
 		this.#create = create;
 	}
 

@@ -17,7 +17,7 @@
 #     docker run --rm ngodeai/ngodeai:dev --help
 #     docker run --rm -it -v "$PWD":/work ngodeai/ngodeai:dev cli  # interactive ngodeai
 #
-# Consume as a base in another Dockerfile (see Dockerfile.robomp):
+# Consume as a base in another Dockerfile (see Dockerfile.ngodebot):
 #     ARG NGODEAI_BASE=ngodeai/ngodeai:dev
 #     FROM ${NGODEAI_BASE} AS ngodeai-base
 ###############################################################################
@@ -39,7 +39,7 @@ ARG BUN_VERSION
 ENV BUN_INSTALL=/opt/bun \
     PATH=/opt/bun/bin:/usr/local/cargo/bin:/usr/local/bin:/usr/bin:/bin \
     CARGO_TERM_COLOR=never \
-    OMP_NATIVE_CARGO_PROFILE=ci
+    NGODEAI_NATIVE_CARGO_PROFILE=ci
 
 # clang/libclang-dev: bindgen for pipewire-sys/libspa-sys (Linux desktop capture);
 # cmake/make/ninja-build: opusic-sys builds bundled libopus via CMake.
@@ -69,7 +69,7 @@ COPY --parents \
     Cargo.toml Cargo.lock rust-toolchain.toml \
     packages/*/package.json \
     packages/tsconfig.workspace.json \
-    python/robomp/web/package.json \
+    python/ngodebot/web/package.json \
     crates/*/Cargo.toml \
     /pi/
 
@@ -110,7 +110,7 @@ RUN python -m build --wheel --outdir /out
 ############################
 # 3) ngodeai-base — python + bun + rustup + natives + ngodeai_rpc + ngodeai shim
 #
-# Sharable runtime base. Derived images (pi-runtime below, Dockerfile.robomp)
+# Sharable runtime base. Derived images (pi-runtime below, Dockerfile.ngodebot)
 # extend this and overlay their own source tree. Default NGODEAI_ROOT=/work/pi is
 # friendly to derived images that mount a host pi checkout there; pi-runtime
 # overrides it to /pi because its source is baked in.
@@ -142,7 +142,7 @@ RUN curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}" \
 # `#!/usr/bin/env node` package bins (oxlint, oxfmt, …) run for every uid.
 # Bun's own fallback is a /tmp/bun-node-<hash> dir created 0700 by the first
 # user that needs it; the image build runs as root, so it would bake a dir
-# no robomp slot user can enter.
+# no ngodebot slot user can enter.
 RUN mkdir -p /usr/local/bun-node-fallback-bin \
     && ln -s /opt/bun/bin/bun /usr/local/bun-node-fallback-bin/node
 
@@ -163,8 +163,8 @@ COPY --from=natives-builder /out/ngode_natives.linux-*.node /opt/bun/bin/
 COPY --from=wheel-builder /out/*.whl /tmp/wheels/
 RUN pip install /tmp/wheels/ngodeai_rpc-*.whl && rm -rf /tmp/wheels
 
-# Legal payload for the reusable SDKs and the OMP product installed in this image.
-COPY LICENSE  THIRD-PARTY-NOTICES.txt /usr/share/doc/omp/
+# Legal payload for the reusable SDKs and the NGODEAI product installed in this image.
+COPY LICENSE  THIRD-PARTY-NOTICES.txt /usr/share/doc/ngodeai/
 
 # `ngodeai` shim — runs the coding-agent CLI against $NGODEAI_ROOT via Bun. Derived
 # images override NGODEAI_ROOT to point at wherever their source lives.
@@ -199,7 +199,7 @@ COPY --parents \
     tsconfig.base.json tsconfig.json \
     packages/*/package.json \
     packages/tsconfig.workspace.json \
-    python/robomp/web/package.json \
+    python/ngodebot/web/package.json \
     /pi/
 
 RUN bun install --frozen-lockfile --ignore-scripts

@@ -149,7 +149,7 @@ describe("auth-gateway POST /v1/systemone", () => {
 			"/v1/systemone",
 			{ model: "typesafe/jev-latest", ...REQUEST },
 			{
-				"x-omp-app": "robomp",
+				"x-ngode-app": "ngodebot",
 			},
 		);
 
@@ -170,7 +170,7 @@ describe("auth-gateway POST /v1/systemone", () => {
 		expect(cost).toBeGreaterThan(0);
 		expect(recorded).toHaveLength(1);
 		expect(recorded[0]).toMatchObject({ provider: "typesafe", model: "jev-latest", costUsd: cost });
-		expect(recorded[0].client?.app).toBe("robomp");
+		expect(recorded[0].client?.app).toBe("ngodebot");
 	});
 
 	it("round-trips referenced image assets through NativeJudge and the gateway", async () => {

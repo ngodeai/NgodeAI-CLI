@@ -13,7 +13,7 @@ import { chromiumAvailable } from "./chromium-probe";
 
 const CHROMIUM_AVAILABLE = await chromiumAvailable();
 const FFMPEG_AVAILABLE = Boolean($which("ffmpeg") && $which("ffprobe"));
-const root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-browser-recording-"));
+const root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-browser-recording-"));
 const session: ToolSession = {
 	cwd: root,
 	hasUI: false,
@@ -147,7 +147,7 @@ return { overlay: true, transform };`,
 				transform: "translate(121px, 87px)",
 			});
 			const aria = await value<string>("ariaSnapshot");
-			expect(aria).not.toContain("OMP recording cursor overlay");
+			expect(aria).not.toContain("NGODEAI recording cursor overlay");
 
 			const stoppedCall = await call("recordStop");
 			const stopped = valueFrom<StopResult>(stoppedCall);

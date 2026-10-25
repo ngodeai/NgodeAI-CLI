@@ -55,14 +55,14 @@ describe("profile directories", () => {
 		originalProfile = getActiveProfile();
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
 		originalNgodeaiAgentDirEnv = process.env.NGODEAI_AGENT_DIR;
-		originalOmpProfileEnv = process.env.OMP_PROFILE;
+		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
 		originalConfigDir = process.env.PI_CONFIG_DIR;
 		originalXdgDataHome = process.env.XDG_DATA_HOME;
 		originalXdgStateHome = process.env.XDG_STATE_HOME;
 		originalXdgCacheHome = process.env.XDG_CACHE_HOME;
 		tempRoot = path.join(os.tmpdir(), "pi-utils-profiles", Snowflake.next());
-		configDir = `.omp-profile-test-${Snowflake.next()}`;
+		configDir = `.ngode-profile-test-${Snowflake.next()}`;
 		await fs.mkdir(tempRoot, { recursive: true });
 		process.env.PI_CONFIG_DIR = configDir;
 		// Other suites that run before this one (e.g. dirs-python-gateway) may have
@@ -112,9 +112,9 @@ describe("profile directories", () => {
 			process.env.NGODEAI_AGENT_DIR = originalNgodeaiAgentDirEnv;
 		}
 		if (originalOmpProfileEnv === undefined) {
-			delete process.env.OMP_PROFILE;
+			delete process.env.NGODEAI_PROFILE;
 		} else {
-			process.env.OMP_PROFILE = originalOmpProfileEnv;
+			process.env.NGODEAI_PROFILE = originalOmpProfileEnv;
 		}
 		if (originalPiProfileEnv === undefined) {
 			delete process.env.PI_PROFILE;
@@ -156,16 +156,16 @@ describe("profile directories", () => {
 		process.env.XDG_CACHE_HOME = path.join(tempRoot, "cache");
 		// Named profiles only adopt XDG when their *own* XDG path already exists,
 		// so the profile location stays stable across activations.
-		await fs.mkdir(path.join(process.env.XDG_DATA_HOME, "omp", "profiles", "work"), { recursive: true });
-		await fs.mkdir(path.join(process.env.XDG_STATE_HOME, "omp", "profiles", "work"), { recursive: true });
-		await fs.mkdir(path.join(process.env.XDG_CACHE_HOME, "omp", "profiles", "work"), { recursive: true });
+		await fs.mkdir(path.join(process.env.XDG_DATA_HOME, "ngodeai", "profiles", "work"), { recursive: true });
+		await fs.mkdir(path.join(process.env.XDG_STATE_HOME, "ngodeai", "profiles", "work"), { recursive: true });
+		await fs.mkdir(path.join(process.env.XDG_CACHE_HOME, "ngodeai", "profiles", "work"), { recursive: true });
 
 		setProfile("work");
 
-		expect(getAgentDbPath()).toBe(path.join(process.env.XDG_DATA_HOME, "omp", "profiles", "work", "agent.db"));
-		expect(getSessionsDir()).toBe(path.join(process.env.XDG_DATA_HOME, "omp", "profiles", "work", "sessions"));
+		expect(getAgentDbPath()).toBe(path.join(process.env.XDG_DATA_HOME, "ngodeai", "profiles", "work", "agent.db"));
+		expect(getSessionsDir()).toBe(path.join(process.env.XDG_DATA_HOME, "ngodeai", "profiles", "work", "sessions"));
 		expect(getPythonGatewayDir()).toBe(
-			path.join(process.env.XDG_STATE_HOME, "omp", "profiles", "work", "python-gateway"),
+			path.join(process.env.XDG_STATE_HOME, "ngodeai", "profiles", "work", "python-gateway"),
 		);
 	});
 
@@ -176,19 +176,19 @@ describe("profile directories", () => {
 		process.env.XDG_STATE_HOME = path.join(tempRoot, "state");
 		process.env.XDG_CACHE_HOME = path.join(tempRoot, "cache");
 
-		// Fresh install: XDG vars are set (typical Linux) but no $XDG/omp exists yet.
+		// Fresh install: XDG vars are set (typical Linux) but no $XDG/ngodeai exists yet.
 		// First activation must land in ~/<config-dir>/profiles/work because
 		// the profile-specific XDG path does not exist.
 		setProfile("work");
 		const firstAgentDir = getAgentDir();
 		expect(firstAgentDir).toBe(path.join(os.homedir(), configDir, "profiles", "work", "agent"));
 
-		// Later, the base XDG app dir materializes (e.g. via `omp config init-xdg`
+		// Later, the base XDG app dir materializes (e.g. via `ngodeai config init-xdg`
 		// migrating only the default-profile data). The named profile must stay
 		// in its original location until the user explicitly migrates it.
-		await fs.mkdir(path.join(process.env.XDG_DATA_HOME, "omp"), { recursive: true });
-		await fs.mkdir(path.join(process.env.XDG_STATE_HOME, "omp"), { recursive: true });
-		await fs.mkdir(path.join(process.env.XDG_CACHE_HOME, "omp"), { recursive: true });
+		await fs.mkdir(path.join(process.env.XDG_DATA_HOME, "ngodeai"), { recursive: true });
+		await fs.mkdir(path.join(process.env.XDG_STATE_HOME, "ngodeai"), { recursive: true });
+		await fs.mkdir(path.join(process.env.XDG_CACHE_HOME, "ngodeai"), { recursive: true });
 
 		setProfile(undefined);
 		setProfile("work");
@@ -240,7 +240,7 @@ describe("profile directories", () => {
 	});
 
 	it("does not restore a profile-derived agent dir as the default baseline", () => {
-		// Reproduces a child process that inherited OMP_PROFILE=work plus the
+		// Reproduces a child process that inherited NGODEAI_PROFILE=work plus the
 		// profile-derived PI_CODING_AGENT_DIR that setProfile propagates to
 		// children. The module-load snapshot must not capture that profile dir as
 		// the default baseline, or setProfile(undefined) would resolve default
@@ -250,7 +250,7 @@ describe("profile directories", () => {
 		expect(getAgentDir()).toBe(workAgentDir);
 		expect(process.env.PI_CODING_AGENT_DIR).toBe(workAgentDir);
 
-		// Re-snapshot exactly as module load would, now that OMP_PROFILE and the
+		// Re-snapshot exactly as module load would, now that NGODEAI_PROFILE and the
 		// profile-derived PI_CODING_AGENT_DIR are present in the environment.
 		__resetProfileSnapshotForTests();
 
@@ -263,18 +263,16 @@ describe("profile directories", () => {
 
 describe("profile env + name validation", () => {
 	it("honors NGODEAI_PROFILE precedence and treats empty/default as the default profile", () => {
-		// NGODEAI_PROFILE is canonical and wins over both legacy fallbacks.
-		expect(resolveProfileEnv("work", "other", "legacy")).toBe("work");
-		// OMP_PROFILE is consulted only when NGODEAI_PROFILE is undefined.
-		expect(resolveProfileEnv(undefined, "work", "legacy")).toBe("work");
-		// PI_PROFILE is the last resort, after OMP_PROFILE.
-		expect(resolveProfileEnv(undefined, undefined, "legacy")).toBe("legacy");
+		// NGODEAI_PROFILE is canonical and wins over the legacy fallback.
+		expect(resolveProfileEnv("work", "legacy")).toBe("work");
+		// PI_PROFILE is consulted only when NGODEAI_PROFILE is undefined.
+		expect(resolveProfileEnv(undefined, "legacy")).toBe("legacy");
 		// An explicitly-empty canonical value selects the default profile; it must
-		// NOT fall through to a lower-precedence legacy name.
-		expect(resolveProfileEnv("", "work", "legacy")).toBeUndefined();
-		expect(resolveProfileEnv("   ", "work", "legacy")).toBeUndefined();
-		expect(resolveProfileEnv("default", "work", "legacy")).toBeUndefined();
-		expect(resolveProfileEnv(undefined, undefined, undefined)).toBeUndefined();
+		// NOT fall through to the legacy name.
+		expect(resolveProfileEnv("", "legacy")).toBeUndefined();
+		expect(resolveProfileEnv("   ", "legacy")).toBeUndefined();
+		expect(resolveProfileEnv("default", "legacy")).toBeUndefined();
+		expect(resolveProfileEnv(undefined, undefined)).toBeUndefined();
 	});
 
 	it("rejects uppercase profile names so isolation is filesystem-independent", () => {
@@ -335,7 +333,7 @@ describe("dirs module import behavior", () => {
 			const workerHostUrl = import.meta.resolve("@ngodeai/utils/worker-host");
 			const agentDir = path.join(root, "agent");
 			await fs.mkdir(agentDir, { recursive: true });
-			await Bun.write(path.join(agentDir, ".env"), "OMP_WORKER_HOST_PROBE=from-agent-env\n");
+			await Bun.write(path.join(agentDir, ".env"), "NGODEAI_WORKER_HOST_PROBE=from-agent-env\n");
 			const probePath = path.join(root, "probe.ts");
 			await Bun.write(
 				probePath,
@@ -343,7 +341,7 @@ describe("dirs module import behavior", () => {
 					`import { declareWorkerHostEntry, workerHostEntry } from ${JSON.stringify(workerHostUrl)};`,
 					"declareWorkerHostEntry();",
 					"process.stdout.write(JSON.stringify({",
-					"	envProbe: process.env.OMP_WORKER_HOST_PROBE ?? null,",
+					"	envProbe: process.env.NGODEAI_WORKER_HOST_PROBE ?? null,",
 					"	hostDeclared: workerHostEntry() === Bun.main,",
 					"}));",
 				].join("\n"),
@@ -353,7 +351,7 @@ describe("dirs module import behavior", () => {
 				...process.env,
 				PI_CODING_AGENT_DIR: agentDir,
 			};
-			delete childEnv.OMP_WORKER_HOST_PROBE;
+			delete childEnv.NGODEAI_WORKER_HOST_PROBE;
 			const proc = Bun.spawn([process.execPath, probePath], {
 				stdout: "pipe",
 				stderr: "pipe",
@@ -375,16 +373,16 @@ describe("dirs module import behavior", () => {
 		}
 	});
 
-	it("ignores inherited profile agent dir when OMP_PROFILE explicitly selects default", async () => {
+	it("ignores inherited profile agent dir when NGODEAI_PROFILE explicitly selects default", async () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "pi-utils-dirs-default-profile-"));
-		const probeConfigDir = `.omp-default-profile-${Snowflake.next()}`;
+		const probeConfigDir = `.ngode-default-profile-${Snowflake.next()}`;
 		try {
 			const dirsUrl = url.pathToFileURL(path.join(import.meta.dir, "..", "src", "dirs.ts")).href;
 			const workAgentDir = path.join(os.homedir(), probeConfigDir, "profiles", "work", "agent");
 			const defaultAgentDir = path.join(os.homedir(), probeConfigDir, "agent");
 
-			for (const ompProfile of ["", "default"]) {
-				const probePath = path.join(root, `default-profile-${ompProfile || "empty"}.ts`);
+			for (const ngodeProfile of ["", "default"]) {
+				const probePath = path.join(root, `default-profile-${ngodeProfile || "empty"}.ts`);
 				await Bun.write(
 					probePath,
 					[
@@ -399,7 +397,7 @@ describe("dirs module import behavior", () => {
 				const childEnv: Record<string, string | undefined> = {
 					...process.env,
 					PI_CONFIG_DIR: probeConfigDir,
-					OMP_PROFILE: ompProfile,
+					NGODEAI_PROFILE: ngodeProfile,
 					PI_PROFILE: "work",
 					PI_CODING_AGENT_DIR: workAgentDir,
 					NGODEAI_AGENT_DIR: undefined,
@@ -432,7 +430,7 @@ describe("dirs module import behavior", () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "pi-utils-profile-env-xdg-"));
 		const homeDir = path.join(root, "home");
 		const xdgStateRoot = path.join(root, "xdg-state");
-		const profileConfigDir = `.omp-env-xdg-${Snowflake.next()}`;
+		const profileConfigDir = `.ngode-env-xdg-${Snowflake.next()}`;
 		try {
 			const envUrl = url.pathToFileURL(path.join(import.meta.dir, "..", "src", "env.ts")).href;
 			const dirsUrl = url.pathToFileURL(path.join(import.meta.dir, "..", "src", "dirs.ts")).href;
@@ -443,7 +441,7 @@ describe("dirs module import behavior", () => {
 			// import time — the exact ordering refreshDirsFromEnv() guards.
 			await Bun.write(path.join(agentDir, ".env"), `XDG_STATE_HOME=${xdgStateRoot}\n`);
 			// Named profiles only adopt XDG when their own XDG path already exists.
-			const xdgProfileRoot = path.join(xdgStateRoot, "omp", "profiles", "work");
+			const xdgProfileRoot = path.join(xdgStateRoot, "ngodeai", "profiles", "work");
 			await fs.mkdir(xdgProfileRoot, { recursive: true });
 
 			const probePath = path.join(root, "probe.ts");
@@ -464,7 +462,7 @@ describe("dirs module import behavior", () => {
 				...process.env,
 				HOME: homeDir,
 				PI_CONFIG_DIR: profileConfigDir,
-				OMP_PROFILE: "work",
+				NGODEAI_PROFILE: "work",
 				PI_PROFILE: "work",
 			};
 			delete childEnv.PI_CODING_AGENT_DIR;

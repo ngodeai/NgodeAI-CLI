@@ -133,7 +133,7 @@ function spendableNow(
 }
 
 /**
- * What an open interactive omp session does with an account's soonest expiring saved
+ * What an open interactive ngodeai session does with an account's soonest expiring saved
  * reset. `kind` comes from the provider's `autoRedeem` setting alone: `auto`
  * spends it by its last five minutes if the provider still allows it then,
  * `ask` prompts first, `off` leaves it. `eligibleNow` is the salvage planner's

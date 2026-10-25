@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { OmpTypeError } from "../src/errors";
+import { NgodeTypeError } from "../src/errors";
 import { Type, type } from "../src/type";
 import * as zod from "../src/zod";
 import { z } from "../src/zod";
@@ -36,9 +36,9 @@ describe("zod-like parsing", () => {
 			expect(typeof candidate.toJsonSchema).toBe("function");
 			expect(typeof candidate.assert).toBe("function");
 		}
-		expect(schema({ website: "https://omp.sh" })).toEqual({
+		expect(schema({ website: "https://ngodeai.net" })).toEqual({
 			name: "Ada",
-			website: "https://omp.sh",
+			website: "https://ngodeai.net",
 		});
 		expect(schema({ website: 42 })).toBeInstanceOf(type.errors);
 		expect(schema.toJsonSchema()).toEqual({
@@ -146,12 +146,18 @@ describe("zod-like parsing", () => {
 		expect(list.parse([true, false])).toEqual([true, false]);
 		expect(list.safeParse([]).success).toBe(false);
 		expect(list.safeParse([true, false, true]).success).toBe(false);
-		expect(() => z.boolean().min(1)).toThrow(OmpTypeError);
+		expect(() => z.boolean().min(1)).toThrow(NgodeTypeError);
 	});
 
 	it("supports string and number refinements plus nullable and optional values", () => {
-		expect(z.string().regex(/^omp$/).url().safeParse("omp").success).toBe(false);
-		expect(z.string().url().parse("https://omp.sh")).toBe("https://omp.sh");
+		expect(
+			z
+				.string()
+				.regex(/^ngodeai$/)
+				.url()
+				.safeParse("ngodeai").success,
+		).toBe(false);
+		expect(z.string().url().parse("https://ngodeai.net")).toBe("https://ngodeai.net");
 		expect(z.number().int().nonnegative().parse(0)).toBe(0);
 		expect(z.number().int().safeParse(1.5).success).toBe(false);
 		expect(z.number().positive().safeParse(0).success).toBe(false);
@@ -164,7 +170,7 @@ describe("zod-like parsing", () => {
 		expect(env.parse({ HOME: "/tmp" })).toEqual({ HOME: "/tmp" });
 		expect(env.safeParse({ home: "/tmp" }).success).toBe(false);
 		expect(env.safeParse({ HOME: 1 }).success).toBe(false);
-		expect(() => z.record(z.number() as never, z.string())).toThrow(OmpTypeError);
+		expect(() => z.record(z.number() as never, z.string())).toThrow(NgodeTypeError);
 		const flags = z.record(z.enum(["A", "B"] as const), z.boolean());
 		expect(flags.parse({ A: true, B: false })).toEqual({ A: true, B: false });
 		expect(flags.safeParse({ C: true }).success).toBe(false);
@@ -181,11 +187,23 @@ describe("zod-like trim and superRefine", () => {
 		expect(z.string().min(2).trim().parse("  ab  ")).toBe("ab");
 		expect(z.string().trim().min(3).parse("  abc  ")).toBe("abc");
 		expect(z.string().trim().min(3).safeParse("  ab  ").success).toBe(false);
-		expect(z.string().trim().regex(/^omp$/).parse("  omp  ")).toBe("omp");
-		expect(z.string().trim().regex(/^omp$/).safeParse("  nope  ").success).toBe(false);
-		expect(z.string().trim().url().parse("  https://omp.sh  ")).toBe("https://omp.sh");
+		expect(
+			z
+				.string()
+				.trim()
+				.regex(/^ngodeai$/)
+				.parse("  ngodeai  "),
+		).toBe("ngodeai");
+		expect(
+			z
+				.string()
+				.trim()
+				.regex(/^ngodeai$/)
+				.safeParse("  nope  ").success,
+		).toBe(false);
+		expect(z.string().trim().url().parse("  https://ngodeai.net  ")).toBe("https://ngodeai.net");
 		expect(z.string().trim().url().safeParse("  not-a-url  ").success).toBe(false);
-		expect(z.object({ name: z.string().default(" omp ").trim() }).parse({})).toEqual({ name: "omp" });
+		expect(z.object({ name: z.string().default(" ngodeai ").trim() }).parse({})).toEqual({ name: "ngodeai" });
 	});
 
 	it("supports superRefine with addIssue", () => {
@@ -246,7 +264,7 @@ describe("zod-like trim and superRefine", () => {
 				.trim()
 				.transform(() => "not a url")
 				.url()
-				.safeParse("https://omp.sh").success,
+				.safeParse("https://ngodeai.net").success,
 		).toBe(false);
 	});
 });

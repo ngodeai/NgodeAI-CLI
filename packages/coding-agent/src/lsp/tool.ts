@@ -1104,7 +1104,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 
 		if (action === "reload" && (isWorkspace || !resolvedFile)) {
 			// `reload *` is the user's explicit request to re-read config from
-			// disk. Drop the per-cwd cache entry so `.omp/lsp.json`, root markers,
+			// disk. Drop the per-cwd cache entry so `.ngodeai/lsp.json`, root markers,
 			// and plugin configs added after the first LSP call become visible —
 			// otherwise `getConfig` returns the first observation for the rest of
 			// the process lifetime (#3546).
@@ -1513,7 +1513,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					}
 
 					// A project-wide rename answers with ranges for every file it
-					// touches. An already-open consumer that was edited outside OMP
+					// touches. An already-open consumer that was edited outside NGODEAI
 					// still holds its stale overlay, so those ranges point at the old
 					// text and the edit lands on the wrong lines while the rename
 					// reports success (#15772). Sync every open document, not just

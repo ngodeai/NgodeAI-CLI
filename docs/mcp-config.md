@@ -1,4 +1,4 @@
-# MCP configuration in OMP
+# MCP configuration in NGODEAI
 
 This guide explains how to add, edit, and validate MCP servers for the NgodeAI coding agent.
 
@@ -14,7 +14,7 @@ Source of truth in code:
 
 ## Preferred config locations
 
-NgodeAI can discover MCP servers from multiple tools (`.claude/`, `.cursor/`, `.vscode/`, `opencode.json`, and more), but for OMP-native configuration you should usually use one of these primary files:
+NgodeAI can discover MCP servers from multiple tools (`.claude/`, `.cursor/`, `.vscode/`, `opencode.json`, and more), but for NGODEAI-native configuration you should usually use one of these primary files:
 
 - Project: `.ngodeai/mcp.json`
 - User: `~/.ngodeai/agent/mcp.json` (or `~/.ngodeai/profiles/<name>/agent/mcp.json` when a named profile is active — see [Profiles](#profiles))
@@ -43,11 +43,11 @@ NgodeAI also translates these current tool-native sources:
 - VS Code: project-only `.vscode/mcp.json` using `mcp.servers`
 - installed Claude marketplace plugins, NgodeAI extension packages, and portable Agent Plugins (`plugin.json` plus root `mcp.json`) that declare MCP servers
 
-For Claude Code, Codex, Gemini CLI, Cursor, and Windsurf, the project entry is encountered before its same-named user entry — matching OMP-native config, whose project entry precedes its active-profile user entry — so a project `enabled: false` suppresses a same-named user server. OpenCode deep-merges each server across layers: project overrides user, `.opencode/` overrides the project root, and `.jsonc` overrides `.json` within a directory. Partial overrides inherit fields from lower layers. Cross-provider priority is listed in [Discovery and precedence](#discovery-and-precedence).
+For Claude Code, Codex, Gemini CLI, Cursor, and Windsurf, the project entry is encountered before its same-named user entry — matching NGODEAI-native config, whose project entry precedes its active-profile user entry — so a project `enabled: false` suppresses a same-named user server. OpenCode deep-merges each server across layers: project overrides user, `.opencode/` overrides the project root, and `.jsonc` overrides `.json` within a directory. Partial overrides inherit fields from lower layers. Cross-provider priority is listed in [Discovery and precedence](#discovery-and-precedence).
 
 ### Profiles
 
-Named profiles (`ngodeai --profile <name>` or `OMP_PROFILE`/`PI_PROFILE`) isolate user-level MCP config. `ngodeai --profile <name> --alias <command>` creates a shell shortcut that selects that profile. When a profile is active, the **user** scope resolves to the profile's agent directory instead of the default one:
+Named profiles (`ngodeai --profile <name>` or `NGODEAI_PROFILE`/`PI_PROFILE`) isolate user-level MCP config. `ngodeai --profile <name> --alias <command>` creates a shell shortcut that selects that profile. When a profile is active, the **user** scope resolves to the profile's agent directory instead of the default one:
 
 - Default profile: `~/.ngodeai/agent/mcp.json`
 - Profile `<name>`: `~/.ngodeai/profiles/<name>/agent/mcp.json`
@@ -56,7 +56,7 @@ Discovery, the `/mcp` commands, and the config writer all follow the active prof
 
 Project-scoped MCP config (`.ngodeai/mcp.json`) is keyed to the working directory, not the profile, so it applies under every profile. External-tool configs (`.claude/`, `.cursor/`, etc.) are also profile-independent because they belong to those tools rather than to an NgodeAI profile.
 
-MCP follows the same profile rules as the rest of OMP-native config; see [Configuration Discovery → Profiles](./config-usage.md#profiles).
+MCP follows the same profile rules as the rest of NGODEAI-native config; see [Configuration Discovery → Profiles](./config-usage.md#profiles).
 
 ## Add a schema reference
 
@@ -64,12 +64,12 @@ Add this line at the top of the file for editor autocomplete and validation:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {}
 }
 ```
 
-NgodeAI now writes this automatically when `/mcp add`, `/mcp enable`, `/mcp disable`, `/mcp reauth`, or other config-writing flows create or update an OMP-managed MCP file.
+NgodeAI now writes this automatically when `/mcp add`, `/mcp enable`, `/mcp disable`, `/mcp reauth`, or other config-writing flows create or update an NGODEAI-managed MCP file.
 
 ## File shape
 
@@ -77,7 +77,7 @@ NgodeAI supports this top-level structure:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "server-name": {
       "type": "stdio",
@@ -104,20 +104,20 @@ Shared fields for every transport:
 
 - `enabled?: boolean` — skip this server when `false`, unless the active-profile user `enabledServers` allowlist names it
 - `timeout?: number` — MCP request timeout in milliseconds; `0` disables client-side MCP timeouts
-- `requestIdFormat?: "number" | "string"` — outgoing JSON-RPC request-id encoding; defaults to per-transport integers. `"string"` uses collision-resistant snowflake IDs. This OMP-specific field is read only from OMP-native files, root `mcp.json` / `.mcp.json`, and NgodeAI extension packages; configs translated from other tools ignore it.
-- `instructions?: boolean` — include server-provided instructions in the system prompt (default: `true`). Set `false` to omit that server's instructions without disabling its tools. Like `requestIdFormat`, this is OMP-specific and is ignored in configs translated from other tools.
+- `requestIdFormat?: "number" | "string"` — outgoing JSON-RPC request-id encoding; defaults to per-transport integers. `"string"` uses collision-resistant snowflake IDs. This NGODEAI-specific field is read only from NGODEAI-native files, root `mcp.json` / `.mcp.json`, and NgodeAI extension packages; configs translated from other tools ignore it.
+- `instructions?: boolean` — include server-provided instructions in the system prompt (default: `true`). Set `false` to omit that server's instructions without disabling its tools. Like `requestIdFormat`, this is NGODEAI-specific and is ignored in configs translated from other tools.
 - `auth?: { ... }` — stored-credential metadata; managed credential injection is implemented for OAuth
 - `oauth?: { ... }` — explicit OAuth client and callback settings used during auth/reauth
 
 Disable instructions when a server's guidance conflicts with your tool policy or adds unwanted context to every request, including subagent requests. If no connected server contributes instructions, the MCP Server Instructions section is omitted entirely. `instructions` does not distinguish connections: when two entries under different names describe the same endpoint, only the higher-priority entry is kept, together with its own `instructions` value, so set the option on the entry that wins (see `/mcp list`). A changed value applies to an already-connected server after `/mcp reload`.
 
-`OMP_MCP_TIMEOUT_MS` has process-wide precedence over every per-server `timeout`. Set it to `0` to disable client-side timeouts, or to a positive millisecond value such as `120000`. If it is unset or invalid, NgodeAI uses the server value and then the 30-second default; invalid values are logged and ignored.
+`NGODEAI_MCP_TIMEOUT_MS` has process-wide precedence over every per-server `timeout`. Set it to `0` to disable client-side timeouts, or to a positive millisecond value such as `120000`. If it is unset or invalid, NgodeAI uses the server value and then the 30-second default; invalid values are logged and ignored.
 
-Claude marketplace plugins follow [Claude Code's per-server timeout rule](https://code.claude.com/docs/en/mcp): their `.mcp.json` values are milliseconds, and values below `1000` are ignored with a discovery warning so OMP's normal timeout fallback applies. This restriction does not change OMP-native configurations, where `0` still disables timeouts.
+Claude marketplace plugins follow [Claude Code's per-server timeout rule](https://code.claude.com/docs/en/mcp): their `.mcp.json` values are milliseconds, and values below `1000` are ignored with a discovery warning so NGODEAI's normal timeout fallback applies. This restriction does not change NGODEAI-native configurations, where `0` still disables timeouts.
 
 These request deadlines also govern subagent MCP calls over borrowed parent connections. The proxy adds no independent timeout; caller cancellation still stops the subagent's wait.
 
-Initial MCP discovery returns after a 250 ms window while slower connections continue in the background. Set `mcp.startupTimeoutMs` or override it with `OMP_MCP_STARTUP_TIMEOUT_MS` to change the window; `0` waits for the initial connection attempts to settle. In print mode (`-p`, `--mode text|json`), NgodeAI additionally waits for all configured servers to load tools or fail before the first turn, up to `OMP_MCP_TIMEOUT_MS` (default 30 seconds). `OMP_MCP_TIMEOUT_MS=0` disables this barrier deadline too, so an unresponsive server can block print mode indefinitely. Servers still unavailable at the deadline are named on stderr; `OMP_MCP_REQUIRE_READY=1` instead exits with code 1 before the turn. These print-mode waits do not affect interactive, RPC, or ACP startup. In interactive and `--mode rpc-ui` sessions, which connect MCP servers in the background, the first turn waits up to 1.5 s for MCP startup, so its system prompt includes servers connected by then; slower servers register later and change the next turn's prompt.
+Initial MCP discovery returns after a 250 ms window while slower connections continue in the background. Set `mcp.startupTimeoutMs` or override it with `NGODEAI_MCP_STARTUP_TIMEOUT_MS` to change the window; `0` waits for the initial connection attempts to settle. In print mode (`-p`, `--mode text|json`), NgodeAI additionally waits for all configured servers to load tools or fail before the first turn, up to `NGODEAI_MCP_TIMEOUT_MS` (default 30 seconds). `NGODEAI_MCP_TIMEOUT_MS=0` disables this barrier deadline too, so an unresponsive server can block print mode indefinitely. Servers still unavailable at the deadline are named on stderr; `NGODEAI_MCP_REQUIRE_READY=1` instead exits with code 1 before the turn. These print-mode waits do not affect interactive, RPC, or ACP startup. In interactive and `--mode rpc-ui` sessions, which connect MCP servers in the background, the first turn waits up to 1.5 s for MCP startup, so its system prompt includes servers connected by then; slower servers register later and change the next turn's prompt.
 
 Client-generated remote protocol headers take precedence over configured headers case-insensitively. Streamable HTTP owns `MCP-Protocol-Version`: it ignores configured copies and sends the negotiated version after initialization. Portable Agent Plugins' configured headers are origin-locked and are not forwarded to another origin on redirects.
 
@@ -142,7 +142,7 @@ Example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "filesystem": {
       "command": "npx",
@@ -174,7 +174,7 @@ Example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "github": {
       "type": "http",
@@ -201,7 +201,7 @@ Example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "legacy-remote": {
       "type": "sse",
@@ -282,7 +282,7 @@ Example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "slack": {
       "type": "http",
@@ -314,7 +314,7 @@ Relevant Slack endpoints from Slack's docs:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "filesystem": {
       "command": "npx",
@@ -333,7 +333,7 @@ Relevant Slack endpoints from Slack's docs:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "github": {
       "type": "http",
@@ -347,7 +347,7 @@ Relevant Slack endpoints from Slack's docs:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "github": {
       "command": "docker",
@@ -373,7 +373,7 @@ This matches GitHub's official local Docker image `ghcr.io/github/github-mcp-ser
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "slack": {
       "type": "http",
@@ -399,7 +399,7 @@ This is the part that usually trips people up.
 
 ### Discovery-time `${...}` expansion
 
-NgodeAI expands `${VAR}` and `${VAR:-default}` placeholders while discovering MCP configs from OMP-native files and standalone fallback files. Expansion applies recursively to string values in `command`, `args`, `env`, `cwd`, `url`, `headers`, `auth`, and `oauth`; unresolved placeholders remain literal strings.
+NgodeAI expands `${VAR}` and `${VAR:-default}` placeholders while discovering MCP configs from NGODEAI-native files and standalone fallback files. Expansion applies recursively to string values in `command`, `args`, `env`, `cwd`, `url`, `headers`, `auth`, and `oauth`; unresolved placeholders remain literal strings.
 
 Example:
 
@@ -456,13 +456,13 @@ The active profile's user file supplies two cross-source overrides:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "$schema": "https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json",
   "disabledServers": ["github"],
   "enabledServers": ["tool-owned-server"]
 }
 ```
 
-`/mcp enable` and `/mcp disable` update `enabled` directly when the definition is in an OMP-owned writable file. NgodeAI does not mutate another tool's config: for such sources, those commands maintain the user-level allowlist or denylist instead and remove a conflicting stale override.
+`/mcp enable` and `/mcp disable` update `enabled` directly when the definition is in an NGODEAI-owned writable file. NgodeAI does not mutate another tool's config: for such sources, those commands maintain the user-level allowlist or denylist instead and remove a conflicting stale override.
 
 ## `/mcp add` vs editing JSON directly
 
@@ -515,7 +515,7 @@ Across providers, the first definition wins. Duplicate names are not merged; Ope
 
 Within NgodeAI native config, project `.ngodeai/mcp.json` precedes `.ngodeai/.mcp.json`, then the active profile's user `mcp.json` and `.mcp.json`. Root fallback `mcp.json` precedes root `.mcp.json`. In practice:
 
-- prefer `.ngodeai/mcp.json` or the active profile's user `mcp.json` for an OMP-specific override
+- prefer `.ngodeai/mcp.json` or the active profile's user `mcp.json` for an NGODEAI-specific override
 - keep names and endpoint definitions unique across tools when possible
 - use the user `disabledServers` list when a third-party config keeps reintroducing an unwanted server
 - set `mcp.enableProjectConfig: false` to exclude every project-level source before deduplication, allowing a same-named user entry to survive
@@ -539,7 +539,7 @@ The JSON is valid, but the server may still be unreachable. Use `/mcp test <name
 - the remote URL is reachable
 - the OAuth or API token is valid
 
-### The server exists in another tool's config but not in OMP
+### The server exists in another tool's config but not in NGODEAI
 
 Run `/mcp list`. NgodeAI discovers many third-party MCP files, but project-level loading can also be disabled via the `mcp.enableProjectConfig` setting, and a user-level `disabledServers` entry can suppress a server by name.
 

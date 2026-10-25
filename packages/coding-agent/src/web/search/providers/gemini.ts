@@ -399,7 +399,7 @@ async function callGeminiSearch(
 			}
 		: {
 				userAgent: USER_AGENT,
-				requestId: `omp-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+				requestId: `ngode-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
 			};
 
 	const normalizedSystemPrompt = systemPrompt?.toWellFormed();

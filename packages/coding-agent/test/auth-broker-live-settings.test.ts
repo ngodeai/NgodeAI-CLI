@@ -12,7 +12,11 @@ import { cfgAuthBrokerUrl } from "@ngodeai/coding-agent/config/model-settings";
 
 const PROVIDER = "live-broker-test";
 const TOKEN = "live-broker-bearer";
-const BROKER_ENV = ["OMP_AUTH_BROKER_URL", "OMP_AUTH_BROKER_TOKEN", "OMP_AUTH_BROKER_SNAPSHOT_TTL_MS"] as const;
+const BROKER_ENV = [
+	"NGODEAI_AUTH_BROKER_URL",
+	"NGODEAI_AUTH_BROKER_TOKEN",
+	"NGODEAI_AUTH_BROKER_SNAPSHOT_TTL_MS",
+] as const;
 
 interface Broker {
 	handle: AuthBrokerServerHandle;
@@ -40,7 +44,7 @@ describe("auth broker settings take effect live", () => {
 			delete process.env[key];
 		}
 		// No snapshot cache: every connection must hit its broker.
-		process.env.OMP_AUTH_BROKER_SNAPSHOT_TTL_MS = "0";
+		process.env.NGODEAI_AUTH_BROKER_SNAPSHOT_TTL_MS = "0";
 	});
 
 	afterEach(async () => {

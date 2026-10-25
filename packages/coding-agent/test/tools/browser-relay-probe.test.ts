@@ -49,11 +49,11 @@ describe("waitForRelayExtension", () => {
 
 	it("fails fast when the relay outlived the dial window without ever seeing an extension", async () => {
 		const info: RelayUnavailableInfo = {
-			ompRelayVersion: VERSION,
+			ngodeRelayVersion: VERSION,
 			error: "relay extension is not connected",
 			extensionSeen: false,
 			uptimeMs: 60_000,
-			ompRelayCdpClients: 0,
+			ngodeRelayCdpClients: 0,
 		};
 		fake = Bun.serve({
 			hostname: "127.0.0.1",
@@ -70,8 +70,8 @@ describe("waitForRelayExtension", () => {
 			error: "relay extension is not connected",
 			extensionSeen: true,
 			uptimeMs: 600_000,
-			ompRelayCdpClients: 0,
-			ompRelayVersion: VERSION,
+			ngodeRelayCdpClients: 0,
+			ngodeRelayVersion: VERSION,
 			disconnectedMs: 120_000,
 		};
 		let probes = 0;
@@ -97,7 +97,7 @@ describe("waitForRelayExtension", () => {
 						error: "relay extension is not connected",
 						extensionSeen: true,
 						uptimeMs: 600_000,
-						ompRelayVersion: "0.0.0-other",
+						ngodeRelayVersion: "0.0.0-other",
 						disconnectedMs: 120_000,
 					},
 					{ status: 503 },
@@ -117,8 +117,8 @@ describe("waitForRelayExtension", () => {
 					error: "relay extension is not connected",
 					extensionSeen: true,
 					uptimeMs: 600_000,
-					ompRelayCdpClients: 0,
-					ompRelayVersion: VERSION,
+					ngodeRelayCdpClients: 0,
+					ngodeRelayVersion: VERSION,
 					disconnectedMs: disconnects[Math.min(probes++, disconnects.length - 1)],
 				};
 				return Response.json(info, { status: 503 });
@@ -151,23 +151,23 @@ describe("waitForRelayExtension", () => {
 			port: 0,
 			fetch: () =>
 				Response.json({
-					ompRelayVersion: "18.5.1",
-					ompRelayDiscardedTabsProtocol: "1",
-					ompExtensionDiscardedTabsProtocol: "0",
+					ngodeRelayVersion: "18.5.1",
+					ngodeRelayDiscardedTabsProtocol: "1",
+					ngodeExtensionDiscardedTabsProtocol: "0",
 				}),
 		});
 		expect(await waitForRelayExtension(`http://127.0.0.1:${fake.port}`)).toBe("outdated-relay");
 	});
 
-	it("accepts a compatible relay from another OMP version", async () => {
+	it("accepts a compatible relay from another NGODEAI version", async () => {
 		fake = Bun.serve({
 			hostname: "127.0.0.1",
 			port: 0,
 			fetch: () =>
 				Response.json({
-					ompRelayVersion: "18.5.1",
-					ompRelayDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
-					ompExtensionDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
+					ngodeRelayVersion: "18.5.1",
+					ngodeRelayDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
+					ngodeExtensionDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
 				}),
 		});
 		expect(await waitForRelayExtension(`http://127.0.0.1:${fake.port}`)).toBe("ready");
@@ -186,10 +186,10 @@ describe("waitForRelayExtension", () => {
 				port: 0,
 				fetch: () =>
 					Response.json({
-						ompRelayVersion: version,
-						ompRelayDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
-						ompExtensionDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
-						ompRelayCdpClients: clients,
+						ngodeRelayVersion: version,
+						ngodeRelayDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
+						ngodeExtensionDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
+						ngodeRelayCdpClients: clients,
 					}),
 			});
 			expect(await waitForRelayExtension(`http://127.0.0.1:${fake.port}`)).toBe(outcome);

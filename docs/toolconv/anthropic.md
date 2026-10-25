@@ -1,6 +1,6 @@
 # Anthropic Claude tool use (Messages API content blocks)
 
-Anthropic's Claude is a hosted model family, not a local model with a `--tool-call-parser` flag. The canonical tool-calling convention is the **Messages API** (`POST /v1/messages`, header `anthropic-version: 2023-06-01`): tools are advertised in a top-level `tools` array, the model returns structured `tool_use` **content blocks** with `stop_reason: "tool_use"`, and you feed results back as `tool_result` content blocks inside a `user` message. Tool use is enabled by including `tools` (optionally with `tool_choice`). OMP's native `anthropic-messages` provider consumes these structured blocks; its separately selected `anthropic` dialect uses prompt-driven XML instead.
+Anthropic's Claude is a hosted model family, not a local model with a `--tool-call-parser` flag. The canonical tool-calling convention is the **Messages API** (`POST /v1/messages`, header `anthropic-version: 2023-06-01`): tools are advertised in a top-level `tools` array, the model returns structured `tool_use` **content blocks** with `stop_reason: "tool_use"`, and you feed results back as `tool_result` content blocks inside a `user` message. Tool use is enabled by including `tools` (optionally with `tool_choice`). NGODEAI's native `anthropic-messages` provider consumes these structured blocks; its separately selected `anthropic` dialect uses prompt-driven XML instead.
 
 Under the hood the model is trained to emit an **XML** function-call syntax (`<function_calls>` / `<invoke>` / `<parameter>`); the API serializes your JSON-Schema tools into a system prompt and converts the model's XML output into JSON `tool_use` blocks. That underlying format is documented as the *secondary* convention below, together with the older, now-retired prompt-based **legacy XML** format (`<tool_name>` / `<parameters>` / `<function_results>`) that pre-dates the Messages API and still surfaces when you do tool use purely through prompting.
 
@@ -138,7 +138,7 @@ NgodeAI sends `strict: true` only for eligible built-in tools (`bash`, `python`,
 
 With `any` or `tool` the API prefills the assistant turn, so no leading natural-language text precedes the `tool_use` block. Add `"disable_parallel_tool_use": true` inside `tool_choice` to cap at one tool per turn. (Extended thinking only supports `auto`/`none`.)
 
-OMP's `AnthropicOptions.toolChoice` accepts `"auto"`, `"any"`, `"none"`, or `{ type: "tool", name }`. Forced choices are downgraded to `auto` for compaction requests or models whose compatibility data disables forced tool choice. Otherwise NgodeAI removes explicit thinking configuration for forced choices; adaptive-only models that support output effort are pinned to `effort: "low"`. The high-level option does not expose `disable_parallel_tool_use`.
+NGODEAI's `AnthropicOptions.toolChoice` accepts `"auto"`, `"any"`, `"none"`, or `{ type: "tool", name }`. Forced choices are downgraded to `auto` for compaction requests or models whose compatibility data disables forced tool choice. Otherwise NgodeAI removes explicit thinking configuration for forced choices; adaptive-only models that support output effort are pinned to `effort: "low"`. The high-level option does not expose `disable_parallel_tool_use`.
 
 The native adapter maps `tool_use` blocks to canonical `toolCall` blocks and projects `input_json_delta` as `toolcall_delta`. It maintains best-effort argument objects during streaming and finalizes with the repairing JSON parser, rather than requiring every fragment to be valid JSON. A failed final parse preserves recovered arguments; if none were recovered, it supplies `__parseError` and a bounded `__rawJson` excerpt.
 
@@ -339,7 +339,7 @@ Rich result (text + image blocks):
 
 Server tools require **no** `tool_result` from you — Anthropic executes them and injects the result inline in the assistant turn. (Legacy XML feeds results back as `<function_results><result><tool_name>…</tool_name><stdout>…</stdout></result></function_results>`, or `<error>…</error>` on failure.)
 
-OMP's prompt-driven dialect is different from Anthropic's server-tool behavior. It renders client results as:
+NGODEAI's prompt-driven dialect is different from Anthropic's server-tool behavior. It renders client results as:
 
 ```text
 <function_results>

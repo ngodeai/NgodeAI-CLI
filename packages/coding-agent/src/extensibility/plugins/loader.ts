@@ -67,7 +67,7 @@ async function loadRuntimeConfig(home?: string): Promise<PluginRuntimeConfig> {
 }
 
 /**
- * Load project-local plugin overrides (checks .omp and .pi directories).
+ * Load project-local plugin overrides (checks .ngodeai and .pi directories).
  */
 async function loadProjectOverrides(cwd: string): Promise<ProjectPluginOverrides> {
 	for (const overridesPath of getConfigDirPaths("plugin-overrides.json", { user: false, cwd })) {
@@ -183,7 +183,7 @@ async function collectPluginsAtRoot(
 			continue;
 		}
 		const pluginPkgPath = path.join(nodeModulesPath, name, "package.json");
-		let pluginPkg: { version: string; omp?: PluginManifest; pi?: PluginManifest };
+		let pluginPkg: { version: string; ngodeai?: PluginManifest; pi?: PluginManifest };
 		try {
 			pluginPkg = await Bun.file(pluginPkgPath).json();
 		} catch (err) {
@@ -200,9 +200,9 @@ async function collectPluginsAtRoot(
 			throw err;
 		}
 
-		const manifest: PluginManifest | undefined = pluginPkg.omp || pluginPkg.pi;
+		const manifest: PluginManifest | undefined = pluginPkg.ngodeai || pluginPkg.pi;
 		if (!manifest) {
-			// Not an omp plugin, skip
+			// Not an ngodeai plugin, skip
 			continue;
 		}
 		manifest.version = pluginPkg.version;
@@ -239,9 +239,9 @@ async function collectPluginsAtRoot(
  * Get list of enabled plugins with their resolved configurations.
  *
  * Enumerates two plugin roots in order: the user root
- * (`getPluginsDir(home)`) and, when a project anchor (`.omp/` or `.git/`)
+ * (`getPluginsDir(home)`) and, when a project anchor (`.ngodeai/` or `.git/`)
  * exists at or above `cwd`, the project root
- * (`<projectAnchor>/.omp/plugins`). Each root contributes the union of its
+ * (`<projectAnchor>/.ngodeai/plugins`). Each root contributes the union of its
  * `package.json#dependencies` and `ngodeai-plugins.lock.json#plugins`. Project
  * entries shadow user entries with the same package name, matching the
  * shadow semantics of `MarketplaceManager.listInstalledPlugins`.
@@ -319,12 +319,12 @@ const PLUGIN_EXTENSION_DIRECTORY_OPTIONS = {
  * - a file entry → that file
  * - a directory:
  *   - when `expandDirectory` (the `extensions` key), resolved by
- *     {@link resolveExtensionDirectory} — its own package.json `omp`/`pi`
+ *     {@link resolveExtensionDirectory} — its own package.json `ngodeai`/`pi`
  *     `extensions`, then a direct index, then a one-level scan of
  *     sub-extensions — matching the pi `extensions/<name>/index.ts` convention
- *     and OMP's configured-directory (`-e`) extension loader
+ *     and NGODEAI's configured-directory (`-e`) extension loader
  *   - otherwise (tools/hooks/commands) only a direct index.{ts,js,mjs,cjs}.
- *     The sub-extension scan and the `omp`/`pi` `extensions` manifest are
+ *     The sub-extension scan and the `ngodeai`/`pi` `extensions` manifest are
  *     extensions-specific and must not hijack a non-extension directory entry
  *     (e.g. a `tools: "."` entry must still resolve `./index.ts`).
  *

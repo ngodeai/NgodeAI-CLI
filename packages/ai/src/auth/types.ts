@@ -114,7 +114,7 @@ export interface StoredCredentialBlock {
 /**
  * Identity slice of a disabled (soft-deleted) credential tombstone — cause and
  * account identity only, never token material. Surfaced so auto-disabled
- * accounts (e.g. an expired Anthropic OAuth grant) stay visible in `omp usage`
+ * accounts (e.g. an expired Anthropic OAuth grant) stay visible in `ngodeai usage`
  * instead of silently vanishing until the user notices missing quota.
  */
 export interface DisabledCredentialSummary {
@@ -388,7 +388,7 @@ export type AuthStorageOptions = {
 	 *
 	 * Examples:
 	 * - `"local ~/.ngodeai/agent/agent.db"`
-	 * - `"broker http://omp.internal:8765"`
+	 * - `"broker http://ngodeai.internal:8765"`
 	 */
 	sourceLabel?: string;
 };
@@ -842,7 +842,7 @@ export interface CredentialsApi {
 	 * Force the backing store to revalidate its credential snapshot, then
 	 * reload. Remote broker stores re-fetch the snapshot; local stores are
 	 * always current, so only the reload runs. Callers that pair live
-	 * per-credential data with stored identities (`omp usage`) use this so a
+	 * per-credential data with stored identities (`ngodeai usage`) use this so a
 	 * disk-cached snapshot cannot misattribute fresh reports.
 	 */
 	revalidate(): Promise<void>;
@@ -901,7 +901,7 @@ export interface CredentialsApi {
 	 */
 	disable(id: number, disabledCause: string): Promise<boolean>;
 	/**
-	 * Disabled credential tombstones for display surfaces (`omp usage`,
+	 * Disabled credential tombstones for display surfaces (`ngodeai usage`,
 	 * broker `GET /v1/credentials/disabled`). Empty when the backing store
 	 * keeps no tombstones or the remote broker predates the endpoint.
 	 */

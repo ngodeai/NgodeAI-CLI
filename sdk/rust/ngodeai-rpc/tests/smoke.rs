@@ -73,7 +73,7 @@ fn notification_type(event: &Event) -> String {
 }
 
 #[test]
-#[ignore = "spawns the real omp server; run with --ignored"]
+#[ignore = "spawns the real ngodeai server; run with --ignored"]
 fn smoke_real_server() {
 	let repo = repo_root();
 	let agent_dir = std::env::temp_dir().join(format!("ngodeai-rpc-rust-smoke-{}", std::process::id()));
@@ -214,7 +214,7 @@ fn tool_names(turn: &PromptTurn) -> Vec<(&'static str, String)> {
 }
 
 #[test]
-#[ignore = "spawns the real omp server and a scripted model; run with --ignored"]
+#[ignore = "spawns the real ngodeai server and a scripted model; run with --ignored"]
 fn smoke_scripted_model() {
 	let repo = repo_root();
 	let agent_dir = std::env::temp_dir().join(format!("ngodeai-rpc-rust-model-{}", std::process::id()));

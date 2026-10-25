@@ -137,7 +137,7 @@ function wrapUrlRows(label: string, url: string, width: number): string[] {
 /**
  * Renders the MCP OAuth fallback URL. Always shows the full authorization URL
  * as the primary `Copy URL:` target — that works from any machine, including
- * SSH/WSL/headless sessions where the OMP-hosted `/launch` loopback URL would
+ * SSH/WSL/headless sessions where the NGODEAI-hosted `/launch` loopback URL would
  * resolve against the user's local browser and fail.
  *
  * The render is `width`-aware: on any viewport narrower than the composed row
@@ -868,9 +868,9 @@ export class MCPCommandController {
 					openPath(info.url);
 					// Stage the FULL authorization URL on the clipboard via OSC 52.
 					// The full URL works from any machine (unlike `launchUrl`, which
-					// only resolves against the OMP host), and OSC 52 is a
+					// only resolves against the NGODEAI host), and OSC 52 is a
 					// wire-level protocol — the terminal writes it to the user's
-					// LOCAL clipboard even when OMP is on a remote SSH box.
+					// LOCAL clipboard even when NGODEAI is on a remote SSH box.
 					// Best-effort: falls back to the visible copy-URL rows below
 					// whether or not the terminal honors OSC 52.
 					void copyToClipboard(info.url).catch(() => {});

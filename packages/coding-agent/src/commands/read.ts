@@ -18,14 +18,14 @@ export default class Read extends Command {
 	};
 
 	static examples = [
-		"omp read src/foo.ts",
-		"omp read src/foo.ts:50-100",
-		"omp read src/foo.ts:raw",
-		"omp read https://example.com",
-		"omp read omp://",
-		"omp read issue://123",
-		"omp read path/to/archive.zip:dir/file.ts",
-		"omp read path/to/db.sqlite:users:42",
+		"ngodeai read src/foo.ts",
+		"ngodeai read src/foo.ts:50-100",
+		"ngodeai read src/foo.ts:raw",
+		"ngodeai read https://example.com",
+		"ngodeai read ngodeai://",
+		"ngodeai read issue://123",
+		"ngodeai read path/to/archive.zip:dir/file.ts",
+		"ngodeai read path/to/db.sqlite:users:42",
 	];
 
 	async run(): Promise<void> {

@@ -12,7 +12,7 @@ import { encodeTerminalImage } from "@ngodeai/coding-agent/utils/terminal-graphi
 // `getShellConfig()` validates that `shellPath` exists, and `/bin/bash` does not
 // on Windows. The ACP route only forwards the path to the stubbed client
 // terminal, so an empty `bash` file stands in for the resolved shell everywhere.
-const stubShellDir = TempDir.createSync("@omp-acp-shell-");
+const stubShellDir = TempDir.createSync("@ngode-acp-shell-");
 const STUB_BASH = stubShellDir.join(process.platform === "win32" ? "bash.exe" : "bash");
 fs.writeFileSync(STUB_BASH, "");
 afterAll(() => stubShellDir.removeSync());
@@ -148,7 +148,7 @@ describe("BashTool ACP terminal routing", () => {
 		await tool.execute("call-env-b", { command: "true" });
 
 		expect(sessionEnvOf(0)).toEqual({ PI_SESSION_ID: "session-a", PI_SESSION_FILE: fileA });
-		// Empty, not absent: an env overlay cannot unset a stale value inherited from a parent omp.
+		// Empty, not absent: an env overlay cannot unset a stale value inherited from a parent ngodeai.
 		expect(sessionEnvOf(1)).toEqual({ PI_SESSION_ID: "session-b", PI_SESSION_FILE: "" });
 	});
 
