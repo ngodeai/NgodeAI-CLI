@@ -4498,9 +4498,10 @@ export class InteractiveMode implements InteractiveModeContext {
 						},
 					}
 				: {}),
-			...(subagents > 0 || roster.length > 0
-				? { agents: { running: subagents, total: roster.length, list: roster } }
-				: {}),
+			// Always present: the sidebar keeps its AGENTS section visible with a
+			// "No agents running" line, so the pane's height does not jump every
+			// time the last agent finishes.
+			agents: { running: subagents, total: roster.length, list: roster },
 		});
 	}
 

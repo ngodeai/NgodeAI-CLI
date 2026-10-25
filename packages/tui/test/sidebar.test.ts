@@ -170,10 +170,22 @@ describe("StatusSidebar", () => {
 		}
 	});
 
-	/** An idle agent tree hides its section rather than showing "0 running". */
-	it("omits the agents section when nothing is running", () => {
+	/**
+	 * An idle roster keeps its section with an explicit "No agents running".
+	 * Hiding it made the pane's height jump whenever the last agent finished.
+	 */
+	it("keeps the agents section visible when nothing is running", () => {
 		const sidebar = new StatusSidebar();
 		sidebar.setState({ ...fullState, agents: { running: 0 } });
+		const text = plain(sidebar.render(32)).join("\n");
+		expect(text).toContain("AGENTS");
+		expect(text).toContain("No agents running");
+	});
+
+	/** No agents object at all means the host does not track them: no section. */
+	it("omits the agents section when the host tracks no agents", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState(fullState);
 		expect(plain(sidebar.render(32)).join("\n")).not.toContain("AGENTS");
 	});
 

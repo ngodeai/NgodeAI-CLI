@@ -18,9 +18,11 @@ function composerWith(rows: number, columns: number) {
 	composer.start();
 	const transcript = new TranscriptContainer();
 	// Deliberately short lines: the bug was that unpadded transcript rows let
-	// the divider slide left on every row that did not fill the pane.
+	// the divider slide left on every row that did not fill the pane. Enough of
+	// them to fill the viewport, which is when the pane had to extend its frame.
 	transcript.addChild(new Text("short", 0, 0));
 	transcript.addChild(new Text("another short line", 0, 0));
+	for (let index = 0; index < 40; index++) transcript.addChild(new Text(`filler ${index}`, 0, 0));
 	composer.setRuntimeChildren([transcript]);
 	composer.setSidebar({
 		tasks: [{ name: "", tasks: [{ content: "do the thing", status: "in_progress" }] }],
@@ -60,14 +62,15 @@ describe("composer sidebar split", () => {
 		const { composer, term } = composerWith(40, columns);
 		try {
 			const rows = composer.renderFrame({ columns, rows: 40 }).viewport.map(row => Bun.stripANSI(row));
-			// The frame is a closed box: interior rows end with the right rule,
-			// and the top and bottom rows end with their corner dot. No trimEnd
-			// anywhere — the rule is the last cell.
-			for (const row of rows.slice(1, -1)) expect(row.endsWith("│")).toBe(true);
-			expect(rows[0]).toContain("▪");
-			// The closing rule sits on the final row, not mid-screen.
-			expect(rows.at(-1)).toContain("▪");
-			expect(rows.at(-1)?.trimStart().startsWith("│") || rows.at(-1)?.includes("│▪")).toBe(true);
+			// Exactly one top rule and one bottom rule, and the bottom one is on
+			// the pane's last row. Two closing rules (one after the last section,
+			// one at the viewport's end) left a band of empty frame between them.
+			const rules = rows.filter(row => row.includes("▪"));
+			expect(rules.length).toBe(2);
+			expect(rules[0]).toBe(rows[0]);
+			expect(rules[1]).toBe(rows[rows.length - 1]);
+			// Every row ends with a right rule or the closing corner dot.
+			for (const row of rows) expect(row.endsWith("│") || row.endsWith("▪")).toBe(true);
 		} finally {
 			composer.stop();
 		}

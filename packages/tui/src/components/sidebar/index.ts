@@ -380,8 +380,14 @@ function modelRows(model: SidebarModel, width: number): string[] {
  * sidebar mirrors that instead of hiding it behind a modal.
  */
 function agentRows(agents: SidebarAgents, width: number): string[] {
-	if (agents.running <= 0 && (agents.list?.length ?? 0) === 0) return [];
 	const rows: string[] = [];
+
+	// An empty roster still shows the section. Hiding it made the pane's height
+	// change every time the last agent finished, and left the user wondering
+	// whether agents were supported at all.
+	if (agents.running <= 0 && (agents.list?.length ?? 0) === 0) {
+		return [truncateToWidth(theme.fg("dim", "No agents running"), width)];
+	}
 
 	// Count line: `1 running · 2 total` when there is history behind it.
 	if (agents.running > 0) {
@@ -467,6 +473,16 @@ export class StatusSidebar implements Component {
 		return this.#visible;
 	}
 
+	/**
+	 * Rows the pane should occupy. The host sets this to the viewport height so
+	 * the frame's bottom rule lands on the last row instead of mid-screen.
+	 */
+	setHeight(height: number | undefined): void {
+		this.#height = height === undefined ? undefined : Math.max(0, Math.round(height));
+	}
+
+	#height: number | undefined;
+
 	render(width: number): readonly string[] {
 		this.#width = Math.max(0, width);
 		this.#visible = this.#width >= SIDEBAR_MIN_WIDTH;
@@ -497,7 +513,7 @@ export class StatusSidebar implements Component {
 			rows.push(...heading("Model", rows.length === 0));
 			rows.push(...modelRows(model, contentWidth));
 		}
-		if (agents && agents.running > 0) {
+		if (agents) {
 			rows.push(...heading("Agents", rows.length === 0));
 			rows.push(...agentRows(agents, contentWidth));
 		}
@@ -505,7 +521,7 @@ export class StatusSidebar implements Component {
 		// An empty pane still draws its frame: the sidebar is a persistent part of
 		// the layout, and a frame that appears and disappears as sections come and
 		// go reads as flicker.
-		return frame(rows, this.#width);
+		return frame(rows, this.#width, this.#height);
 	}
 
 	/** Native mirror of {@link render}: the same sections as TSP nodes. */
@@ -564,9 +580,10 @@ export class StatusSidebar implements Component {
 			sections.push(text([span(model.displayName ?? model.selector, "accent")], { wrap: "none" }));
 		}
 
-		if (agents && agents.running > 0) {
+		if (agents) {
 			sections.push(text([span("AGENTS", "dim strong")]));
-			sections.push(text([span(`${agents.running} running`, "muted")], { wrap: "none" }));
+			const label = agents.running > 0 ? `${agents.running} running` : "No agents running";
+			sections.push(text([span(label, agents.running > 0 ? "muted" : "dim")], { wrap: "none" }));
 		}
 
 		return col(sections, { gap: "sm", role: "ngodeai.sidebar" });
@@ -581,13 +598,23 @@ export class StatusSidebar implements Component {
  * Every row is padded to exactly `width` so a row shorter than the frame never
  * leaves the rule floating mid-line.
  */
-function frame(rows: readonly string[], width: number): string[] {
+function frame(rows: readonly string[], width: number, height?: number): string[] {
 	const innerWidth = Math.max(1, width - 2);
 	const rule = theme.fg("border", FRAME.horizontal.repeat(innerWidth));
 	const edge = (left: string, right: string): string => theme.fg("accent", left) + rule + theme.fg("accent", right);
 
+	// Grow the body to fill the requested height so the closing rule lands on
+	// the pane's last row. Without this the bottom rule sat right after the last
+	// section and the rest of the pane was a borderless void.
+	const body = [...rows];
+	if (height !== undefined) {
+		const interior = Math.max(0, height - 2);
+		while (body.length < interior) body.push("");
+		body.length = Math.min(body.length, interior);
+	}
+
 	const out: string[] = [edge(FRAME.topLeft, FRAME.topRight)];
-	for (const row of rows) {
+	for (const row of body) {
 		const body = row;
 		const bodyWidth = visibleWidth(body);
 		// Padding on BOTH sides: innerWidth is the space between the two rules,

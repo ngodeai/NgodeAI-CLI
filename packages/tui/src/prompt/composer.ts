@@ -222,12 +222,6 @@ function sidebarFiller(width: number): string {
 	return theme.fg("border", "│") + " ".repeat(inner) + theme.fg("border", "│");
 }
 
-/** The frame's closing rule, for the last viewport row. */
-function sidebarBottomRule(width: number): string {
-	const inner = Math.max(0, width - 2);
-	return theme.fg("accent", "▪") + theme.fg("border", "─".repeat(inner)) + theme.fg("accent", "▪");
-}
-
 export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	readonly ui: TUI;
 	#editor: CustomEditor;
@@ -474,6 +468,10 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		const dividerWidth = 1;
 		const leftWidth = Math.max(1, viewport.columns - paneWidth - dividerWidth);
 		const plan = this.#renderFrameInner({ columns: leftWidth, rows: viewport.rows });
+		// The pane owns its full height: the sidebar grows its frame to the
+		// viewport so the closing rule lands on the last row. Composing filler
+		// here instead drew a second border after the sidebar's own.
+		sidebar.setHeight(Math.max(plan.viewport.length, viewport.rows));
 		const paneRows = sidebar.render(paneWidth);
 		this.#sidebarVisible = sidebar.visible;
 		if (!this.#sidebarVisible) return this.#renderFrameInner(viewport);
@@ -486,18 +484,13 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 			const gap = leftWidth - visibleWidth(row);
 			return gap > 0 ? row + " ".repeat(gap) : row;
 		};
-		// The pane fills the viewport height. The sidebar renders only as many
-		// rows as it has sections, and a frame that stopped after the last
-		// section left the transcript's tail beside a borderless void — the
-		// bottom rule has to sit on the last row, not mid-screen.
+		// The sidebar already fills the height and closes its own frame, so this
+		// loop only pads the transcript side and joins the two panes.
 		const height = Math.max(plan.viewport.length, paneRows.length);
 		const viewportRows: string[] = [];
 		for (let index = 0; index < height; index++) {
 			const row = plan.viewport[index] ?? "";
-			// Interior rows between sections are blank; the closing rule belongs
-			// on the final row so the frame reads as one box.
-			const isLast = index === height - 1;
-			const pane = paneRows[index] ?? (isLast ? sidebarBottomRule(paneWidth) : sidebarFiller(paneWidth));
+			const pane = paneRows[index] ?? sidebarFiller(paneWidth);
 			viewportRows.push(padToPane(row) + divider + pane);
 		}
 		return { ...plan, viewport: viewportRows };
