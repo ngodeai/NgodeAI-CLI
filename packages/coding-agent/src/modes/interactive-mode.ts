@@ -45,7 +45,7 @@ import {
 } from "@ngodeai/tui";
 import type { TerminalAppearanceRequestToken } from "@ngodeai/tui/terminal";
 import type { DescribeContext, NativeChild, NativeNode, NativeUiEvent } from "@ngodeai/tui/native/node";
-import type { SidebarAgent } from "@ngodeai/tui/components/sidebar/index";
+import type { SidebarAgent, SidebarState } from "@ngodeai/tui/components/sidebar/index";
 import { col, compact, kbd, keyed, node, row, span, text } from "@ngodeai/tui/native/describe";
 import {
 	describeJobWidgetMiniSpark,
@@ -662,11 +662,10 @@ export interface InteractiveModeOptions {
 
 export const TODO_COMPACT_TERMINAL_ROWS_THRESHOLD = 18;
 
-/** Holds mutable HUD and editor-adjacent chrome outside transcript history. */
-/** Agents the sidebar lists; beyond this the roster is summarised by its count. */
 /** The one composer shape this build ships. */
 const DEFAULT_COMPOSER_SHAPE = "claude";
 
+/** Agents the sidebar lists; beyond this the roster is summarised by its count. */
 const SIDEBAR_AGENT_CAP = 4;
 
 class AnchoredLiveContainer extends Container {}
@@ -1355,6 +1354,15 @@ export class InteractiveMode implements InteractiveModeContext {
 		| ((tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) => CustomEditor)
 		| undefined;
 	#composerStatusPersistTimer: NodeJS.Timeout | undefined;
+	/**
+	 * Session-independent sidebar sections from the last push.
+	 *
+	 * Only the branch and the model: those describe the machine and the
+	 * configuration, so replaying them next launch is honest. The plan, the
+	 * spend and the context gauge belong to one session and would read as
+	 * current numbers if cached, so they stay out.
+	 */
+	#lastSidebarHeader: Pick<SidebarState, "git" | "model"> = {};
 	readonly #initialComposerModel: Model | undefined;
 	readonly #judgmentBatchProgressHud = new JudgmentBatchProgressHud();
 	readonly #downloadActivityHud = new DownloadActivityHud(() => this.ui.requestRender());
@@ -3904,7 +3912,10 @@ export class InteractiveMode implements InteractiveModeContext {
 					: null,
 			},
 		};
-		sharedComposerCache()?.writeStatus(this.sessionManager.getCwd(), status);
+		sharedComposerCache()?.writeStatus(this.sessionManager.getCwd(), {
+			...status,
+			sidebar: this.#lastSidebarHeader,
+		});
 	}
 
 	#handleSessionAccentInputsChanged(): void {
@@ -4461,7 +4472,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		const subagents = this.statusLine.subagentCount;
 		const roster = this.#sidebarAgentRoster();
 
-		this.composer.setSidebar({
+		const sidebarState: SidebarState = {
 			tasks: phases.map(phase => ({
 				name: phase.name,
 				tasks: phase.tasks.map(task => ({
@@ -4504,7 +4515,12 @@ export class InteractiveMode implements InteractiveModeContext {
 			// "No agents running" line, so the pane's height does not jump every
 			// time the last agent finishes.
 			agents: { running: subagents, total: roster.length, list: roster },
-		});
+		};
+		this.#lastSidebarHeader = {
+			...(sidebarState.git ? { git: sidebarState.git } : {}),
+			...(sidebarState.model ? { model: sidebarState.model } : {}),
+		};
+		this.composer.setSidebar(sidebarState);
 	}
 
 	/**

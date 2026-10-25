@@ -24,6 +24,7 @@ import * as logger from "@ngodeai/utils/logger";
 import * as postmortem from "@ngodeai/utils/postmortem";
 import { openSqliteDatabaseSync } from "@ngodeai/utils/sqlite";
 import { isRecord } from "@ngodeai/utils/type-guards";
+import type { SidebarState, SidebarTaskStatus } from "../components/sidebar";
 import type { ComposerPreferences, ComposerStatusCache } from "./composer";
 import { readStatusLineStartupData } from "../status-line/startup";
 import type { SymbolPreset } from "../theme/theme";
@@ -76,12 +77,110 @@ function parseStatus(value: unknown): ComposerStatusCache | undefined {
 	if (!isRecord(value)) return undefined;
 	const statusLine = readStatusLineStartupData(value.statusLine);
 	if (!statusLine) return undefined;
+	const sidebar = parseSidebar(value.sidebar);
 	const rawBorderColor = value.borderColor;
-	if (rawBorderColor === undefined) return { statusLine };
+	if (rawBorderColor === undefined) return { statusLine, ...(sidebar ? { sidebar } : {}) };
 	if (!isRecord(rawBorderColor)) return undefined;
 	const { prefix, suffix } = rawBorderColor;
 	if (typeof prefix !== "string" || typeof suffix !== "string") return undefined;
-	return { borderColor: { prefix, suffix }, statusLine };
+	return { borderColor: { prefix, suffix }, statusLine, ...(sidebar ? { sidebar } : {}) };
+}
+
+function isSidebarTaskStatus(value: unknown): value is SidebarTaskStatus {
+	return (
+		value === "pending" ||
+		value === "in_progress" ||
+		value === "completed" ||
+		value === "abandoned" ||
+		value === "blocked"
+	);
+}
+
+/**
+ * Shape check for a cached sidebar snapshot.
+ *
+ * The pane is the one cached surface with user-visible numbers, so a stale or
+ * hand-edited row must never render as if it were current: every field is
+ * validated, and anything unrecognised drops the whole snapshot rather than
+ * producing a half-filled pane.
+ */
+function parseSidebar(value: unknown): SidebarState | undefined {
+	if (!isRecord(value)) return undefined;
+	const tasks = Array.isArray(value.tasks)
+		? value.tasks.filter(isRecord).flatMap(phase => {
+				if (typeof phase.name !== "string" || !Array.isArray(phase.tasks)) return [];
+				const rows = phase.tasks.filter(isRecord).flatMap(task => {
+					if (typeof task.content !== "string") return [];
+					const status = task.status;
+					if (!isSidebarTaskStatus(status)) return [];
+					return [
+						{
+							content: task.content,
+							status,
+							...(typeof task.blocker === "string" ? { blocker: task.blocker } : {}),
+						},
+					];
+				});
+				return rows.length > 0 ? [{ name: phase.name, tasks: rows }] : [];
+			})
+		: [];
+
+	const context =
+		isRecord(value.context) &&
+		typeof value.context.usedTokens === "number" &&
+		typeof value.context.maxTokens === "number"
+			? {
+					usedTokens: value.context.usedTokens,
+					maxTokens: value.context.maxTokens,
+					...(typeof value.context.percent === "number" ? { percent: value.context.percent } : {}),
+				}
+			: undefined;
+
+	const usage =
+		isRecord(value.usage) &&
+		typeof value.usage.inputTokens === "number" &&
+		typeof value.usage.outputTokens === "number"
+			? {
+					inputTokens: value.usage.inputTokens,
+					outputTokens: value.usage.outputTokens,
+					...(typeof value.usage.cost === "number" ? { cost: value.usage.cost } : {}),
+					...(typeof value.usage.elapsedMs === "number" ? { elapsedMs: value.usage.elapsedMs } : {}),
+					...(typeof value.usage.cacheHitRate === "number" ? { cacheHitRate: value.usage.cacheHitRate } : {}),
+					...(typeof value.usage.tokensPerSecond === "number"
+						? { tokensPerSecond: value.usage.tokensPerSecond }
+						: {}),
+				}
+			: undefined;
+
+	const git = isRecord(value.git) && typeof value.git.branch === "string" ? { branch: value.git.branch } : undefined;
+
+	const model =
+		isRecord(value.model) && typeof value.model.selector === "string"
+			? {
+					selector: value.model.selector,
+					...(typeof value.model.displayName === "string" ? { displayName: value.model.displayName } : {}),
+					...(typeof value.model.effort === "string" ? { effort: value.model.effort } : {}),
+					...(typeof value.model.subscription === "boolean" ? { subscription: value.model.subscription } : {}),
+				}
+			: undefined;
+
+	const agents =
+		isRecord(value.agents) && typeof value.agents.running === "number"
+			? {
+					running: value.agents.running,
+					...(typeof value.agents.total === "number" ? { total: value.agents.total } : {}),
+				}
+			: undefined;
+
+	if (tasks.length === 0 && !context && !usage && !git && !model && !agents) return undefined;
+	return {
+		...(tasks.length > 0 ? { tasks } : {}),
+		...(context ? { context } : {}),
+		...(usage ? { usage } : {}),
+		...(git ? { git } : {}),
+		...(model ? { model } : {}),
+		...(agents ? { agents } : {}),
+	};
 }
 
 function parseUiState(

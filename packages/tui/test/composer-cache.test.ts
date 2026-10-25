@@ -170,4 +170,30 @@ describe("composer startup cache", () => {
 		expect(exitCode, stderr).toBe(0);
 		expect(stdout).toBe("true");
 	});
+	it("round-trips the session-independent sidebar header and drops a malformed one", () => {
+		const project = path.join(root, "project");
+		const status: ComposerStatusCache = {
+			...statusFor(ThinkingLevel.Low),
+			sidebar: {
+				git: { branch: "main" },
+				model: { selector: "ngodeai/deepseek", displayName: "DeepSeek V4" },
+			},
+		};
+
+		const cache = ComposerCache.open(dbPath);
+		cache.writeStatus(project, status);
+		expect(cache.read(project).status?.sidebar).toEqual({
+			git: { branch: "main" },
+			model: { selector: "ngodeai/deepseek", displayName: "DeepSeek V4" },
+		});
+
+		// A snapshot whose every section fails validation is dropped whole, so the
+		// prepaint frame draws no pane rather than a half-filled one.
+		cache.writeStatus(project, {
+			...statusFor(ThinkingLevel.Low),
+			sidebar: { git: { branch: 7 }, model: { selector: null } } as never,
+		});
+		expect(cache.read(project).status?.sidebar).toBeUndefined();
+		cache.close();
+	});
 });

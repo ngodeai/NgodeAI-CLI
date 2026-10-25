@@ -79,6 +79,16 @@ export interface ComposerStatusCache {
 		readonly suffix: string;
 	};
 	readonly statusLine: StatusLineStartupData;
+	/**
+	 * Sidebar snapshot from the last session.
+	 *
+	 * Without it the prepaint frame has no pane at all, and the sidebar only
+	 * appears on the first frame after `InteractiveMode.init()` — a visible
+	 * jump on wide terminals. Replaying the last state means the pane is
+	 * already there, framed and populated, before the session exists; the
+	 * live sync replaces it as soon as it has real numbers.
+	 */
+	readonly sidebar?: SidebarState;
 }
 
 /** Optional dependencies and initial state for a standalone composer. */
@@ -370,11 +380,16 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 			// Extension-defined styles arrive with the session; InteractiveMode reapplies them.
 		}
 		if (options.status) {
-			const { borderColor, statusLine } = options.status;
+			const { borderColor, statusLine, sidebar } = options.status;
 			if (borderColor) this.editor.borderColor = text => `${borderColor.prefix}${text}${borderColor.suffix}`;
 			this.#startupStatus = createStartupStatusLine(statusLine);
 			this.#statusHost.setComponent(this.#startupStatus);
 			this.#startupStatus.attachToEditor(this.editor, getComposerStyle(this.#preferences.composerShape));
+			// Mount the pane from the cached snapshot so the very first frame is
+			// already split. The live sync replaces this state once the session
+			// exists; until then it is the last thing the user saw, which is a
+			// better guess than an empty column that appears a beat later.
+			if (sidebar) this.setSidebar(sidebar);
 		}
 		// Emergency controls stay active until InteractiveMode installs configured bindings.
 		// They deliberately mirror the interactive editor's contract so a stalled startup

@@ -87,4 +87,47 @@ describe("composer sidebar split", () => {
 			composer.stop();
 		}
 	});
+	/**
+	 * The prepaint frame must already carry the pane. Without a cached snapshot
+	 * the first frame is unsplit and the sidebar grows in a beat later, which
+	 * reads as a delay on every launch.
+	 */
+	it("paints the cached sidebar header in the very first frame", () => {
+		const term = new VirtualTerminal(140, 24);
+		const composer = new Composer({
+			terminal: term,
+			preferences: { ...COMPOSER_DEFAULTS, quiet: true },
+			status: {
+				statusLine: {
+					settings: { leftSegments: ["model"], contextLine: "embedded" },
+					gitEnabled: true,
+					autoThinking: false,
+					fastMode: false,
+					usingSubscription: false,
+					autoCompactEnabled: true,
+					compactionBoundaries: null,
+				},
+				sidebar: {
+					git: { branch: "main" },
+					model: { selector: "ngodeai/deepseek", displayName: "DeepSeek V4" },
+				},
+			},
+		});
+		composer.start();
+		// No setSidebar() call between construction and this frame: the pane comes
+		// from the snapshot alone, exactly as it does before the session exists.
+		const plan = composer.renderFrame({ columns: 140, rows: 24 });
+		const painted = plan.viewport.map(row => Bun.stripANSI(row)).join("\n");
+
+		expect(composer.sidebarVisible).toBe(true);
+		expect(painted).toContain("GIT");
+		expect(painted).toContain("main");
+		expect(painted).toContain("MODEL");
+		expect(painted).toContain("DeepSeek V4");
+		// No session-only section may be replayed: those numbers would be stale.
+		expect(painted).not.toContain("CONTEXT");
+		expect(painted).not.toContain("SESSION");
+		for (const row of plan.viewport) expect(visibleWidth(row)).toBe(140);
+		composer.stop();
+	});
 });
