@@ -86,14 +86,24 @@ describe("WelcomeComponent", () => {
 		const indent = (row: string) => visibleWidth(row) - visibleWidth(row.trimStart());
 		const expectCentered = (left: number, right: number) => expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
 
-		// The lockup is one block: the mark's first row starts it, the wordmark
-		// row ends it.
-		const bar = rows.find(row => row.includes("██╗  ██╗")) ?? "";
-		const word = rows.find(row => row.includes("NgodeAI")) ?? "";
-		expectCentered(indent(bar), columns - visibleWidth(word));
+		// The card frames the lockup: its first and last rows are the square-dot
+		// rules, and the tagline sits beside the mark.
+		const top = rows.findIndex(row => row.trimStart().startsWith("▪"));
+		const bottom = rows.findLastIndex(row => row.trimStart().startsWith("▪"));
+		expect(top).toBeGreaterThanOrEqual(0);
+		expect(bottom).toBeGreaterThan(top);
+
+		// Every row between the rules is a card row and centers inside it.
+		for (const row of rows.slice(top + 1, bottom)) {
+			if (row.length === 0) continue;
+			expect(row.trimStart().startsWith("│")).toBe(true);
+			expect(row.trimEnd().endsWith("│")).toBe(true);
+		}
 
 		// Each tip line centers on its own.
-		const below = rows.slice(rows.findIndex(row => row.includes("Tip: "))).filter(row => row.length > 0);
+		const tipStart = rows.findIndex(row => row.includes("Tip: "));
+		expect(tipStart).toBeGreaterThan(top);
+		const below = rows.slice(tipStart).filter(row => row.length > 0);
 		expect(below.length).toBeGreaterThanOrEqual(1);
 		for (const row of below) expectCentered(indent(row), columns - visibleWidth(row));
 	});
@@ -105,20 +115,22 @@ describe("WelcomeComponent", () => {
 		expect(text(49)).toContain("v1.0.0");
 	});
 
-	it("sets the version under the wordmark while the lockup fits, else keeps the logo alone", () => {
+	it("shows the tagline beside the mark when wide, stacked when narrow", () => {
 		const rows = (columns: number) => new WelcomeComponent("1.0.0").render(columns).map(row => Bun.stripANSI(row));
+		const TAGLINE = "Powerful Coding Models without Masking";
 
-		// The lockup needs 8 mark + 4 gap + 7 wordmark columns inside the
-		// 2-column margin, so 21 columns fits and 20 does not.
-		const fits = rows(21);
-		const word = fits.find(row => row.includes("NgodeAI"));
-		const version = fits.find(row => row.includes("v1.0.0"));
-		expect(fits.some(row => row.includes("██╗  ██╗"))).toBe(true);
-		expect(version?.indexOf("v1.0.0")).toBe(word?.indexOf("NgodeAI"));
+		// Wide: the tagline and version share a row with the glyphs.
+		const wide = rows(140);
+		const beside = wide.find(row => row.includes(TAGLINE));
+		expect(beside).toBeDefined();
+		expect(beside).toContain("█");
+		expect(wide.some(row => row.includes("v1.0.0"))).toBe(true);
 
-		const narrow = rows(20).join("\n");
-		expect(narrow).toContain("██╗  ██╗");
-		expect(narrow).not.toContain("NgodeAI");
-		expect(narrow).not.toContain("v1.0.0");
+		// Narrow: the tagline drops below the mark instead of disappearing.
+		const narrow = rows(70);
+		const stacked = narrow.find(row => row.includes(TAGLINE));
+		expect(stacked).toBeDefined();
+		expect(stacked).not.toContain("█");
+		expect(narrow.some(row => row.includes("v1.0.0"))).toBe(true);
 	});
 });

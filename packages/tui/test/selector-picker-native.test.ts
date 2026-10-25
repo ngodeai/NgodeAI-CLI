@@ -251,7 +251,9 @@ describe("oauth selector picker", () => {
 			id => log.push(id),
 			() => log.push("cancel"),
 		);
-		const target = providers.find(p => p.available)!.id;
+		// A provider that is NOT already signed in: login mode refuses to re-enter
+		// the flow for a row that says "logged in".
+		const target = providers.find(p => p.available && p.id !== signedIn)!.id;
 		selector.handleNativeEvent(at("activate", target));
 		selector.handleNativeEvent(act("close"));
 		expect(log).toEqual([target, "cancel"]);
