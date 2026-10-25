@@ -355,73 +355,55 @@ export function getConfigDirName(): string {
 }
 
 /**
- * Move a pre-rebrand config root into `~/.ngodeai`.
+ * Copy a pre-rebrand config root into `~/.ngodeai`.
  *
- * Renames when the canonical root does not exist yet — atomic on the same
- * filesystem, so a 1 GB session store costs one `rename(2)`. When both roots
- * exist the legacy tree is *merged* in, entry by entry, without overwriting
- * anything already under the canonical root; the legacy directory is then
- * removed. Failures are swallowed: a read-only or cross-device HOME must not
- * stop the CLI from starting, and the next run retries.
+ * **Copies, never moves.** A pre-rebrand CLI may still be installed and running
+ * against its own root; taking its files away would corrupt a live session.
+ * The legacy tree is left exactly as it is and the copy is additive: an entry
+ * already present under the canonical root wins, the legacy one is skipped.
  *
- * Called once per process from {@link getConfigRootDir}, so every path
- * consumer sees the post-migration layout.
+ * Opt-in only — `ngodeai config migrate`. Nothing calls this at module load.
  */
-export function migrateLegacyConfigRoot(): void {
-	if (legacyMigrationAttempted) return;
-	legacyMigrationAttempted = true;
+export function migrateLegacyConfigRoot(): { copied: number; skipped: number; sources: string[] } {
 	const home = os.homedir();
 	const canonical = path.join(home, CONFIG_DIR_NAME);
+	const stats = { copied: 0, skipped: 0, sources: [] as string[] };
 	for (const legacyName of LEGACY_CONFIG_DIR_NAMES) {
 		const legacy = path.join(home, legacyName);
 		if (!fs.existsSync(legacy)) continue;
-		try {
-			if (!fs.existsSync(canonical)) {
-				fs.renameSync(legacy, canonical);
-				continue;
-			}
-			mergeDirectorySync(legacy, canonical);
-		} catch {
-			// A running older process holds the SQLite files open on Windows,
-			// which makes both the rename and the per-entry move fail with
-			// EPERM. Whatever did move is already in place, so stop here and
-			// let the next start (with the old process gone) finish the job.
-			continue;
-		}
-		try {
-			fs.rmSync(legacy, { recursive: true, force: true });
-		} catch {}
+		stats.sources.push(legacy);
+		copyDirectorySync(legacy, canonical, stats);
 	}
-}
-
-let legacyMigrationAttempted = false;
-
-/** Test seam: let a suite re-run the migration against a fresh temp HOME. */
-export function __resetLegacyMigrationForTests(): void {
-	legacyMigrationAttempted = false;
+	return stats;
 }
 
 /**
- * Recursively move `from` into `to`, never replacing an existing entry.
+ * Recursively copy `from` into `to`, never replacing an existing entry.
  *
- * A file that cannot be moved (Windows sharing violation on an open SQLite
- * database, most often) is skipped rather than aborting the whole merge: the
- * remaining entries still migrate, and the source root survives so the next
- * run retries the stragglers.
+ * A file that cannot be read (a SQLite database held open by the running
+ * pre-rebrand process, most often) is counted as skipped instead of aborting:
+ * the rest of the tree still copies, and re-running after that process exits
+ * fills in the remainder.
  */
-function mergeDirectorySync(from: string, to: string): void {
+function copyDirectorySync(from: string, to: string, stats: { copied: number; skipped: number }): void {
 	fs.mkdirSync(to, { recursive: true });
 	for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
 		const source = path.join(from, entry.name);
 		const target = path.join(to, entry.name);
 		try {
 			if (entry.isDirectory()) {
-				mergeDirectorySync(source, target);
+				copyDirectorySync(source, target, stats);
 				continue;
 			}
-			if (fs.existsSync(target)) continue;
-			fs.renameSync(source, target);
-		} catch {}
+			if (fs.existsSync(target)) {
+				stats.skipped += 1;
+				continue;
+			}
+			fs.copyFileSync(source, target, fs.constants.COPYFILE_EXCL);
+			stats.copied += 1;
+		} catch {
+			stats.skipped += 1;
+		}
 	}
 }
 
@@ -622,10 +604,9 @@ function resolveActiveAgentDirOverride(): string | undefined {
 		: resolvePreProfileAgentDir(undefined, readAgentDirEnv(), readPiProfileFromEnvSafe());
 }
 
-// A pre-rebrand config root must move before the first DirResolver is
-// built: every path below is derived from `os.homedir()` + config dir name, so
-// migrating afterwards would leave this process pointing at the old tree.
-migrateLegacyConfigRoot();
+// The pre-rebrand root is never touched automatically: a still-installed
+// pre-rebrand CLI may be running against it, and moving its files would break
+// that live session. Migration is opt-in via `ngodeai config migrate`.
 
 let dirs = new DirResolver({
 	agentDirOverride: resolveActiveAgentDirOverride(),

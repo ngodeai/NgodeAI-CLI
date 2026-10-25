@@ -13,7 +13,7 @@ import chalk from "@ngodeai/utils/chalk";
 import { orderedSettings } from "../config/all-settings";
 import { type AnySetting, lookup } from "../config/registry";
 import { Settings, settings } from "../config/settings";
-import { migrateLegacyConfigRoot, __resetLegacyMigrationForTests } from "@ngodeai/utils";
+import { migrateLegacyConfigRoot } from "@ngodeai/utils";
 import { theme } from "@ngodeai/tui/theme";
 import { initXdg } from "./commands/init-xdg";
 
@@ -193,12 +193,12 @@ export async function runConfigCommand(cmd: ConfigCommandArgs): Promise<void> {
 }
 
 /**
- * Move a pre-rebrand config root into the canonical one.
+ * Copy a pre-rebrand config root into the canonical one.
  *
- * `migrateLegacyConfigRoot` already runs at module load, so this handler exists
- * for the case the user wants the move performed deliberately and reported:
- * it re-runs the migration with the process-level "already attempted" latch
- * cleared and prints where the data went.
+ * Deliberately non-destructive: the old root is left untouched so a still
+ * installed pre-rebrand CLI keeps working. Anything already present under
+ * `~/.ngodeai` wins; the command reports how much was copied and how much was
+ * left behind because it already existed or was locked.
  */
 async function handleMigrate(): Promise<void> {
 	const home = os.homedir();
@@ -206,18 +206,18 @@ async function handleMigrate(): Promise<void> {
 	const legacyRoots = LEGACY_CONFIG_DIR_NAMES.map(name => path.join(home, name)).filter(dir => fs.existsSync(dir));
 
 	if (legacyRoots.length === 0) {
-		console.log(`${canonical.replace(home, "~")} is already the only config root; nothing to migrate.`);
+		console.log(`No pre-rebrand config root found; ${canonical.replace(home, "~")} is already the only one.`);
 		return;
 	}
 
-	__resetLegacyMigrationForTests();
-	migrateLegacyConfigRoot();
+	console.log(`Copying into ${canonical.replace(home, "~")} (sources are left in place):`);
+	const stats = migrateLegacyConfigRoot();
 
-	for (const legacy of legacyRoots) {
-		const label = legacy.replace(home, "~");
-		console.log(
-			fs.existsSync(legacy) ? `could not remove ${label}` : `moved ${label} → ${canonical.replace(home, "~")}`,
-		);
+	for (const source of stats.sources) console.log(`  from ${source.replace(home, "~")}`);
+	console.log(`\n  copied:  ${stats.copied} file(s)`);
+	if (stats.skipped > 0) {
+		console.log(`  skipped: ${stats.skipped} file(s) already present or locked by a running process`);
+		console.log("           re-run this command after closing the old CLI to pick up the rest.");
 	}
 	console.log(`\nActive config root: ${getAgentDir().replace(home, "~")}`);
 }
