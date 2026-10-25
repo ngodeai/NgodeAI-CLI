@@ -12,11 +12,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ngodeai/NgodeAI.git",
+    "url": "git+https://github.com/ngodeai/NgodeAI-CLI.git",
     "directory": "packages/collab-web"
   },
   "bugs": {
-    "url": "https://github.com/ngodeai/NgodeAI/issues"
+    "url": "https://github.com/ngodeai/NgodeAI-CLI/issues"
   },
   "keywords": [
     "collab",

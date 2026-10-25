@@ -92,7 +92,10 @@ export function buildLeafManifest({ tag, os, cpu, files, version }: BuildLeafMan
 	return {
 		name: `@ngodeai/natives-${tag}`,
 		version,
-		author: "Stencil Labs, Inc.",
+		author: {
+			name: "NgodeAI",
+			url: "https://ngodeai.net",
+		},
 		os: [os],
 		cpu: [cpu],
 		main: `./${main}`,
@@ -100,7 +103,7 @@ export function buildLeafManifest({ tag, os, cpu, files, version }: BuildLeafMan
 		license: "MIT",
 		repository: {
 			type: "git",
-			url: "git+https://github.com/can1357/oh-my-pi.git",
+			url: "git+https://github.com/ngodeai/NgodeAI-CLI.git",
 			directory: "packages/natives",
 		},
 		engines: {

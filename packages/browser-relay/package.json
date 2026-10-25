@@ -12,7 +12,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ngodeai/NgodeAI.git",
+    "url": "git+https://github.com/ngodeai/NgodeAI-CLI.git",
     "directory": "packages/browser-relay"
   },
   "scripts": {

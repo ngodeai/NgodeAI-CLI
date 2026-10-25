@@ -1,6 +1,6 @@
 # roboomp
 
-Self-hosted GitHub triage bot. Drives [`ngodeai --mode rpc`](https://github.com/ngodeai/NgodeAI)
+Self-hosted GitHub triage bot. Drives [`ngodeai --mode rpc`](https://github.com/ngodeai/NgodeAI-CLI)
 as a subprocess against a per-issue git worktree, then writes back to GitHub
 through a sidecar that holds the PAT.
 

@@ -1,7 +1,7 @@
 # ngodeai-rpc (Go)
 
 Go client for the omp RPC protocol (`ngodeai --mode rpc`, JSON lines over stdio).
-Module `github.com/ngodeai/NgodeAI/sdk/go/ngodeai-rpc`, package `omprpc`, standard library only.
+Module `github.com/ngodeai/NgodeAI-CLI/sdk/go/ngodeai-rpc`, package `omprpc`, standard library only.
 
 ## Layout
 

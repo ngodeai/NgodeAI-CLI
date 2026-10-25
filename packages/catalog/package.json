@@ -11,7 +11,7 @@
   ],
   "homepage": "https://ngodeai.net",
   "bugs": {
-    "url": "https://github.com/ngodeai/NgodeAI/issues"
+    "url": "https://github.com/ngodeai/NgodeAI-CLI/issues"
   },
   "license": "MIT",
   "author": {
@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ngodeai/NgodeAI.git",
+    "url": "git+https://github.com/ngodeai/NgodeAI-CLI.git",
     "directory": "packages/catalog"
   },
   "files": [
