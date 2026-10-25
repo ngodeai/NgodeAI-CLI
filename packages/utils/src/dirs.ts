@@ -370,20 +370,28 @@ export function getConfigDirName(): string {
 export function migrateLegacyConfigRoot(): void {
 	if (legacyMigrationAttempted) return;
 	legacyMigrationAttempted = true;
-	try {
-		const home = os.homedir();
-		const canonical = path.join(home, CONFIG_DIR_NAME);
-		for (const legacyName of LEGACY_CONFIG_DIR_NAMES) {
-			const legacy = path.join(home, legacyName);
-			if (!fs.existsSync(legacy)) continue;
+	const home = os.homedir();
+	const canonical = path.join(home, CONFIG_DIR_NAME);
+	for (const legacyName of LEGACY_CONFIG_DIR_NAMES) {
+		const legacy = path.join(home, legacyName);
+		if (!fs.existsSync(legacy)) continue;
+		try {
 			if (!fs.existsSync(canonical)) {
 				fs.renameSync(legacy, canonical);
 				continue;
 			}
 			mergeDirectorySync(legacy, canonical);
-			fs.rmSync(legacy, { recursive: true, force: true });
+		} catch {
+			// A running older process holds the SQLite files open on Windows,
+			// which makes both the rename and the per-entry move fail with
+			// EPERM. Whatever did move is already in place, so stop here and
+			// let the next start (with the old process gone) finish the job.
+			continue;
 		}
-	} catch {}
+		try {
+			fs.rmSync(legacy, { recursive: true, force: true });
+		} catch {}
+	}
 }
 
 let legacyMigrationAttempted = false;
@@ -393,18 +401,27 @@ export function __resetLegacyMigrationForTests(): void {
 	legacyMigrationAttempted = false;
 }
 
-/** Recursively copy `from` into `to`, never replacing an existing entry. */
+/**
+ * Recursively move `from` into `to`, never replacing an existing entry.
+ *
+ * A file that cannot be moved (Windows sharing violation on an open SQLite
+ * database, most often) is skipped rather than aborting the whole merge: the
+ * remaining entries still migrate, and the source root survives so the next
+ * run retries the stragglers.
+ */
 function mergeDirectorySync(from: string, to: string): void {
 	fs.mkdirSync(to, { recursive: true });
 	for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
 		const source = path.join(from, entry.name);
 		const target = path.join(to, entry.name);
-		if (entry.isDirectory()) {
-			mergeDirectorySync(source, target);
-			continue;
-		}
-		if (fs.existsSync(target)) continue;
-		fs.renameSync(source, target);
+		try {
+			if (entry.isDirectory()) {
+				mergeDirectorySync(source, target);
+				continue;
+			}
+			if (fs.existsSync(target)) continue;
+			fs.renameSync(source, target);
+		} catch {}
 	}
 }
 
