@@ -9,15 +9,15 @@ import {
 
 describe("parseGitHubRepo", () => {
 	test("parses HTTPS URL", () => {
-		expect(parseGitHubRepo("https://github.com/can1357/oh-my-pi.git")).toBe("can1357/oh-my-pi");
+		expect(parseGitHubRepo("https://github.com/acme/widgets.git")).toBe("acme/widgets");
 	});
 
 	test("parses HTTPS URL without .git suffix", () => {
-		expect(parseGitHubRepo("https://github.com/can1357/oh-my-pi")).toBe("can1357/oh-my-pi");
+		expect(parseGitHubRepo("https://github.com/acme/widgets")).toBe("acme/widgets");
 	});
 
 	test("parses SSH scp-style URL", () => {
-		expect(parseGitHubRepo("git@github.com:loftiskg/oh-my-pi.git")).toBe("loftiskg/oh-my-pi");
+		expect(parseGitHubRepo("git@github.com:acme/widgets-fork.git")).toBe("acme/widgets-fork");
 	});
 
 	test("parses ssh:// protocol URL", () => {

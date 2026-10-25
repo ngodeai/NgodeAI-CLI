@@ -449,7 +449,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
         # queue (and any replay) carries the maintainer signal forward.
         if decision.directive:
             payload = dict(payload)
-            payload["_robomp_directive"] = {
+            payload["_ngodebot_directive"] = {
                 "body": decision.directive_body,
                 "author": decision.directive_author,
                 "pragmas": [list(item) for item in decision.directive_pragmas],
@@ -538,14 +538,14 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
     @app.post("/replay")
     async def replay(
         request: Request,
-        x_robomp_token: str | None = Header(None, alias="X-ngodebot-Replay-Token"),
+        x_ngodebot_token: str | None = Header(None, alias="X-NgodeAI-Replay-Token"),
         delivery_id: str = "",
     ) -> JSONResponse:
         bag = request.app.state.bag
         cfg: Settings = bag["settings"]
         if cfg.replay_token is None:
             raise HTTPException(404, "replay disabled")
-        if x_robomp_token != cfg.replay_token.get_secret_value():
+        if x_ngodebot_token != cfg.replay_token.get_secret_value():
             raise HTTPException(401, "invalid replay token")
         db: Database = bag["db"]
         row = db.get_event(delivery_id)
@@ -568,7 +568,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
         state: str = "open",
         limit: int = 30,
         refresh: bool = False,
-        x_robomp_token: str | None = Header(None, alias="X-ngodebot-Replay-Token"),
+        x_ngodebot_token: str | None = Header(None, alias="X-NgodeAI-Replay-Token"),
     ) -> dict[str, Any]:
         """Browse issues across `NGODEBOT_REPO_ALLOWLIST` for the trigger picker.
 
@@ -578,7 +578,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
         """
         bag = request.app.state.bag
         cfg: Settings = bag["settings"]
-        _require_trigger_token(cfg, x_robomp_token)
+        _require_trigger_token(cfg, x_ngodebot_token)
 
         if state not in ("open", "closed", "all"):
             raise HTTPException(400, "state must be open|closed|all")
@@ -625,7 +625,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
     async def api_trigger(
         request: Request,
         payload: dict[str, Any] = Body(...),
-        x_robomp_token: str | None = Header(None, alias="X-ngodebot-Replay-Token"),
+        x_ngodebot_token: str | None = Header(None, alias="X-NgodeAI-Replay-Token"),
     ) -> JSONResponse:
         """Manually queue an issue. Modes:
 
@@ -634,7 +634,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
         """
         bag = request.app.state.bag
         cfg: Settings = bag["settings"]
-        _require_trigger_token(cfg, x_robomp_token)
+        _require_trigger_token(cfg, x_ngodebot_token)
 
         db: Database = bag["db"]
         github: GitHubBackend = bag["github"]
@@ -709,14 +709,14 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
     async def api_cancel(
         request: Request,
         payload: dict[str, Any] = Body(...),
-        x_robomp_token: str | None = Header(None, alias="X-ngodebot-Replay-Token"),
+        x_ngodebot_token: str | None = Header(None, alias="X-NgodeAI-Replay-Token"),
     ) -> JSONResponse:
         """Stop a running event. The ngodeai subprocess is killed; the row lands in
         `failed` with `cancelled by operator` as the error.
         """
         bag = request.app.state.bag
         cfg: Settings = bag["settings"]
-        _require_trigger_token(cfg, x_robomp_token)
+        _require_trigger_token(cfg, x_ngodebot_token)
 
         delivery_id = payload.get("delivery_id")
         if not isinstance(delivery_id, str) or not delivery_id:

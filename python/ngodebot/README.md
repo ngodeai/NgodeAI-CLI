@@ -170,7 +170,7 @@ The integration test spawns a real `ngodeai --mode rpc` against an
 - `git push` inside gh-proxy uses `git -c http.extraheader=…` with the
   token passed through an ephemeral process env var; the remote URL in
   `.git/config` stays token-free.
-- gh-proxy has no host port. The `robomp_internal` network is
+- gh-proxy has no host port. The `ngodebot_internal` network is
   `internal: true` (no ingress, no egress); gh-proxy joins `default`
   only to reach `api.github.com`.
 - Agent subprocess env is scrubbed of `GITHUB_TOKEN` /

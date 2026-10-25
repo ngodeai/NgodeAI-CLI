@@ -95,10 +95,10 @@ services:
       - "llm-gateway.internal:host-gateway"
     networks:
       - default
-      - robomp_internal
+      - ngodebot_internal
     volumes:
       - ${NGODEAI_ROOT:-../..}:/work/pi:ro
-      - robomp_data:/data
+      - ngodebot_data:/data
       # Host agent config is mounted read-only under /srv/agent-home-stage
       # with host-controlled permissions. The entrypoint copies it into
       # root-owned, world-readable files under /srv/agent-home; the agent
@@ -144,15 +144,15 @@ services:
       NGODEBOT_GIT_AUTHOR_EMAIL: ${NGODEBOT_GIT_AUTHOR_EMAIL:?NGODEBOT_GIT_AUTHOR_EMAIL must be set in .env}
       NGODEBOT_REPO_ALLOWLIST: ${NGODEBOT_REPO_ALLOWLIST:?NGODEBOT_REPO_ALLOWLIST must be set in .env}
     networks:
-      # `default` gives gh-proxy outbound NAT to api.github.com; `robomp_internal`
+      # `default` gives gh-proxy outbound NAT to api.github.com; `ngodebot_internal`
       # is how the orchestrator reaches it. No `ports:` mapping → still
       # unreachable from the host or any sibling project.
       - default
-      - robomp_internal
+      - ngodebot_internal
     volumes:
       # Shared workspace pool/worktrees so the proxy can drive git operations
       # against the same per-issue worktrees the orchestrator builds.
-      - robomp_data:/data
+      - ngodebot_data:/data
 
 networks:
   # External-facing bridge: webhook ingress (8080) and the orchestrator's
@@ -160,9 +160,9 @@ networks:
   default: {}
   # Orchestrator <-> gh-proxy only. internal: true means no egress and no
   # ingress from outside the compose project.
-  robomp_internal:
+  ngodebot_internal:
     internal: true
 
 volumes:
   # Docker-managed Linux volume so UID/GID permissions on /data are enforced.
-  robomp_data: {}
+  ngodebot_data: {}

@@ -725,7 +725,7 @@ class Database:
             ).fetchall()
         for row in rows:
             payload = json.loads(row["payload_json"])
-            directive = payload.get("_robomp_directive")
+            directive = payload.get("_ngodebot_directive")
             if isinstance(directive, dict) and directive.get("authorizes_impl") is True:
                 return True
         return False
