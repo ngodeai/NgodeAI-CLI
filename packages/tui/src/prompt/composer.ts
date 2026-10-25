@@ -1,4 +1,5 @@
 import { getComposerStyle } from "../components/composer/registry";
+import { StatusSidebar, SIDEBAR_SPLIT_AT, clampSidebarWidth, type SidebarState } from "../components/sidebar";
 import { Spacer } from "../components/spacer";
 import type { StatusLineComponent } from "../status-line/component";
 import type { StatusLineSession } from "../status-line/host";
@@ -16,7 +17,7 @@ import {
 	type TUIOptions,
 	type ViewportSize,
 } from "../tui";
-import { wrapLiteralLine } from "../utils";
+import { visibleWidth, wrapLiteralLine } from "../utils";
 import type { NativeChild, NativeSurface, NativeSurfaceProvider } from "../native/node";
 import { sameItems } from "../native/memo";
 import { postmortem } from "@ngodeai/utils";
@@ -267,6 +268,14 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	#retiredHeaderStart = 0;
 	#resizeRetiredHeaderStart: number | undefined;
 	#lastNormalRows = 0;
+	/**
+	 * Right-hand status panel. `undefined` until the host installs one, so a
+	 * composer that never opts in renders exactly as before.
+	 */
+	#sidebar: StatusSidebar | undefined;
+	#sidebarWidth = 30;
+	#sidebarEnabled = true;
+	#sidebarVisible = false;
 	// Retirement bills below-transcript chrome at this floor, not its current
 	// height. It follows contractions immediately and promotes stable eligible
 	// growth only while idle. Transient roots count at their minimum painted
@@ -388,7 +397,79 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	}
 
 	/** Compose the bounded mutable viewport and the next ordered history append. */
+	/**
+	 * Install the right-hand status panel. The host owns the state; the composer
+	 * only decides whether the pane fits and paints it beside the transcript.
+	 */
+	setSidebar(state: SidebarState | undefined): void {
+		if (!state) {
+			this.#sidebar = undefined;
+			return;
+		}
+		this.#sidebar ??= new StatusSidebar();
+		this.#sidebar.setState(state);
+	}
+
+	/** Turn the sidebar off without discarding it, or back on. */
+	setSidebarEnabled(enabled: boolean): void {
+		this.#sidebarEnabled = enabled;
+	}
+
+	/** Preferred sidebar width in columns; the pane clamps it to its usable range. */
+	setSidebarWidth(width: number): void {
+		this.#sidebarWidth = Math.max(1, Math.round(width));
+	}
+
+	/** True when the last frame actually painted the sidebar. */
+	get sidebarVisible(): boolean {
+		return this.#sidebarVisible;
+	}
+
+	/**
+	 * Whether the sidebar would paint at `columns`.
+	 *
+	 * `sidebarVisible` reports the last frame, which is one render behind any
+	 * caller that decides layout before painting — the todo HUD asks this to
+	 * know whether the plan is already on screen.
+	 */
+	sidebarFits(columns: number): boolean {
+		return this.#sidebar !== undefined && this.#sidebarEnabled && columns >= SIDEBAR_SPLIT_AT;
+	}
+
+	/**
+	 * Compose the frame, splitting it into transcript + sidebar when the
+	 * terminal is wide enough.
+	 *
+	 * The transcript is laid out at the reduced width rather than rendered wide
+	 * and clipped: every block reflows to the pane, so nothing is hidden behind
+	 * the divider. `SIDEBAR_SPLIT_AT` is the cutoff below which the pane is
+	 * dropped entirely and the transcript takes the full width back — the
+	 * sidebar is an at-a-glance aid, never the thing that squeezes the work.
+	 */
 	renderFrame(viewport: ViewportSize): TerminalFramePlan {
+		const sidebar = this.#sidebar;
+		if (!sidebar || !this.#sidebarEnabled || viewport.columns < SIDEBAR_SPLIT_AT) {
+			this.#sidebarVisible = false;
+			return this.#renderFrameInner(viewport);
+		}
+		const paneWidth = clampSidebarWidth(this.#sidebarWidth);
+		const dividerWidth = 1;
+		const leftWidth = Math.max(1, viewport.columns - paneWidth - dividerWidth);
+		const plan = this.#renderFrameInner({ columns: leftWidth, rows: viewport.rows });
+		const paneRows = sidebar.render(paneWidth);
+		this.#sidebarVisible = sidebar.visible;
+		if (!this.#sidebarVisible) return this.#renderFrameInner(viewport);
+		const divider = theme.fg("borderMuted", "│");
+		const pad = " ".repeat(paneWidth);
+		const viewportRows = plan.viewport.map((row, index) => {
+			const pane = paneRows[index] ?? pad;
+			const panePadded = pane + " ".repeat(Math.max(0, paneWidth - visibleWidth(pane)));
+			return row + divider + panePadded;
+		});
+		return { ...plan, viewport: viewportRows };
+	}
+
+	#renderFrameInner(viewport: ViewportSize): TerminalFramePlan {
 		if (!this.#started || this.#stopped) return { viewport: [] };
 		const width = Math.max(1, viewport.columns);
 		const rows = Math.max(0, viewport.rows);

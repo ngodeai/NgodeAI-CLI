@@ -135,6 +135,30 @@ export const cfgComposerShape = register({
 });
 effect(cfgComposerShape, setEditorGapComposerShape);
 
+export const cfgSidebarEnabled = register({
+	id: "sidebar.enabled",
+	type: "boolean",
+	default: true,
+	ui: {
+		tab: "appearance",
+		group: "Sidebar",
+		label: "Status Sidebar",
+		description: "Show plan, context, branch and model in a right-hand panel on wide terminals",
+	},
+});
+
+export const cfgSidebarWidth = register({
+	id: "sidebar.width",
+	type: "number",
+	default: 30,
+	ui: {
+		tab: "appearance",
+		group: "Sidebar",
+		label: "Sidebar Width",
+		description: "Columns reserved for the panel (22-36)",
+	},
+});
+
 export const cfgComposerTokenRate = register({
 	id: "composer.tokenRate",
 	type: "boolean",

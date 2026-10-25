@@ -16,6 +16,7 @@ import type { CompactionOutcome } from "@ngodeai/agent-core/compaction";
 import type { AssistantMessage, ImageContent, Model, Usage, UsageReport } from "@ngodeai/ai";
 import { modelsAreEqual } from "@ngodeai/catalog/models";
 import { execReplace } from "@ngodeai/natives";
+import * as vcs from "@ngodeai/natives/vcs";
 import type {
 	AutocompleteProvider,
 	Component,
@@ -357,6 +358,8 @@ import {
 	cfgAutocompleteMaxVisible,
 	cfgComposerPredictions,
 	cfgComposerShape,
+	cfgSidebarEnabled,
+	cfgSidebarWidth,
 	cfgComposerTokenRate,
 	cfgDisplayCacheMissMarker,
 	cfgDisplayCollapseCompacted,
@@ -3839,6 +3842,9 @@ export class InteractiveMode implements InteractiveModeContext {
 		const style = getComposerStyle(shape);
 		this.composer.setPreferences({ composerShape: shape });
 		this.statusLine.attachToEditor(this.editor, style);
+		this.composer.setSidebarEnabled(cfgSidebarEnabled.get(settings));
+		this.composer.setSidebarWidth(cfgSidebarWidth.get(settings));
+		this.#syncSidebar();
 		this.updateEditorBorderColor();
 		this.#scheduleComposerStatusPersist();
 		this.ui.requestRender();
@@ -4409,9 +4415,71 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#cancelSubagentPreviewTick();
 	}
 
+	/**
+	 * Branch of the active repository, or `undefined` outside one.
+	 *
+	 * `headSync` is the synchronous HEAD read: the sidebar is rebuilt from
+	 * events (a plan change), not on a timer, so a blocking call here is bounded
+	 * to one filesystem read and never lands on a render path.
+	 */
+	#currentBranch(): string | undefined {
+		try {
+			const repo = vcs.git(process.cwd());
+			if (!repo) return undefined;
+			const head = repo.headSync();
+			return head.branch ?? (head.kind === "detached" ? "detached" : undefined);
+		} catch {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Push the current plan, context, branch and model into the right-hand
+	 * sidebar.
+	 *
+	 * Everything here is already tracked for other surfaces — the todo HUD, the
+	 * status line, the model selector — so this only re-shapes it. Called from
+	 * the same places those change rather than on a timer: the sidebar must never
+	 * show a plan the transcript has moved past.
+	 */
+	#syncSidebar(): void {
+		const phases = this.todoPhases.filter(phase => phase.tasks.length > 0);
+		const contextUsage = this.#getPlanApprovalContextUsage();
+		const branch = this.#currentBranch();
+		const model = this.session.model;
+		this.composer.setSidebar({
+			tasks: phases.map(phase => ({
+				name: phase.name,
+				tasks: phase.tasks.map(task => ({
+					content: task.content,
+					status: task.status,
+					...(task.blocker ? { blocker: task.blocker } : {}),
+				})),
+			})),
+			...(contextUsage
+				? { context: { usedTokens: contextUsage.tokens, maxTokens: contextUsage.contextWindow } }
+				: {}),
+			...(branch ? { git: { branch } } : {}),
+			...(model
+				? {
+						model: {
+							selector: `${model.provider}/${model.id}`,
+							displayName: model.name,
+						},
+					}
+				: {}),
+		});
+	}
+
 	#renderTodoList(): void {
 		this.todoContainer.clear();
 		this.#todoHudNative = undefined;
+		this.#syncSidebar();
+		// The sidebar already shows this plan. Drawing the sticky HUD as well
+		// would spend four to nine transcript rows repeating what sits one
+		// column to the right; when the sidebar collapses (narrow terminal) the
+		// HUD comes back on its own.
+		if (this.composer.sidebarFits(this.ui.terminal.columns)) return;
 		const activeDescs = this.#getActiveSubagentDescriptions();
 		this.#todoHudSubagentKey = activeDescs.join("\n");
 		if (this.#todoHudHidden) return;
