@@ -29,12 +29,58 @@ const reset = argv.includes("--reset");
 const keep = argv.includes("--keep");
 const extra = argv.filter(token => !OWN_FLAGS.has(token));
 
+/**
+ * Delete the sandbox, tolerating the directories Windows refuses to unlink.
+ *
+ * Pointing HOME at the sandbox makes Chromium (driven by the browser tools)
+ * create `AppData/Local/Microsoft/Windows/INetCache/Content.IE5` there. That
+ * directory is a hidden system reparse point, and `rm -rf` fails on it with
+ * EPERM even though the rest of the tree is removable. A sandbox that cannot
+ * be wiped would silently skip onboarding on the next run, so: clear what we
+ * can, then report what survived and point the user at the manual command
+ * instead of dying with a raw EPERM from deep inside node:fs.
+ */
+function wipeSandbox(dir: string): void {
+	if (!fs.existsSync(dir)) return;
+	try {
+		fs.rmSync(dir, { recursive: true, force: true });
+		return;
+	} catch (error) {
+		if (process.platform !== "win32") throw error;
+	}
+
+	// Windows: retry with the long-path prefix and per-entry removal, which
+	// gets past MAX_PATH and past read-only bits that `force` alone misses.
+	const longPath = `\\\\?\\${path.resolve(dir)}`;
+	try {
+		fs.rmSync(longPath, { recursive: true, force: true });
+		return;
+	} catch {
+		// Fall through to the manual escape hatch.
+	}
+
+	console.error(
+		[
+			`could not fully remove ${path.relative(repoRoot, dir)}.`,
+			"",
+			"Windows keeps a system reparse point inside it (Content.IE5, created when",
+			"a browser tool ran under the sandbox HOME) that node cannot unlink.",
+			"Remove it from an elevated prompt, then re-run:",
+			"",
+			`    rmdir /s /q "${path.resolve(dir)}"`,
+			"",
+			"or use --keep to reuse the existing sandbox instead of wiping it.",
+		].join("\n"),
+	);
+	process.exit(1);
+}
+
 if (reset) {
-	fs.rmSync(sandbox, { recursive: true, force: true });
+	wipeSandbox(sandbox);
 	console.log(`wiped ${path.relative(repoRoot, sandbox)}`);
 } else if (!keep && fs.existsSync(sandbox)) {
 	// A stale sandbox would skip onboarding, which is the thing being reviewed.
-	fs.rmSync(sandbox, { recursive: true, force: true });
+	wipeSandbox(sandbox);
 }
 fs.mkdirSync(sandbox, { recursive: true });
 
