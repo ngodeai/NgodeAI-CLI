@@ -69,7 +69,13 @@ const packageRoot = path.join(import.meta.dir, "..");
  * dynamically at runtime instead, so they are never fetched during generation
  * and never written to models.json.
  */
-const DISCOVERY_ONLY_PROVIDERS = new Set(["ollama", "vllm", "lm-studio", "litellm"]);
+/**
+ * Providers whose roster exists only at runtime. They have no seed rows, so a
+ * previous-snapshot row is always a stale leftover rather than a fallback: the
+ * gateway's own `/v1/models` is the sole authority on what an account can
+ * reach, and restoring a row here would make a removed model look current.
+ */
+const DISCOVERY_ONLY_PROVIDERS = new Set(["ollama", "vllm", "lm-studio", "litellm", "ngodeai"]);
 /**
  * Credential-scoped catalogs (Devin's Cascade roster is gated per account/team
  * via `allowed_model_uids`). Fetching them during generation would bake one

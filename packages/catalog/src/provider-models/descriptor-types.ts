@@ -25,8 +25,12 @@ export interface CatalogDiscoveryConfig extends Omit<CompiledProviderDiscovery, 
 export interface ProviderDescriptor {
 	providerId: string;
 	createModelManagerOptions(config: ModelManagerConfig): ModelManagerOptions<Api>;
-	/** Preferred model ID when no explicit selection is made. */
-	defaultModel: string;
+	/**
+	 * Preferred model ID when no explicit selection is made. Absent for
+	 * providers whose roster is entirely remote: there is no authored row to
+	 * name, so the first discovered model becomes the default.
+	 */
+	defaultModel?: string;
 	/** When true, the runtime creates a model manager even without a valid API key (e.g. ollama). */
 	allowUnauthenticated?: boolean;
 	/** When true, successful runtime discovery replaces bundled provider models instead of merging fallback-only IDs. */

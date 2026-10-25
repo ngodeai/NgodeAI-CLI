@@ -60,7 +60,13 @@ export function getBundledProviders(): KnownProvider[] {
 	return Object.keys(MODELS) as KnownProvider[];
 }
 
-export function getBundledModels(provider: GeneratedProvider): Model<Api>[] {
+/**
+ * Bundled rows for `provider`. Accepts ids outside {@link GeneratedProvider}
+ * because a discovery-only provider (one with no seed rows, such as the
+ * NgodeAI gateway) is a legitimate provider that simply has no bundle; it
+ * yields `[]` rather than being a type error at every call site.
+ */
+export function getBundledModels(provider: GeneratedProvider | (string & {})): Model<Api>[] {
 	const models = getProviderModels(provider);
 	return models ? (Array.from(models.values()) as Model<Api>[]) : [];
 }

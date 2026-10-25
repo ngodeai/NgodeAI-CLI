@@ -2,27 +2,18 @@
 // pointed at by default.
 //
 // `https://llm.ngodeai.net/v1` speaks OpenAI Chat Completions, so the transport
-// is `openai-completions`. The seed rows below are the models the gateway is
-// expected to serve on a fresh account; `discovery` refreshes them from
-// `/v1/models` as soon as a key is present, so the seed only has to make a
-// brand-new install usable before the first successful sign-in.
+// is `openai-completions`. There are deliberately no seed rows: the gateway is
+// the only authority on which models an account can reach and what they cost,
+// and a bundled fallback row is indistinguishable from a real one in the
+// picker. When discovery fails the user should see an empty list and an error,
+// not a plausible-looking model that cannot be selected.
+//
+// `default-model` names the alias the gateway routes automatically, so a
+// session has something to start with before the roster arrives. It does NOT
+// create a row — without a `seed` block nothing is bundled, and the id only
+// resolves once discovery has returned it.
 provider "ngodeai" {
 	default-model "ngodeai/auto"
 	env "NGODEAI_API_KEY"
 	discovery label="NgodeAI"
-
-	seed api="openai-completions" base-url="https://llm.ngodeai.net/v1" bundle="always" precedence="seed" {
-		// A routing alias: the gateway picks a current coding model for the
-		// account's plan. Keeping this as the default means a fresh install has a
-		// working model without the user choosing one first.
-		model "ngodeai/auto" name="NgodeAI Auto" {
-			reasoning #true
-			input "text" "image"
-			cost input=0 output=0 cache-read=0 cache-write=0
-			limits context=200000 max-tokens=64000
-			thinking-mode "effort"
-			thinking-efforts "low" "medium" "high"
-			thinking-default-level "medium"
-		}
-	}
 }

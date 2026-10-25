@@ -825,7 +825,8 @@ function resolveSimpleProviderHeaders(
 
 type OpenAICompatibleModelManagerBuilderOptions<TApi extends Api> = {
 	api: TApi;
-	providerId: GeneratedProvider;
+	/** A bundled provider, or a discovery-only id with no rows of its own. */
+	providerId: GeneratedProvider | (string & {});
 	defaultBaseUrl: string;
 	config?: SimpleProviderConfig;
 	headers?: SimpleProviderDiscoveryHeaders;
@@ -1303,7 +1304,67 @@ export const NGODEAI_GATEWAY_BASE_URL = "https://llm.ngodeai.net/v1";
  * setup model picker only ever saw whatever the bundled catalog carried.
  */
 export function ngodeaiModelManagerOptions(config?: SimpleProviderConfig): ModelManagerOptions<"openai-completions"> {
-	return createSimpleOpenAICompletionsOptions("ngodeai", NGODEAI_GATEWAY_BASE_URL, config);
+	return createOpenAICompatibleModelManagerOptions({
+		api: "openai-completions",
+		providerId: "ngodeai",
+		defaultBaseUrl: NGODEAI_GATEWAY_BASE_URL,
+		config,
+		headers: config?.headers,
+		requireApiKey: true,
+		mapModel: mapNgodeaiModel,
+	});
+}
+
+/**
+ * Rates the gateway quotes in rupiah. The cost model is USD per million tokens,
+ * so an IDR row cannot be expressed and must not be passed through: `150` read
+ * as dollars is off by four orders of magnitude. Conversion needs a live FX
+ * rate this layer has no source for, so the row keeps zero cost and declares
+ * `pricingStatus: "unknown"` — the picker then shows "pricing unknown" instead
+ * of the "free" label a bare zero would produce.
+ */
+const NGODEAI_PRICING_CURRENCY = "IDR";
+
+/** Per-million rupiah legs → the USD cost model, or `undefined` when the row is not in IDR. */
+function ngodeaiPricingCost(pricing: unknown): ModelSpec<"openai-completions">["cost"] | undefined {
+	if (!isRecord(pricing)) return undefined;
+	const currency = typeof pricing.currency === "string" ? pricing.currency.toUpperCase() : undefined;
+	if (currency !== NGODEAI_PRICING_CURRENCY) return undefined;
+	const input = toPositiveNumber(pricing.input, 0);
+	const output = toPositiveNumber(pricing.output, 0);
+	// Every leg zero is the gateway saying "this route is free", which is a
+	// real answer and stays expressible.
+	if (input === 0 && output === 0) {
+		return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+	}
+	return undefined;
+}
+
+/**
+ * Gateway rows carry far more than the generic OpenAI shape: display name,
+ * context/output limits, vision support, and a pricing block. The generic
+ * mapper drops all of it, which is what made every gateway model look like a
+ * free text-only model with no context window.
+ */
+function mapNgodeaiModel(
+	entry: OpenAICompatibleModelRecord,
+	defaults: ModelSpec<"openai-completions">,
+): ModelSpec<"openai-completions"> {
+	const displayName = typeof entry.display_name === "string" ? entry.display_name.trim() : "";
+	const cost = ngodeaiPricingCost(entry.pricing);
+	const pricing = isRecord(entry.pricing) ? entry.pricing : undefined;
+	const priced = pricing ? toPositiveNumber(pricing.input, 0) + toPositiveNumber(pricing.output, 0) > 0 : false;
+	return {
+		...defaults,
+		name: displayName || toModelName(entry.name, defaults.name),
+		input: entry.supports_vision === true ? ["text", "image"] : ["text"],
+		contextWindow: toPositiveNumber(entry.context_length, null),
+		maxTokens: toPositiveNumber(entry.max_output_tokens, null),
+		cost: cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		// A gateway row that quotes money in a currency we cannot convert is
+		// "unknown", not "free". An unpriced row (all legs zero in IDR) is free.
+		...(cost === undefined && priced ? { pricingStatus: "unknown" as const } : {}),
+	};
 }
 
 // ---------------------------------------------------------------------------

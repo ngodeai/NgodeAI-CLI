@@ -197,7 +197,7 @@ export const PROVIDER_DESCRIPTORS: readonly ProviderDescriptor[] = Object.values
 	return [
 		{
 			providerId: entry.id,
-			defaultModel: entry.defaultModel,
+			...(entry.defaultModel ? { defaultModel: entry.defaultModel } : {}),
 			createModelManagerOptions,
 			allowUnauthenticated: entry.allowUnauthenticated,
 			dynamicModelsAuthoritative: entry.dynamicModelsAuthoritative,
