@@ -210,6 +210,24 @@ function rowTargetCandidates(target: Component): ((local: number) => string[]) |
  * It owns the terminal, welcome header, and editor; InteractiveMode later supplies authoritative
  * data and mounts the session-aware runtime children without replacing the visible header.
  */
+/**
+ * A blank interior row of the sidebar's frame.
+ *
+ * The sidebar renders only as many rows as it has sections, but the pane runs
+ * the full height of the viewport. Without this the frame's right rule stopped
+ * partway down and the transcript's tail sat beside a borderless void.
+ */
+function sidebarFiller(width: number): string {
+	const inner = Math.max(0, width - 2);
+	return theme.fg("border", "│") + " ".repeat(inner) + theme.fg("border", "│");
+}
+
+/** The frame's closing rule, for the last viewport row. */
+function sidebarBottomRule(width: number): string {
+	const inner = Math.max(0, width - 2);
+	return theme.fg("accent", "▪") + theme.fg("border", "─".repeat(inner)) + theme.fg("accent", "▪");
+}
+
 export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	readonly ui: TUI;
 	#editor: CustomEditor;
@@ -460,12 +478,28 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		this.#sidebarVisible = sidebar.visible;
 		if (!this.#sidebarVisible) return this.#renderFrameInner(viewport);
 		const divider = theme.fg("borderMuted", "│");
-		const pad = " ".repeat(paneWidth);
-		const viewportRows = plan.viewport.map((row, index) => {
-			const pane = paneRows[index] ?? pad;
-			const panePadded = pane + " ".repeat(Math.max(0, paneWidth - visibleWidth(pane)));
-			return row + divider + panePadded;
-		});
+		// The transcript's own rows are NOT padded to the pane width — a block
+		// renders only as many columns as it uses. Appending the divider straight
+		// onto those rows put it immediately after the text, so the sidebar and
+		// its frame slid left on every short row. Pad to `leftWidth` first.
+		const padToPane = (row: string): string => {
+			const gap = leftWidth - visibleWidth(row);
+			return gap > 0 ? row + " ".repeat(gap) : row;
+		};
+		// The pane fills the viewport height. The sidebar renders only as many
+		// rows as it has sections, and a frame that stopped after the last
+		// section left the transcript's tail beside a borderless void — the
+		// bottom rule has to sit on the last row, not mid-screen.
+		const height = Math.max(plan.viewport.length, paneRows.length);
+		const viewportRows: string[] = [];
+		for (let index = 0; index < height; index++) {
+			const row = plan.viewport[index] ?? "";
+			// Interior rows between sections are blank; the closing rule belongs
+			// on the final row so the frame reads as one box.
+			const isLast = index === height - 1;
+			const pane = paneRows[index] ?? (isLast ? sidebarBottomRule(paneWidth) : sidebarFiller(paneWidth));
+			viewportRows.push(padToPane(row) + divider + pane);
+		}
 		return { ...plan, viewport: viewportRows };
 	}
 
