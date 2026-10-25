@@ -404,6 +404,7 @@ import {
 	cfgTuiCompleteScrollback,
 	cfgTuiTextSizing,
 	cfgTuiTight,
+	cfgTuiFullscreen,
 	cfgTuiTitleSpinner,
 	cfgTuiTitleState,
 	cfgTuiVimMode,
@@ -471,6 +472,7 @@ const cfgLiveUiSettings = combine({
 	"tui.autoGraph": cfgTuiAutoGraph,
 	"tui.textSizing": cfgTuiTextSizing,
 	"tui.tight": cfgTuiTight,
+	"tui.fullscreen": cfgTuiFullscreen,
 	"tui.hyperlinks": cfgTuiHyperlinks,
 	"tui.titleState": cfgTuiTitleState,
 	"tui.titleSpinner": cfgTuiTitleSpinner,
@@ -1990,7 +1992,10 @@ export class InteractiveMode implements InteractiveModeContext {
 				this.ui.requestRender();
 			}),
 		);
-		this.ui.setInlineMouseTrackingProvider(() => this.#mouseCapture);
+		// A fullscreen session always captures: the wheel is the transcript's own
+		// scroller there, and without reporting the terminal would have nothing to
+		// scroll (there is no scrollback) and the wheel would do nothing at all.
+		this.ui.setInlineMouseTrackingProvider(() => this.#mouseCapture || this.composer.fullscreen);
 		this.chatContainer = new TranscriptContainer();
 		this.pendingMessagesContainer = new AnchoredLiveContainer();
 		this.progressHudContainer = new AnchoredLiveContainer();
@@ -3798,6 +3803,14 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.ui.invalidate();
 			this.ui.requestRender();
 		}
+		if (any("tui.fullscreen")) {
+			// The switch changes which buffer the next frame lands on and whether
+			// the transcript retires, so it needs a full repaint rather than a
+			// diff against the previous mode's rows.
+			this.applyFullscreenSetting();
+			this.ui.invalidate();
+			resetDisplay = true;
+		}
 		if (any("tui.hyperlinks")) {
 			// The tui.hyperlinks effect already re-applied the flag; repaint cached rows.
 			this.statusLine.invalidate();
@@ -3858,10 +3871,41 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.statusLine.attachToEditor(this.editor, style);
 		this.composer.setSidebarEnabled(cfgSidebarEnabled.get(settings));
 		this.composer.setSidebarWidth(cfgSidebarWidth.get(settings));
+		this.applyFullscreenSetting();
 		this.#syncSidebar();
 		this.updateEditorBorderColor();
 		this.#scheduleComposerStatusPersist();
 		this.ui.requestRender();
+	}
+
+	/**
+	 * Switch the session between the normal screen and the alternate buffer.
+	 *
+	 * Both halves must move together: the composer decides to keep the whole
+	 * document in its viewport, and the TUI decides which buffer that viewport
+	 * is painted on. A composer in fullscreen mode on the normal buffer would
+	 * paint one screenful of a much longer document with no scrollback to
+	 * reach the rest, and a TUI in fullscreen mode with an inline composer
+	 * would strand every retired row.
+	 */
+	applyFullscreenSetting(): void {
+		const enabled = cfgTuiFullscreen.get(this.settings);
+		if (enabled === this.composer.fullscreen && enabled === this.ui.fullscreenSession) return;
+		const wasFullscreen = this.composer.fullscreen;
+		this.composer.setFullscreen(enabled);
+		this.ui.setFullscreenSession(enabled);
+		if (!wasFullscreen) {
+			// Turning fullscreen on: the transcript has already retired rows into
+			// the normal screen's scrollback, and those are invisible from the
+			// alternate buffer. Forget the stable-emission ledger and rebuild the
+			// display, exactly like the thinking-visibility toggle does — the
+			// blocks are still in the transcript's own entries, so this is a
+			// repaint, not a reload.
+			this.chatContainer.resetStableEmission();
+			this.ui.resetDisplay();
+		}
+		// Turning it off needs no rebuild: the alternate buffer is discarded and
+		// the normal screen is repainted from the transcript on the next frame.
 	}
 
 	/** Coalesce status-cache writes; `stop()` flushes a pending one synchronously. */

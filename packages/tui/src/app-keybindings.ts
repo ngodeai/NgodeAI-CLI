@@ -65,6 +65,10 @@ interface AppKeybindings {
 	"app.stt.pushToTalk": true;
 	"app.stt.toggle": true;
 	"app.live.toggle": true;
+	"app.transcript.scrollUp": true;
+	"app.transcript.scrollDown": true;
+	"app.transcript.scrollTop": true;
+	"app.transcript.scrollBottom": true;
 }
 
 /** Application action identifier registered alongside the base TUI keybindings. */
@@ -261,6 +265,22 @@ export const KEYBINDINGS = {
 	"app.live.toggle": {
 		defaultKeys: "ctrl+l",
 		description: "Start or stop live voice mode (/live)",
+	},
+	"app.transcript.scrollUp": {
+		defaultKeys: "pageUp",
+		description: "Scroll the transcript up (fullscreen session)",
+	},
+	"app.transcript.scrollDown": {
+		defaultKeys: "pageDown",
+		description: "Scroll the transcript down (fullscreen session)",
+	},
+	"app.transcript.scrollTop": {
+		defaultKeys: "home",
+		description: "Jump to the start of the transcript (fullscreen session)",
+	},
+	"app.transcript.scrollBottom": {
+		defaultKeys: "end",
+		description: "Jump to the newest output (fullscreen session)",
 	},
 } as const satisfies KeybindingDefinitions;
 

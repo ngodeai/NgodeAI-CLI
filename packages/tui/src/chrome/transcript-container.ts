@@ -299,6 +299,16 @@ export class TranscriptContainer extends Container {
 	/** Block list handed to the native frame provider, reused while the children are unchanged. */
 	#nativeBlocks: readonly Component[] = [];
 	#nativeNode: NativeNode | undefined;
+	/**
+	 * Per-block rows of the whole document, for the fullscreen session's window
+	 * renderer. See {@link #documentBlocks}.
+	 */
+	#documentCache:
+		| {
+				width: number;
+				blocks: Array<{ component: Component; source: readonly string[]; rows: readonly string[] }>;
+		  }
+		| undefined;
 	override addChild(component: Component): void {
 		if (isToolActivityComponent(component)) component.setToolActivityVisible(this.#toolActivityVisible);
 		super.addChild(component);
@@ -400,6 +410,7 @@ export class TranscriptContainer extends Container {
 				(entry.component as Component & AppendOnlyTranscriptBlock).resetTranscriptStableRows?.();
 			}
 		}
+		this.#documentCache = undefined;
 	}
 
 	/** Whether a transient block may be discarded without leaving tape history. */
@@ -1057,6 +1068,107 @@ export class TranscriptContainer extends Container {
 	/** Rendered row where a child's block begins in the last full render() (transcript deep-links). */
 	getChildStartRow(child: Component): number | undefined {
 		return this.#childStartRows.get(child);
+	}
+
+	/**
+	 * Total rows of the whole document at `width`, including retired blocks.
+	 *
+	 * A fullscreen session keeps the entire transcript in its viewport instead
+	 * of retiring rows into scrollback, so it needs the document's height to
+	 * clamp its scroll offset. `limit` stops the walk early, matching
+	 * {@link liveRowCount}: past it the result is a lower bound.
+	 */
+	documentRowCount(width: number, limit = Number.POSITIVE_INFINITY): number {
+		let total = 0;
+		for (const block of this.#documentBlocks(width)) {
+			if (block.rows.length === 0) continue;
+			total += block.rows.length + (total > 0 ? 1 : 0);
+			if (total > limit) break;
+		}
+		return total;
+	}
+
+	/**
+	 * One window of the whole document, `[offset, offset + height)`.
+	 *
+	 * Unlike {@link renderViewport} this never retires anything and never
+	 * collapses a block to fit: a fullscreen session has no scrollback to fall
+	 * back on, so the document is always laid out in full and the caller picks
+	 * which slice of it is on screen. Rows are laid out top to bottom so the
+	 * image budget still keeps the newest placements live.
+	 *
+	 * Returns the rows plus each visible block's span inside them, which the
+	 * caller maps back to click targets.
+	 */
+	renderDocumentWindow(
+		width: number,
+		offset: number,
+		height: number,
+	): { rows: string[]; blocks: Array<{ component: Component; start: number; end: number }> } {
+		const rows: string[] = [];
+		const blocks: Array<{ component: Component; start: number; end: number }> = [];
+		const top = Math.max(0, Math.trunc(offset));
+		const bottom = top + Math.max(0, Math.trunc(height));
+		let cursor = 0;
+		for (const block of this.#documentBlocks(width)) {
+			if (block.rows.length === 0) continue;
+			const start = cursor > 0 ? cursor + 1 : 0;
+			const end = start + block.rows.length;
+			if (end > top && start < bottom) {
+				// Row indices inside the block that fall inside the window.
+				const from = Math.max(0, top - start);
+				const to = Math.min(block.rows.length, bottom - start);
+				const visibleStart = rows.length;
+				for (let index = from; index < to; index++) rows.push(block.rows[index]!);
+				blocks.push({ component: block.component, start: visibleStart, end: rows.length });
+			}
+			cursor = end;
+			if (cursor >= bottom) break;
+		}
+		return { rows, blocks };
+	}
+
+	/**
+	 * Per-block rows for the whole document, cached by width.
+	 *
+	 * Every block in a fullscreen session stays live for the session's lifetime,
+	 * so this walk runs over the entire ledger on every frame. Blocks are
+	 * skipped when their component returns the same array it returned last
+	 * time — the reference-equality contract every component already honors —
+	 * which makes an idle repaint proportional to the changed blocks rather
+	 * than to the length of the conversation.
+	 *
+	 * No stable-row or retirement bookkeeping applies: nothing is ever emitted
+	 * in this mode, so each block renders whole from its component.
+	 */
+	#documentBlocks(width: number): Array<{ component: Component; rows: readonly string[] }> {
+		this.#syncEntries();
+		this.#settleFinalized();
+		const cache = this.#documentCache;
+		const reusable = cache !== undefined && cache.width === width ? cache.blocks : undefined;
+		const blocks: Array<{ component: Component; source: readonly string[]; rows: readonly string[] }> = [];
+		let changed = reusable === undefined || reusable.length !== this.#entries.length;
+		for (let index = 0; index < this.#entries.length; index++) {
+			const entry = this.#entries[index]!;
+			const previous = reusable?.[index];
+			if (previous !== undefined && previous.component === entry.component) {
+				const source = entry.component.render(width);
+				if (source === previous.source) {
+					blocks.push(previous);
+					continue;
+				}
+				previous.source = source;
+				previous.rows = trimBlankEdges(source);
+				changed = true;
+				blocks.push(previous);
+				continue;
+			}
+			const source = entry.component.render(width);
+			blocks.push({ component: entry.component, source, rows: trimBlankEdges(source) });
+			changed = true;
+		}
+		if (changed) this.#documentCache = { width, blocks };
+		return blocks;
 	}
 
 	#renderEntry(entry: TranscriptEntry, width: number): readonly string[] {

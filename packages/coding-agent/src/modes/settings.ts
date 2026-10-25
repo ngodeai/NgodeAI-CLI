@@ -605,6 +605,20 @@ export const cfgTuiTight = register({
 	},
 });
 
+export const cfgTuiFullscreen = register({
+	id: "tui.fullscreen",
+	type: "boolean",
+	default: false,
+	ui: {
+		tab: "appearance",
+		group: "Display",
+		label: "Fullscreen Session",
+		get description() {
+			return `Draw the session on the alternate screen (the vim/less idiom): the transcript scrolls under a pinned input, status line, and sidebar, with ${formatKeyHint("pageUp")}/${formatKeyHint("pageDown")} and the wheel scrolling it. Terminal scrollback is not used, so nothing remains on the normal screen after quitting`;
+		},
+	},
+});
+
 export const cfgDisplayShimmer = register({
 	id: "display.shimmer",
 	type: "enum",

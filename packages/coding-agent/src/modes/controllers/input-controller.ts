@@ -290,6 +290,7 @@ export class InputController {
 	#globalEditorActionsListenerInstalled = false;
 	#expandToolsListenerInstalled = false;
 	#inlineMouseListenerInstalled = false;
+	#transcriptScrollListenerInstalled = false;
 
 	/** Click-candidate id the hover band currently tracks; repaint only on change. */
 	#lastHoverClickId: string | undefined;
@@ -468,6 +469,15 @@ export class InputController {
 			// Defers to fullscreen overlays, which own mouse handling on the
 			// alternate screen.
 			this.ctx.ui.addInputListener(data => this.#handleInlineMouse(data));
+		}
+		if (!this.#transcriptScrollListenerInstalled) {
+			this.#transcriptScrollListenerInstalled = true;
+			// Fullscreen sessions have no terminal scrollback, so the transcript
+			// owns its own offset: PageUp/PageDown, Home/End, and the wheel move
+			// the document under pinned chrome. Defer to any overlay (its own
+			// scrollable body wins) and to a focused editor that binds these keys
+			// itself — the transcript is the fallback, not an override.
+			this.ctx.ui.addInputListener(data => this.#handleTranscriptScroll(data));
 		}
 		this.ctx.editor.onEscape = () => {
 			// `/mcp test` advertises Esc until each owner's post-settlement grace expires.
@@ -742,6 +752,10 @@ export class InputController {
 
 		this.ctx.editor.onChange = (text: string) => {
 			this.#draftText = text;
+			// Typing means the user is back at the prompt: follow the tail again so
+			// the next message and its answer appear without a manual jump. A
+			// reader scrolled up stays put only until they type.
+			if (text && this.ctx.composer.fullscreen) this.ctx.composer.scrollToEdge("bottom");
 			// Typing signals an imminent turn; refresh the API connection now so
 			// the handshake overlaps composition instead of delaying the send.
 			if (text) this.ctx.session.prewarmModelConnection();
@@ -768,6 +782,40 @@ export class InputController {
 		};
 	}
 
+	/**
+	 * Scroll the fullscreen transcript (PageUp/PageDown, Home/End).
+	 *
+	 * Only meaningful in a fullscreen session: on the normal screen the
+	 * terminal's own scrollback owns this, and swallowing the keys would take
+	 * away the only way to read back through the session. Overlays and focused
+	 * components that bind these keys keep priority, so a picker's PageDown
+	 * still pages its list.
+	 */
+	#handleTranscriptScroll(data: string): { consume?: boolean; data?: string } | undefined {
+		if (!this.ctx.composer.fullscreen) return undefined;
+		if (this.ctx.ui.hasOverlay()) return undefined;
+		const focused = this.ctx.ui.getFocused();
+		if (focused !== null && focused !== this.ctx.editor) return undefined;
+		const page = Math.max(1, this.ctx.ui.terminal.rows - 4);
+		if (this.ctx.keybindings.matches(data, "app.transcript.scrollUp")) {
+			this.ctx.composer.scrollBy(page);
+			return { consume: true };
+		}
+		if (this.ctx.keybindings.matches(data, "app.transcript.scrollDown")) {
+			this.ctx.composer.scrollBy(-page);
+			return { consume: true };
+		}
+		if (this.ctx.keybindings.matches(data, "app.transcript.scrollTop")) {
+			this.ctx.composer.scrollToEdge("top");
+			return { consume: true };
+		}
+		if (this.ctx.keybindings.matches(data, "app.transcript.scrollBottom")) {
+			this.ctx.composer.scrollToEdge("bottom");
+			return { consume: true };
+		}
+		return undefined;
+	}
+
 	#handleFocusedLeftTap(): void {
 		if (this.#detectLeftDoubleTap()) {
 			void this.ctx.unfocusSession();
@@ -787,6 +835,15 @@ export class InputController {
 		if (this.ctx.ui.hasOverlay()) return undefined;
 		const event = parseSgrMouse(data);
 		if (!event) return undefined;
+		// In a fullscreen session the transcript has no scrollback, so the wheel
+		// belongs to it: three rows a notch, matching the pickers and the git
+		// sidebar. Outside one it is left alone so the terminal can scroll.
+		if (event.wheel !== null && this.ctx.composer.fullscreen) {
+			// `wheel` is -1 for a notch up, and the composer counts rows up from
+			// the tail, so the two signs cancel.
+			this.ctx.composer.scrollBy(-event.wheel * 3);
+			return { consume: true };
+		}
 		if (event.motion) this.#updateHoverHighlight(event.row);
 		else if (event.leftClick) this.#focusClickedAgent(event.row);
 		return { consume: true };

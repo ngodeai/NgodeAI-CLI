@@ -298,6 +298,16 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	#sidebarWidth = 38;
 	#sidebarEnabled = true;
 	#sidebarVisible = false;
+	/**
+	 * Fullscreen session (`tui.fullscreen`): the whole document lives in the
+	 * viewport and nothing retires, so the transcript scrolls under pinned
+	 * chrome instead of scrolling the terminal. `#scrollOffset` counts rows up
+	 * from the bottom of the document; `0` follows the tail.
+	 */
+	#fullscreen = false;
+	#scrollOffset = 0;
+	#lastDocumentRows = 0;
+	#lastTranscriptHeight = 0;
 	// Retirement bills below-transcript chrome at this floor, not its current
 	// height. It follows contractions immediately and promotes stable eligible
 	// growth only while idle. Transient roots count at their minimum painted
@@ -464,6 +474,56 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	}
 
 	/**
+	 * Run the session as a fullscreen document (`tui.fullscreen`).
+	 *
+	 * The transcript stops retiring rows into terminal scrollback and instead
+	 * fills a scrollable viewport with the pinned editor, status line, and HUDs
+	 * below it. The host must also flip {@link TUI.setFullscreenSession} so the
+	 * frame goes to the alternate buffer; without that the whole document would
+	 * be painted onto the normal screen and scroll away with no way back.
+	 */
+	setFullscreen(enabled: boolean): void {
+		if (this.#fullscreen === enabled) return;
+		this.#fullscreen = enabled;
+		this.#scrollOffset = 0;
+		this.ui.requestRender(true);
+	}
+
+	/** Whether the composer is painting a fullscreen document. */
+	get fullscreen(): boolean {
+		return this.#fullscreen;
+	}
+
+	/** Rows scrolled up from the tail; `0` follows new output. */
+	get scrollOffset(): number {
+		return this.#scrollOffset;
+	}
+
+	/**
+	 * Scroll the transcript by `delta` rows (negative scrolls up). Clamped to
+	 * the document, and returns whether the offset moved.
+	 */
+	scrollBy(delta: number): boolean {
+		if (!this.#fullscreen || delta === 0) return false;
+		const maxOffset = Math.max(0, this.#lastDocumentRows - this.#lastTranscriptHeight);
+		const next = Math.max(0, Math.min(maxOffset, this.#scrollOffset + delta));
+		if (next === this.#scrollOffset) return false;
+		this.#scrollOffset = next;
+		this.ui.requestRender();
+		return true;
+	}
+
+	/** Jump to the top or the tail of the document. */
+	scrollToEdge(edge: "top" | "bottom"): void {
+		if (!this.#fullscreen) return;
+		const maxOffset = Math.max(0, this.#lastDocumentRows - this.#lastTranscriptHeight);
+		const next = edge === "top" ? maxOffset : 0;
+		if (next === this.#scrollOffset) return;
+		this.#scrollOffset = next;
+		this.ui.requestRender();
+	}
+
+	/**
 	 * Compose the frame, splitting it into transcript + sidebar when the
 	 * terminal is wide enough.
 	 *
@@ -477,19 +537,23 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		const sidebar = this.#sidebar;
 		if (!sidebar || !this.#sidebarEnabled || viewport.columns < SIDEBAR_SPLIT_AT) {
 			this.#sidebarVisible = false;
-			return this.#renderFrameInner(viewport);
+			return this.#fullscreen ? this.#renderFullscreenFrame(viewport) : this.#renderFrameInner(viewport);
 		}
 		const paneWidth = clampSidebarWidth(this.#sidebarWidth);
 		const dividerWidth = 1;
 		const leftWidth = Math.max(1, viewport.columns - paneWidth - dividerWidth);
-		const plan = this.#renderFrameInner({ columns: leftWidth, rows: viewport.rows });
+		const plan = this.#fullscreen
+			? this.#renderFullscreenFrame({ columns: leftWidth, rows: viewport.rows })
+			: this.#renderFrameInner({ columns: leftWidth, rows: viewport.rows });
 		// The pane owns its full height: the sidebar grows its frame to the
 		// viewport so the closing rule lands on the last row. Composing filler
 		// here instead drew a second border after the sidebar's own.
 		sidebar.setHeight(Math.max(plan.viewport.length, viewport.rows));
 		const paneRows = sidebar.render(paneWidth);
 		this.#sidebarVisible = sidebar.visible;
-		if (!this.#sidebarVisible) return this.#renderFrameInner(viewport);
+		if (!this.#sidebarVisible) {
+			return this.#fullscreen ? this.#renderFullscreenFrame(viewport) : this.#renderFrameInner(viewport);
+		}
 		const divider = theme.fg("borderMuted", "│");
 		// The transcript's own rows are NOT padded to the pane width — a block
 		// renders only as many columns as it uses. Appending the divider straight
@@ -509,6 +573,75 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 			viewportRows.push(padToPane(row) + divider + pane);
 		}
 		return { ...plan, viewport: viewportRows };
+	}
+
+	/**
+	 * Compose one fullscreen-session frame: a window of the whole document over
+	 * pinned chrome.
+	 *
+	 * Nothing retires here. The document is laid out in full, the chrome below
+	 * the transcript (HUDs, editor, status line) keeps its natural height at
+	 * the bottom of the screen, and the transcript gets every remaining row.
+	 * `#scrollOffset` picks which window of the document fills them, so new
+	 * output only moves the view when the reader is already at the tail.
+	 *
+	 * No history batch is ever returned: the alternate buffer has no
+	 * scrollback, and the TUI refuses one there rather than losing the rows.
+	 */
+	#renderFullscreenFrame(viewport: ViewportSize): TerminalFramePlan {
+		if (!this.#started || this.#stopped) return { viewport: [] };
+		const width = Math.max(1, viewport.columns);
+		const rows = Math.max(0, viewport.rows);
+		this.#lastNormalRows = rows;
+		const roots = this.#runtimeMounted
+			? [...this.#runtimeChildren, this.#statusHost]
+			: [this.#header, this.#bootstrapInputGap, this.editor, this.#statusHost];
+		const transcriptIndex = roots.findIndex(root => root instanceof TranscriptContainer);
+		if (transcriptIndex < 0) {
+			const plain: string[] = [];
+			for (const root of roots) {
+				const rendered = root.render(width);
+				if (!this.#runtimeMounted && root === this.editor) this.#recordBootstrapEditorRows(rendered.length);
+				plain.push(...rendered);
+			}
+			return { viewport: plain.slice(-rows) };
+		}
+		const transcript = roots[transcriptIndex] as TranscriptContainer;
+		const header = this.#headerRetired ? [] : this.#header.render(width);
+		const before = [...header, ...this.#renderRoots(roots.slice(0, transcriptIndex), width)];
+		const afterRoots = roots.slice(transcriptIndex + 1);
+		const after: string[] = [];
+		const afterSpans: ViewportClickSpan[] = [];
+		for (const root of afterRoots) this.#renderBelowRoot(root, width, after, afterSpans);
+		// The chrome owns the bottom of the screen; the transcript gets the rest.
+		// One blank row separates them so a tool card's closing rule does not sit
+		// directly on the composer's top rule. Chrome taller than the screen keeps
+		// its tail: the editor is the last root, so it is the part that must stay.
+		const chromeRows = [...before, "", ...after];
+		const visibleChrome = chromeRows.length > rows ? chromeRows.slice(chromeRows.length - rows) : chromeRows;
+		const transcriptHeight = Math.max(0, rows - visibleChrome.length);
+		const documentRows = transcript.documentRowCount(width);
+		this.#lastDocumentRows = documentRows;
+		this.#lastTranscriptHeight = transcriptHeight;
+		// Clamp here as well as in scrollBy: output arriving while the reader is
+		// scrolled up can shorten the document (a compaction replaces the ledger),
+		// and an offset past the new top would paint an empty screen.
+		const maxOffset = Math.max(0, documentRows - transcriptHeight);
+		if (this.#scrollOffset > maxOffset) this.#scrollOffset = maxOffset;
+		const offset = Math.max(0, documentRows - transcriptHeight - this.#scrollOffset);
+		const window = transcript.renderDocumentWindow(width, offset, transcriptHeight);
+		// A document shorter than the window hangs from the bottom, so the chrome
+		// never floats up the screen mid-conversation.
+		const filler = Math.max(0, transcriptHeight - window.rows.length);
+		const top = window.rows.length === 0 ? [] : [...Array<string>(filler).fill(""), ...window.rows];
+		const activeSpans: ViewportClickSpan[] = window.blocks.map(block => ({
+			start: block.start + before.length + 1 + filler,
+			end: block.end + before.length + 1 + filler,
+			candidates: rowTargetCandidates(block.component) ?? (() => []),
+		}));
+		this.#lastClickSpans = activeSpans;
+		const mutable = [...top, ...visibleChrome];
+		return { viewport: this.#paintHoverBand(mutable, activeSpans) };
 	}
 
 	#renderFrameInner(viewport: ViewportSize): TerminalFramePlan {

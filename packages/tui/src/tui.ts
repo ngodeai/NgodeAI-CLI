@@ -1045,6 +1045,14 @@ export class TUI extends Container {
 	// normal screen. #altPreviousLines is the last alt frame, diffed row by row
 	// against the next one.
 	#altActive = false;
+	/**
+	 * Product-owned session that lives on the alternate buffer instead of the
+	 * normal screen (`tui.fullscreen`). Unlike a fullscreen overlay, which
+	 * covers a normal screen that stays intact behind it, this owns the buffer
+	 * for the whole session: the provider paints a complete screen every frame
+	 * and the terminal keeps no scrollback of it.
+	 */
+	#fullscreenSession = false;
 	#mouseTracking: MouseTrackingState = "off";
 	/** Product-owned probe for opt-in normal-buffer click capture (`tui.mouse`). Read every frame. */
 	#inlineMouseProvider: (() => boolean) | undefined;
@@ -1415,6 +1423,28 @@ export class TUI extends Container {
 	 */
 	setInlineMouseTrackingProvider(provider: (() => boolean) | undefined): void {
 		this.#inlineMouseProvider = provider;
+	}
+
+	/**
+	 * Run the whole session on the alternate screen (vim/less idiom) instead of
+	 * the normal screen plus terminal scrollback.
+	 *
+	 * The provider then owns every row: `renderFrame` must return a complete
+	 * screen with no history batch, because the alternate buffer has no
+	 * scrollback to commit into and none survives the session. Frames are
+	 * diffed exactly like an overlay's, so a keystroke still repaints only the
+	 * rows it touched. Turning this off (or {@link stop}) restores the normal
+	 * screen exactly as it was before the switch.
+	 */
+	setFullscreenSession(enabled: boolean): void {
+		if (this.#fullscreenSession === enabled) return;
+		this.#fullscreenSession = enabled;
+		this.requestRender(true);
+	}
+
+	/** Whether the session owns the alternate buffer (see {@link setFullscreenSession}). */
+	get fullscreenSession(): boolean {
+		return this.#fullscreenSession;
 	}
 
 	/** Transition mouse reporting, emitting only the sequences a change needs. */
@@ -2360,9 +2390,15 @@ export class TUI extends Container {
 		let rendered: readonly string[];
 		do {
 			this.#imageBudget.beginPass(false, true);
-			rendered =
-				provider?.renderResizeFrame?.({ columns: width, rows: height }) ??
-				(provider ? provider.renderFrame({ columns: width, rows: height }).viewport : this.render(width));
+			// A fullscreen session has no normal-screen copy to borrow the buffer
+			// from: the whole session already lives there, so the transient frame
+			// is just the next session frame at the new size.
+			rendered = this.#fullscreenSession
+				? provider
+					? provider.renderFrame({ columns: width, rows: height }).viewport
+					: this.render(width)
+				: (provider?.renderResizeFrame?.({ columns: width, rows: height }) ??
+					(provider ? provider.renderFrame({ columns: width, rows: height }).viewport : this.render(width)));
 		} while (this.#imageBudget.endPass());
 		const viewport = rendered.length > height ? rendered.slice(rendered.length - height) : Array.from(rendered);
 		// The borrowed resize buffer is transient, not a streamable session paint.
@@ -2689,7 +2725,10 @@ export class TUI extends Container {
 		// the latch so the flush below writes only un-retired rows.
 		this.#clearScrollbackOnNextRender = false;
 		// The surface already holds the transcript; there's no row history to retire.
-		if (!nativeWasLive) this.#flushHistoryBeforeStop();
+		// A fullscreen session has no scrollback either: its frame provider never
+		// offers batches, and flushing would paint one onto the alternate buffer
+		// on the way out.
+		if (!nativeWasLive && !this.#fullscreenSession) this.#flushHistoryBeforeStop();
 		// Deliberately leave transmitted images in the terminal's graphics store:
 		// placeholder cells committed to native scrollback render only while their
 		// image data lives, so a delete-by-id here blanks every transcript image
@@ -3844,7 +3883,7 @@ export class TUI extends Container {
 		// requests it, borrow the terminal's alternate buffer and paint only the
 		// modal there; the normal screen and all accounting stay untouched.
 		const topOverlay = this.#getTopmostVisibleOverlay();
-		const wantAlt = topOverlay?.options?.fullscreen === true;
+		const wantAlt = topOverlay?.options?.fullscreen === true || this.#fullscreenSession;
 		const wantMouse: MouseTrackingState =
 			topOverlay === undefined
 				? this.#inlineMouseProvider?.() === true
@@ -3911,7 +3950,11 @@ export class TUI extends Container {
 			// rewrap or a height-grow scrollback pull, while our viewport anchor
 			// stayed frozen. Recover the restored cursor position before any
 			// provider repaint can overwrite history at the stale row.
-			if (width !== this.#altEnterWidth || height !== this.#altEnterHeight) {
+			// A fullscreen session has no restored normal viewport to anchor: the
+			// buffer it hands back is whatever the shell had before the session
+			// started, not a frame this TUI painted, so there is nothing to probe
+			// for and no provider rows to reconcile against it.
+			if (!this.#fullscreenSession && (width !== this.#altEnterWidth || height !== this.#altEnterHeight)) {
 				if (this.#frameProvider !== undefined) {
 					this.#beginResizeAnchorProbe();
 					return;
@@ -4443,14 +4486,26 @@ export class TUI extends Container {
 	}
 
 	/**
-	 * Compose and paint a single fullscreen overlay frame on the alt buffer.
-	 * Cursor markers are stripped from the frame, but only a focused cursor-mode
-	 * component owned by the fullscreen overlay may position the hardware cursor.
-	 * The normal transcript is never composited into the alternate buffer.
+	 * Compose and paint one frame on the alt buffer: either a fullscreen
+	 * overlay over a blank screen, or — in a fullscreen session — the provider's
+	 * complete screen with any overlays composited on top.
+	 *
+	 * Cursor markers are stripped from the frame, but only a focused
+	 * cursor-mode component owned by the top overlay may position the hardware
+	 * cursor; a fullscreen session's own editor positions it through the
+	 * provider's plan like any other frame.
 	 */
 	#renderAltFrame(width: number, height: number): void {
-		// oxlint-disable-next-line unicorn/no-new-array -- alt-frame length preallocation
-		const base: string[] = new Array(Math.max(0, height)).fill("");
+		const topOverlay = this.#getTopmostVisibleOverlay();
+		const overlayOwnsScreen = topOverlay?.options?.fullscreen === true;
+		// A fullscreen session still asks its provider for the screen, so the
+		// transcript, editor, and sidebar paint there. A fullscreen overlay on
+		// top of it covers that screen the way it covers the normal one.
+		const base: string[] =
+			overlayOwnsScreen || !this.#fullscreenSession || this.#frameProvider === undefined
+				? // oxlint-disable-next-line unicorn/no-new-array -- alt-frame length preallocation
+					new Array(Math.max(0, height)).fill("")
+				: this.#providerAltWindow(width, height);
 		let lines: string[];
 		do {
 			this.#imageBudget.beginPass(false, true);
@@ -4458,16 +4513,56 @@ export class TUI extends Container {
 		} while (this.#imageBudget.endPass());
 		const markers: { row: number; col: number }[] = [];
 		const prepared = this.#prepareLinesArray(lines, width, this.#altPreparedRows, height, markers);
-		const topOverlay = this.#getTopmostVisibleOverlay();
 		const focused = this.#focusedComponent;
+		// A fullscreen session's own chrome may place the hardware cursor (the
+		// editor does); an overlay only may while it owns the screen.
+		const cursorOwner =
+			topOverlay === undefined
+				? this.#fullscreenSession
+					? focused
+					: null
+				: topOverlay.options?.fullscreen === true || !this.#fullscreenSession
+					? topOverlay.component
+					: null;
 		const acceptsTerminalCursor =
-			topOverlay !== undefined &&
+			cursorOwner !== null &&
 			focused !== null &&
 			isFocusable(focused) &&
 			focused.focused &&
 			typeof focused.setUseTerminalCursor === "function" &&
-			isOverlayFocusTarget(topOverlay.component, focused);
+			isOverlayFocusTarget(cursorOwner, focused);
 		this.#emitAltFrame(prepared, width, height, true, acceptsTerminalCursor ? (markers[0] ?? null) : null);
+	}
+
+	/**
+	 * One fullscreen-session frame: the provider's viewport, exactly the size of
+	 * the terminal and with no history.
+	 *
+	 * History is refused rather than dropped: the alternate buffer has no
+	 * scrollback, so a provider that retires rows there would silently lose
+	 * them. A provider switching into this mode must stop offering batches and
+	 * keep the whole document in its viewport instead.
+	 */
+	#providerAltWindow(width: number, height: number): string[] {
+		const provider = this.#frameProvider!;
+		// The caller already opened the image pass for this frame; the provider
+		// composes into it exactly as it does on the normal screen.
+		const plan = provider.renderFrame({ columns: width, rows: height });
+		let viewport = Array.from(plan.viewport);
+		if (plan.history !== undefined) {
+			logger.error("Fullscreen session frame offered native history; dropping the batch", {
+				rows: plan.history.rows.length,
+			});
+			provider.acknowledgeHistory(plan.history.id);
+		}
+		if (viewport.length > height) {
+			logger.error("Fullscreen session frame exceeded the terminal height", {
+				rows: viewport.length,
+				height,
+			});
+			viewport = viewport.slice(viewport.length - height);
+		}
+		return viewport;
 	}
 
 	/**

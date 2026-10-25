@@ -45,6 +45,7 @@ import { formatSlowModeResetClock } from "../session/anthropic-slow-mode";
 import { cfgExtendedContext } from "../session/context-settings";
 import { cfgGoalEnabled } from "../goals/settings";
 import { cfgPlanEnabled } from "../plan-mode/settings";
+import { cfgTuiFullscreen } from "../modes/settings";
 
 export function refreshStatusLine(ctx: InteractiveModeContext): void {
 	ctx.statusLine.invalidate();
@@ -728,6 +729,63 @@ export const BUILTIN_MODE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 				return;
 			}
 			runtime.ctx.showStatus("Usage: /computer [on|off|status]");
+			clearSubmittedText(runtime);
+		},
+	},
+	{
+		name: "fullscreen",
+		icon: "expand",
+		description: "Toggle the fullscreen session: pinned input and sidebar, transcript scrolls",
+		acpInputHint: "[on|off|status]",
+		subcommands: [
+			{ name: "on", description: "Run the session on the alternate screen" },
+			{ name: "off", description: "Return to the normal screen with terminal scrollback" },
+			{ name: "status", description: "Show the current mode" },
+		],
+		allowArgs: true,
+		getTuiAutocompleteDescription: runtime =>
+			`Fullscreen: ${cfgTuiFullscreen.get(runtime.ctx.settings) ? "on" : "off"}`,
+		handle: async (command, runtime) => {
+			const arg = command.args.trim().toLowerCase();
+			if (arg === "status") {
+				await runtime.output(
+					`Fullscreen session: ${cfgTuiFullscreen.get(runtime.session.settings) ? "on" : "off"}`,
+				);
+				return commandConsumed();
+			}
+			if (!arg || arg === "toggle" || arg === "on" || arg === "off") {
+				const current = cfgTuiFullscreen.get(runtime.session.settings);
+				const enable = arg === "off" ? false : arg === "on" || !current;
+				cfgTuiFullscreen.override(runtime.session.settings, enable);
+				await runtime.output(
+					enable
+						? "Fullscreen session on: the transcript scrolls under a pinned input. Terminal scrollback is not used."
+						: "Fullscreen session off: the transcript returns to terminal scrollback.",
+				);
+				return commandConsumed();
+			}
+			return usage("Usage: /fullscreen [on|off|status]", runtime);
+		},
+		handleTui: (command, runtime) => {
+			const arg = command.args.trim().toLowerCase();
+			const current = cfgTuiFullscreen.get(runtime.ctx.settings);
+			if (arg === "status") {
+				runtime.ctx.showStatus(`Fullscreen session: ${current ? "on" : "off"}`);
+				clearSubmittedText(runtime);
+				return;
+			}
+			if (!arg || arg === "toggle" || arg === "on" || arg === "off") {
+				const enable = arg === "off" ? false : arg === "on" || !current;
+				cfgTuiFullscreen.override(runtime.ctx.settings, enable);
+				runtime.ctx.showStatus(
+					enable
+						? "Fullscreen session on: PageUp/PageDown, Home/End, and the wheel scroll the transcript."
+						: "Fullscreen session off: the transcript returns to terminal scrollback.",
+				);
+				clearSubmittedText(runtime);
+				return;
+			}
+			runtime.ctx.showStatus("Usage: /fullscreen [on|off|status]");
 			clearSubmittedText(runtime);
 		},
 	},

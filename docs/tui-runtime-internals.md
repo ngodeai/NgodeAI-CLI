@@ -57,6 +57,42 @@ the active tail from the projected viewport.
 
 Every emitted transcript block owns one trailing separator row. This preserves spacing between a finalized user/tool block and the next active assistant/tool row without duplicating separators across batches.
 
+## Fullscreen session
+
+`tui.fullscreen` moves the whole session onto the alternate buffer (the
+vim/less idiom). It is a second, separate presentation model, not a mode of the
+scrollback one:
+
+- **No retirement.** The composer never offers a history batch, and the TUI
+  refuses one there (acknowledging it so the provider stops re-offering). The
+  alternate buffer has no scrollback, so a retired row would be lost.
+- **Whole-document viewport.** `TranscriptContainer.renderDocumentWindow`
+  lays the ledger out in full and returns the `[offset, offset + height)` slice.
+  Blocks stay live for the session; `#documentBlocks` caches their rows by width
+  and skips any whose component returns the same array reference, so an idle
+  repaint costs the changed blocks rather than the conversation.
+- **Pinned chrome.** Roots below the transcript — HUDs, editor, status line —
+  keep their natural height at the bottom of the screen; the transcript takes
+  every remaining row. When the document is shorter than that window it hangs
+  from the bottom, so the chrome never floats mid-conversation.
+- **Offset from the tail.** `Composer.#scrollOffset` counts rows up from the
+  newest row, so `0` follows output and a non-zero value keeps the reader's
+  distance from the end as new rows arrive. `scrollBy` clamps to the document;
+  typing in the editor returns to the tail.
+- **One buffer switch.** `TUI.setFullscreenSession` borrows the buffer and
+  paints `renderFrame` there through the same row-diff path overlays use.
+  Resize repaints reuse it instead of borrowing a second time, and leaving the
+  mode skips the normal-buffer anchor probe — the restored screen belongs to
+  the shell, not to a frame this TUI painted.
+
+Entering the mode mid-session rebuilds the display: rows already retired into
+the normal screen's scrollback are invisible from the alternate buffer, so the
+host forgets the stable-emission ledger and repaints from the transcript's own
+entries (the same pairing the thinking-visibility toggle uses).
+
+The tradeoff is deliberate: nothing is left on the normal screen after quitting,
+and the whole ledger is held in memory for the session's lifetime.
+
 ## Viewport allocation and tool collapse
 
 The product root reserves chrome first, gives every active block one row, then allocates surplus to newer blocks. When active count exceeds available rows, it uses a bounded aggregate rather than committing or cancelling work.
