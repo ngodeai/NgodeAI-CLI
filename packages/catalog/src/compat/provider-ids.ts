@@ -53,6 +53,7 @@ export type KnownProvider =
 	| "moonshot"
 	| "muse-code"
 	| "nanogpt"
+	| "ngodeai"
 	| "novita"
 	| "nvidia"
 	| "ollama"

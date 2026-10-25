@@ -413,12 +413,14 @@ export class WelcomeComponent implements Component {
 }
 
 /**
- * Block-grid brand mark shared by the welcome and setup surfaces: the NgodeAI
- * "N", drawn in the same ANSI-shadow alphabet the setup scenes use. Two solid
- * verticals joined by the diagonal are the readable core of the logo's mark;
- * the circuit connectors are a raster detail that does not survive at 9x5.
+ * Block-grid brand mark shared by the welcome and setup surfaces: an
+ * ANSI-shadow capital **N** for NgodeAI. Two solid verticals joined by the
+ * diagonal are the readable core; the pre-rebrand build used an `H` here, and
+ * the mark has to read as its own thing at a glance. Five rows tall and ten
+ * columns wide, so it fills the same slot the old lockup used without
+ * reflowing the banner.
  */
-export const NGODE_LOGO = ["██╗  ██╗", "██║  ██║", "███████║", "██╔══██║", "██║  ██║"];
+export const NGODE_LOGO = ["███╗   ██╗", "████╗  ██║", "██╔██╗ ██║", "██║╚██╗██║", "██║ ╚████║"];
 
 /** Columns of {@link NGODE_LOGO}. */
 const LOGO_WIDTH = Math.max(...NGODE_LOGO.map(row => row.length));

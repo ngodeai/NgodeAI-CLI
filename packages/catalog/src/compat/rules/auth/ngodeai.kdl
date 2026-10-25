@@ -1,0 +1,18 @@
+// NgodeAI hosted gateway — the default way to reach models in this build.
+//
+// `https://llm.ngodeai.net/v1` speaks the OpenAI Chat Completions wire, so the
+// transport is plain `openai-completions`. Sign-up lives on ngodeai.net; the
+// key it issues carries the `ngodeai_live_` prefix, which is what the paste
+// prompt validates against before the `/models` probe confirms the account.
+auth "ngodeai" {
+	name "NgodeAI"
+	env "NGODEAI_API_KEY"
+	login "api-key" {
+		auth-url "https://ngodeai.net"
+		instructions "Create a free NgodeAI account at https://ngodeai.net to get your API key, then paste it here."
+		prompt "Paste your NgodeAI API key" placeholder="ngodeai_live_..."
+		normalize "strip-bearer"
+		validate "models-endpoint" label="ngodeai" url="https://llm.ngodeai.net/v1/models"
+	}
+	refresh "none"
+}

@@ -3,6 +3,7 @@ import type { SetupHost } from "./scenes/types";
 import { composerSetupScene } from "./scenes/composer";
 import { glyphSetupScene } from "./scenes/glyph";
 import { modelSetupScene } from "./scenes/model";
+import { ngodeaiSignInScene } from "./scenes/ngodeai-signin";
 import { providersSetupScene } from "./scenes/sign-in";
 import { themeSetupScene } from "./scenes/theme";
 import type { SetupScene } from "./scenes/types";
@@ -15,6 +16,9 @@ export { CURRENT_SETUP_VERSION };
 
 /** Ordered onboarding scenes with independent version gates. */
 export const ALL_SCENES = [
+	// First: this build ships pointed at the first-party gateway, so a brand-new
+	// install should land on "get a NgodeAI key" rather than a provider roster.
+	ngodeaiSignInScene,
 	providersSetupScene,
 	modelSetupScene,
 	glyphSetupScene,
