@@ -6,6 +6,7 @@ import { shimmerEnabled, shimmerText } from "../theme/shimmer";
 import type { Theme } from "../theme/theme";
 import { Ellipsis, Hasher, type RenderCache, renderStatusLine, renderTreeList, truncateToWidth } from "../render/index";
 import { formatArtifactErrorNotice, stripOutputNotice, type OutputMeta } from "./output-meta";
+import { framedComponent } from "../render/tool-card";
 import {
 	FEED_MODEL_BADGE_WIDTH,
 	formatBadge,
@@ -432,7 +433,7 @@ function jobsRenderResult(
 		}
 		return lines;
 	};
-	return {
+	const body = {
 		render(width: number): readonly string[] {
 			const expanded = options.expanded;
 			const spinnerFrame = options.spinnerFrame ?? 0;
@@ -624,6 +625,32 @@ function jobsRenderResult(
 			cached = undefined;
 		},
 	};
+	// The job/agent tree builds its own row widths, so it keeps its renderer and
+	// only borrows the frame. The first row is the status header the renderer
+	// already formatted; lifting it into the border keeps the block identical to
+	// every other tool card instead of leaving it as floating text.
+	const framed = framedComponent(
+		uiTheme,
+		contentWidth => {
+			// The outcome row is the reason this card exists, and the top rule has
+			// roughly six fewer columns than a body row (corner + cap + gap on each
+			// side). Below that budget the header moves into the body, where it keeps
+			// its full width; above it the rule is the tidier place for it.
+			const rows = body.render(contentWidth);
+			const [head, ...rest] = rows;
+			// The rule spends 3 columns on the cap, 1 on the gap and 1 on the corner
+			// at each side; a header longer than that is cut before it reaches the
+			// outcome it is reporting.
+			const headerFits = visibleWidth(head ?? "") + 8 <= contentWidth;
+			return {
+				header: headerFits ? head : undefined,
+				lines: headerFits ? rest : rows,
+				phase: counts.failed > 0 ? "warning" : "success",
+			};
+		},
+		{ paddingX: 1 },
+	);
+	return framed;
 }
 
 // =============================================================================

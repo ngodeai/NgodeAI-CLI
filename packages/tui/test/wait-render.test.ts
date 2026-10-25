@@ -12,6 +12,27 @@ import type { NativeChild, NativeNode } from "@ngodeai/tui/native/node";
 import { type CoordinationDetails, waitToolRenderer } from "@ngodeai/tui/tools/wait";
 import { decodeBench } from "./fixtures/job-widget-views";
 
+/**
+ * Rows inside the card's frame.
+ *
+ * Every tool result is framed now, so a test that counts rows is really
+ * asking about the body: strip the top and bottom rules and the `│` gutters
+ * and the counts stay comparable to what they were before.
+ */
+function innerLines(component: { render(width: number): readonly string[] }, width = 120): string[] {
+	const rows = component.render(width).map(row => Bun.stripANSI(row));
+	if (rows.length < 2) return rows;
+	const body = rows.slice(1, -1);
+	// The frame adds one column of padding on each side; trim both edges and the
+	// gutter, then drop the padding so a row compares equal to the bare text.
+	return body.map(row =>
+		row
+			.replace(/^│\s?/, "")
+			.replace(/\s?│$/, "")
+			.trimEnd(),
+	);
+}
+
 /** Every described node under `children`, depth first. */
 function flatten(children: readonly NativeChild[] | undefined): NativeNode[] {
 	return (children ?? []).flatMap(child => ("k" in child ? [child, ...flatten(child.c)] : []));
@@ -223,13 +244,14 @@ describe("job renderer task-result preview", () => {
 				details: { op: "wait" as const, jobs: jobsData },
 			};
 			const component = waitToolRenderer.renderResult(result, { expanded: false, isPartial: false }, theme);
-			const lines = (component.render(120) as readonly string[]).map(line => Bun.stripANSI(line));
-			// Job2 settled: one completion row. The running jobs collapse into a count,
-			// so the next poll's card does not repeat them.
-			expect(lines).toHaveLength(2);
-			expect(lines[0]).toContain("Job2 done");
-			expect(lines[1]!.trim()).toBe("2 still running");
-			expect(lines.join("\n")).not.toContain("waiting on");
+			const lines = innerLines(component);
+			// Job2 settled: the completion is the card's header, and the running jobs
+			// collapse into one count row instead of re-printing the tree.
+			const painted = Bun.stripANSI(component.render(120).join("\n"));
+			expect(painted).toContain("Job2 done");
+			expect(lines).toHaveLength(1);
+			expect(lines[0]!.trim()).toBe("2 still running");
+			expect(painted).not.toContain("waiting on");
 		});
 
 		it("keeps the waiting header while nothing has settled", () => {
@@ -238,9 +260,11 @@ describe("job renderer task-result preview", () => {
 				details: { op: "wait" as const, jobs: [jobsData[0]!, jobsData[2]!] },
 			};
 			const component = waitToolRenderer.renderResult(result, { expanded: false, isPartial: true }, theme);
-			const lines = (component.render(120) as readonly string[]).map(line => Bun.stripANSI(line));
-			expect(lines).toHaveLength(1);
-			expect(lines[0]).toContain("waiting on 2 jobs");
+			// The header sits in the card's top border, so the body stays empty while
+			// nothing has settled and the card is a two-rule box.
+			const painted = Bun.stripANSI(component.render(120).join("\n"));
+			expect(painted).toContain("waiting on 2 jobs");
+			expect(innerLines(component)).toHaveLength(0);
 		});
 
 		it("keeps a failed job's outcome visible when its id overflows the row", () => {
@@ -261,9 +285,11 @@ describe("job renderer task-result preview", () => {
 				},
 			};
 			const component = waitToolRenderer.renderResult(result, { expanded: false, isPartial: false }, theme);
-			const [row] = (component.render(40) as readonly string[]).map(line => Bun.stripANSI(line));
-			expect(row).toContain("failed · exit 2 · 1m2s");
-			expect(Bun.stringWidth(row!)).toBeLessThanOrEqual(40);
+			// The outcome rides the card's header, so read the whole frame: the id is
+			// what overflows, and the point of the test is that the outcome survives it.
+			const painted = component.render(40).map(line => Bun.stripANSI(line));
+			expect(painted.join("\n")).toContain("failed · exit 2 · 1m2s");
+			for (const row of painted) expect(Bun.stringWidth(row)).toBeLessThanOrEqual(40);
 		});
 
 		it("retains the running job in the sealed native wait card", () => {
@@ -374,9 +400,11 @@ describe("job renderer task-result preview", () => {
 			}));
 			const result = { content: [{ type: "text" as const, text: "" }], details: { op: "wait" as const, jobs } };
 			const component = waitToolRenderer.renderResult(result, { expanded: false, isPartial: false }, theme);
-			const lines = (component.render(100) as readonly string[]).map(line => Bun.stripANSI(line));
-			expect(lines).toHaveLength(9);
-			expect(lines[0]).toContain("bg_11 failed");
+			const lines = innerLines(component, 100);
+			// Eight capped rows plus the overflow count; the first failure heads the
+			// card, so it is not one of the eight body rows.
+			expect(lines).toHaveLength(8);
+			expect(Bun.stripANSI(component.render(100).join("\n"))).toContain("bg_11 failed");
 			expect(lines.at(-1)!.trim()).toBe("… 4 more settled");
 		});
 
@@ -497,7 +525,9 @@ describe("job renderer task-result preview", () => {
 				const row = lines.findIndex(line => line.includes("bg_3"));
 				expect(row).toBeGreaterThan(0);
 				expect(lines[row]).toContain("verb-bench · decode throughput bg_3");
-				expect(lines[row]).toMatch(/decode 186 tok\/s ▲ 15% {2}42\.0s$/);
+				// The row still ends at the widget's own right edge; the frame's gutter
+				// and padding sit outside it, so match on the body before the border.
+				expect(lines[row]).toMatch(/decode 186 tok\/s ▲ 15% {2}42\.0s\s*│$/);
 				expect(lines[row + 1]).toMatch(/[▁▂▃▄▅▆▇█]+ {2}186 tok\/s {2}┄ target 200 tok\/s/);
 				for (const line of lines) expect(Bun.stringWidth(line)).toBeLessThanOrEqual(100);
 			}

@@ -496,6 +496,32 @@ export const NGODE_LOGO = [
 const LOGO_WIDTH = Math.max(...NGODE_LOGO.map(row => row.length));
 
 /**
+ * First column of the `AI` suffix in {@link NGODE_LOGO}.
+ *
+ * The wordmark is two colors: `Ngode` in the terminal's foreground, `AI` in
+ * brand red. Splitting on a column rather than per-letter keeps the descender
+ * of `g` and the counters of `d`/`e` intact — the grid is one continuous
+ * bitmap, so the boundary is a paint decision, not a layout one.
+ */
+const AI_SUFFIX_COLUMN = 30;
+
+/** Brand red for the `AI` half of the mark, matching {@link GRADIENT_STOPS}. */
+const AI_BRAND_RED = "\x1b[38;2;251;0;1m";
+
+/** Brand red on the 256-color ramp fallback. */
+const AI_BRAND_RED_256 = "\x1b[38;5;196m";
+
+/**
+ * ANSI foreground for the `Ngode` half.
+ *
+ * Deliberately the terminal's *default* foreground rather than a theme token:
+ * the mark is the product name, and a theme that paints body text `#e0e0e0`
+ * would leave the white half indistinguishable from a dimmed one. `null` means
+ * "emit no SGR", which is how a terminal says default.
+ */
+const NGODE_FOREGROUND: string | null = null;
+
+/**
  * Caption set beside {@link NGODE_LOGO}. The mark spells the name already, so
  * this carries only the version and a one-line tagline rather than repeating
  * the wordmark.
@@ -639,10 +665,17 @@ export function gradientEscape(t: number, shine?: ShineConfig): string {
 }
 
 /**
- * Apply a multi-stop diagonal gradient (top-left → bottom-right) plus an
- * optional sliding shine band across multi-line art. `phase` (0..1) shifts the
- * gradient along the diagonal, wrapping at 1. When `shine` is provided, a soft
- * white highlight is composited on top, centered at `shine.pos`.
+ * Paint the block-grid mark: `Ngode` in the terminal's foreground, `AI` in
+ * brand red.
+ *
+ * The wordmark is deliberately not a gradient any more. Two flat colors make
+ * the name readable at a glance and put the emphasis on the product half;
+ * a sweeping gradient across all seven letters turned "NgodeAI" into a single
+ * decorative shape. The intro animation still runs — the red half breathes
+ * with the shine band, so the mark moves without the text ever changing hue.
+ *
+ * Art that is not {@link NGODE_LOGO} (the doubled splash mark, setup outro)
+ * falls back to the gradient so those surfaces keep their sweep.
  */
 export function gradientLogo(lines: readonly string[], phase = 0, shine?: ShineConfig): string[] {
 	const reset = "\x1b[0m";
@@ -651,12 +684,25 @@ export function gradientLogo(lines: readonly string[], phase = 0, shine?: ShineC
 	const xSpan = Math.max(1, cols - 1);
 	const ySpan = Math.max(1, rows - 1);
 	const normalizedPhase = ((phase % 1) + 1) % 1;
+	const isWordmark = rows === NGODE_LOGO.length && cols === LOGO_WIDTH;
+	const red = TERMINAL.trueColor ? AI_BRAND_RED : AI_BRAND_RED_256;
 	return lines.map((line, y) => {
 		let result = "";
 		for (let x = 0; x < line.length; x++) {
 			const char = line[x];
 			if (char === " ") {
 				result += char;
+				continue;
+			}
+			if (isWordmark) {
+				// `Ngode` keeps the default foreground: no SGR at all, so it inherits
+				// whatever the terminal is set to and stays legible on light themes.
+				// The red half carries the only color, plus the shine highlight.
+				if (x < AI_SUFFIX_COLUMN) {
+					result += NGODE_FOREGROUND ? NGODE_FOREGROUND + char + reset : char;
+				} else {
+					result += red + char + reset;
+				}
 				continue;
 			}
 			// SVG's (0,0) → (1,1) gradient projects both normalized axes

@@ -17,7 +17,9 @@ import {
 import { highlightCode, type Theme } from "../theme/theme";
 import { parseCfgUrl } from "./cfg-url";
 import type { NativeToolView, RenderResultOptions } from "./renderer";
-import { card, type CardToolResult, firstText, safe } from "./result-card";
+import { type CardToolResult, firstText, safe } from "./result-card";
+import { framedToolCard } from "../render/tool-card";
+import type { StatusLineOptions } from "../render/status-line";
 import { code, compact, span, text } from "../native/describe";
 import { plainText } from "../native/spans";
 import { errorView, toolHead } from "./native-view";
@@ -55,29 +57,39 @@ export function renderCfgRead(
 	options: RenderResultOptions,
 	theme: Theme,
 ): Component {
-	return card((_width, expanded) => {
-		const meta: string[] = [];
-		if (details) {
-			meta.push(details.count === 1 ? "1 setting" : `${details.count} settings`);
-			if (details.modified) meta.push(`${details.modified} modified`);
-		}
-		const header = renderStatusLine(
-			{
-				icon: result === undefined ? "pending" : result.isError ? "error" : "info",
-				title: "Config",
-				description: (details?.path ?? parseCfgUrl(url)?.segments.join(".")) || "all settings",
-				meta,
-			},
-			theme,
-		);
-		if (!result) return [header];
-		if (result.isError) return [header, formatErrorDetail(firstText(result) || "Settings read failed.", theme)];
-		const body = firstText(result).trimEnd().split("\n");
-		const shown = cappedHeadLines(body, expanded ? body.length : PREVIEW_LIMITS.COLLAPSED_ITEMS);
-		const lines = [header, ...highlightCode(safe(shown.lines.join("\n")), "yaml", theme).map(line => `  ${line}`)];
-		if (shown.hidden) lines.push(theme.fg("dim", `  ${formatMoreItems(shown.hidden, "line")}`));
-		return lines;
-	}, options);
+	const expanded = Boolean(options.expanded);
+	const meta: string[] = [];
+	if (details) {
+		meta.push(details.count === 1 ? "1 setting" : `${details.count} settings`);
+		if (details.modified) meta.push(`${details.modified} modified`);
+	}
+	const status: StatusLineOptions = {
+		icon: result === undefined ? "pending" : result.isError ? "error" : "info",
+		title: "Config",
+		description: (details?.path ?? parseCfgUrl(url)?.segments.join(".")) || "all settings",
+		meta,
+	};
+
+	return framedToolCard(
+		theme,
+		() => {
+			if (!result) return { status, phase: "pending", borderColor: "borderMuted" };
+			if (result.isError) {
+				return {
+					status,
+					body: [formatErrorDetail(firstText(result) || "Settings read failed.", theme)],
+					phase: "error",
+					borderColor: "error",
+				};
+			}
+			const body = firstText(result).trimEnd().split("\n");
+			const shown = cappedHeadLines(body, expanded ? body.length : PREVIEW_LIMITS.COLLAPSED_ITEMS);
+			const lines = highlightCode(safe(shown.lines.join("\n")), "yaml", theme).map(line => `  ${line}`);
+			if (shown.hidden) lines.push(theme.fg("dim", `  ${formatMoreItems(shown.hidden, "line")}`));
+			return { status, body: lines, phase: "success", borderColor: "borderMuted" };
+		},
+		{ paddingX: 1 },
+	);
 }
 
 /** TSP view of `read cfg://…`: path and counts in the head, the listing as YAML. */
@@ -151,32 +163,51 @@ export function renderCfgWrite(
 	options: RenderResultOptions,
 	theme: Theme,
 ): Component {
-	return card(() => {
-		const target = parseCfgUrl(url);
-		const save = details?.save ?? target?.save ?? false;
-		const icon =
-			result === undefined
-				? "pending"
-				: result.isError
-					? "error"
-					: details?.outcome === "declined"
-						? "warning"
-						: "success";
-		const badges = [formatBadge(save ? "persist" : "session", save ? "accent" : "muted", theme)];
-		if (details?.outcome === "declined") badges.push(formatBadge("declined", "warning", theme));
-		if (details?.outcome === "unchanged") badges.push(formatBadge("unchanged", "muted", theme));
-		const header = `${renderStatusLine({ icon, title: "Config", description: details?.path ?? target?.segments.join(".") }, theme)} ${badges.join(" ")}`;
-		if (result?.isError) return [header, formatErrorDetail(firstText(result) || "Settings write failed.", theme)];
-		const arrow = theme.fg("dim", "→");
-		const next = theme.fg("toolOutput", details?.value ?? content?.trim() ?? "…");
-		const lines = [
-			header,
-			details ? `  ${theme.fg("dim", details.previous)} ${arrow} ${next}` : `  ${arrow} ${next}`,
-		];
-		if (details?.effective !== undefined)
-			lines.push(
-				theme.fg("warning", `  still ${details.effective}: a higher-precedence layer overrides the saved value`),
-			);
-		return lines;
-	}, options);
+	const target = parseCfgUrl(url);
+	const save = details?.save ?? target?.save ?? false;
+	const icon =
+		result === undefined
+			? "pending"
+			: result.isError
+				? "error"
+				: details?.outcome === "declined"
+					? "warning"
+					: "success";
+	const status: StatusLineOptions = {
+		icon,
+		title: "Config",
+		description: details?.path ?? target?.segments.join("."),
+	};
+
+	return framedToolCard(
+		theme,
+		() => {
+			if (result?.isError) {
+				return {
+					status,
+					body: [formatErrorDetail(firstText(result) || "Settings write failed.", theme)],
+					phase: "error",
+					borderColor: "error",
+				};
+			}
+			const badges = [formatBadge(save ? "persist" : "session", save ? "accent" : "muted", theme)];
+			if (details?.outcome === "declined") badges.push(formatBadge("declined", "warning", theme));
+			if (details?.outcome === "unchanged") badges.push(formatBadge("unchanged", "muted", theme));
+			const arrow = theme.fg("dim", "→");
+			const next = theme.fg("toolOutput", details?.value ?? content?.trim() ?? "…");
+			const lines = [`${details ? `${theme.fg("dim", details.previous)} ` : ""}${arrow} ${next}`, ...badges];
+			if (details?.effective !== undefined)
+				lines.push(
+					theme.fg("warning", `still ${details.effective}: a higher-precedence layer overrides the saved value`),
+				);
+			return {
+				status,
+				body: lines,
+				phase: result === undefined ? "pending" : details?.outcome === "declined" ? "warning" : "success",
+				borderColor:
+					result === undefined ? "borderMuted" : details?.outcome === "declined" ? "warning" : "borderMuted",
+			};
+		},
+		{ paddingX: 1 },
+	);
 }

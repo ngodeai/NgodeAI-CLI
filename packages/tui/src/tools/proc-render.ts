@@ -21,6 +21,8 @@ import type { IrcDeliveryReceipt } from "./irc";
 import type { DaemonSnapshot } from "./daemon";
 import { styleTerminalRow } from "./terminal-output";
 import { card, type CardToolResult as ToolResult, firstText, safe } from "./result-card";
+import { framedToolCard } from "../render/tool-card";
+import type { StatusLineOptions } from "../render/status-line";
 
 export interface ProcReadDetails {
 	jobs?: JobSnapshot[];
@@ -154,42 +156,56 @@ export function renderProcWrite(
 	options: RenderResultOptions,
 	theme: Theme,
 ): Component {
-	return card((_width, expanded) => {
-		const title = `Proc ${action} ${safe(id || "…")}`;
-		const daemon = details && "daemon" in details ? details.daemon : undefined;
-		const header = renderStatusLine(
-			{
-				icon:
-					result === undefined ? "pending" : result.isError ? "error" : action === "kill" ? "aborted" : "success",
-				title,
-				meta: daemon ? daemonMeta(daemon, theme) : action === "mode" && content ? [safe(content)] : [],
-			},
-			theme,
-		);
-		if (result?.isError) return [header, formatErrorDetail(firstText(result) || "Process operation failed.", theme)];
-		const lines = [header];
-		if (content && action === "stdin") lines.push(...preview(content, expanded, theme));
-		if (details && "op" in details && details.op === "cancel") {
-			const jobs = details.jobs ?? [];
-			const outcomes = details.cancelled ?? [];
-			lines.push(
-				...renderTreeList(
-					{
-						items: outcomes,
-						expanded,
-						maxCollapsed: PREVIEW_LIMITS.COLLAPSED_ITEMS,
-						itemType: "job",
-						renderItem: outcome => {
-							const job = jobs.find(item => item.id === outcome.id);
-							return `${job ? `${jobRow(job, theme)} ` : `${theme.fg("toolOutput", safe(outcome.id))} `}${formatBadge(outcome.status, outcome.status === "cancelled" ? "warning" : "error", theme)}`;
+	const expanded = Boolean(options.expanded);
+	const title = `Proc ${action} ${safe(id || "…")}`;
+	const daemon = details && "daemon" in details ? details.daemon : undefined;
+	const status: StatusLineOptions = {
+		icon: result === undefined ? "pending" : result.isError ? "error" : action === "kill" ? "aborted" : "success",
+		title,
+		meta: daemon ? daemonMeta(daemon, theme) : action === "mode" && content ? [safe(content)] : [],
+	};
+
+	return framedToolCard(
+		theme,
+		() => {
+			if (result?.isError) {
+				return {
+					status,
+					body: [formatErrorDetail(firstText(result) || "Process operation failed.", theme)],
+					phase: "error",
+					borderColor: "error",
+				};
+			}
+			const body: string[] = [];
+			if (content && action === "stdin") body.push(...preview(content, expanded, theme));
+			if (details && "op" in details && details.op === "cancel") {
+				const jobs = details.jobs ?? [];
+				const outcomes = details.cancelled ?? [];
+				body.push(
+					...renderTreeList(
+						{
+							items: outcomes,
+							expanded,
+							maxCollapsed: PREVIEW_LIMITS.COLLAPSED_ITEMS,
+							itemType: "job",
+							renderItem: outcome => {
+								const job = jobs.find(item => item.id === outcome.id);
+								return `${job ? `${jobRow(job, theme)} ` : `${theme.fg("toolOutput", safe(outcome.id))} `}${formatBadge(outcome.status, outcome.status === "cancelled" ? "warning" : "error", theme)}`;
+							},
 						},
-					},
-					theme,
-				),
-			);
-		}
-		return lines;
-	}, options);
+						theme,
+					),
+				);
+			}
+			return {
+				status,
+				body: body.length > 0 ? body : undefined,
+				phase: result === undefined ? "pending" : "success",
+				borderColor: result === undefined ? "borderMuted" : "borderMuted",
+			};
+		},
+		{ paddingX: 1 },
+	);
 }
 
 export function renderProcRead(
@@ -199,78 +215,115 @@ export function renderProcRead(
 	options: RenderResultOptions,
 	theme: Theme,
 ): Component {
-	return card((_width, expanded) => {
-		const title = id ? `Proc ${safe(id)}` : "Proc jobs & services";
-		const daemon = details?.daemon;
-		const header = renderStatusLine(
-			{
+	const expanded = Boolean(options.expanded);
+	const title = id ? `Proc ${safe(id)}` : "Proc jobs & services";
+	const daemon = details?.daemon;
+
+	// The list view has its own counts in the header, so it takes precedence
+	// over the bare status icon: a reader scanning the transcript wants "2 jobs
+	// · 0 services" more than a generic info glyph.
+	const jobs = details?.jobs ?? [];
+	const services = details?.daemons ?? [];
+	const agents = details?.agents ?? [];
+	const isList = !id || Boolean(details?.jobs || details?.daemons || details?.agents);
+
+	const status: StatusLineOptions = isList
+		? {
+				icon: "info",
+				title,
+				meta: [
+					`${jobs.length} jobs`,
+					`${services.length} services`,
+					...(agents.length ? [`${agents.length} agents`] : []),
+				],
+			}
+		: {
 				icon: result === undefined ? "pending" : result.isError ? "error" : "info",
 				title,
 				meta: daemon ? daemonMeta(daemon, theme) : [],
-			},
-			theme,
-		);
-		if (result?.isError) return [header, formatErrorDetail(firstText(result) || "Process read failed.", theme)];
-		if (!result) return [header];
-		if (details?.job)
-			return [
-				header,
-				jobRow(details.job, theme),
-				...preview(
-					details.log ?? details.job.errorText ?? details.job.resultText ?? "",
-					expanded,
-					theme,
-					"toolOutput",
-				),
+			};
+
+	return framedToolCard(
+		theme,
+		({ contentWidth }) => {
+			if (result?.isError) {
+				return {
+					status,
+					body: [formatErrorDetail(firstText(result) || "Process read failed.", theme)],
+					phase: "error",
+					borderColor: "error",
+				};
+			}
+			if (!result) return { status, phase: "pending", borderColor: "borderMuted" };
+
+			if (details?.job) {
+				return {
+					status,
+					sections: [
+						{
+							content: [
+								jobRow(details.job, theme),
+								...preview(
+									details.log ?? details.job.errorText ?? details.job.resultText ?? "",
+									expanded,
+									theme,
+									"toolOutput",
+								),
+							],
+						},
+					],
+					phase: "success",
+					borderColor: "borderMuted",
+				};
+			}
+
+			if (daemon) {
+				const output = details.terminalRows ?? (details.log ?? "").split("\n").filter(Boolean);
+				const limit = expanded ? PREVIEW_LIMITS.EXPANDED_LINES : PREVIEW_LIMITS.COLLAPSED_LINES;
+				const visible = output
+					.slice(-limit)
+					.map(
+						line =>
+							`  ${styleTerminalRow(truncateToWidth(safe(line), TRUNCATE_LENGTHS.LINE, Ellipsis.Unicode), theme.fg("toolOutput", ""))}`,
+					);
+				if (output.length > limit) visible.unshift(theme.fg("dim", `  … ${output.length - limit} earlier lines`));
+				return { status, body: visible, phase: "success", borderColor: "borderMuted" };
+			}
+
+			if (!isList) {
+				return {
+					status,
+					body: preview(firstText(result), expanded, theme, "toolOutput"),
+					phase: "success",
+					borderColor: "borderMuted",
+				};
+			}
+
+			const items = [
+				...jobs.map(job => ({ label: jobRow(job, theme) })),
+				...services.map(service => ({
+					label: `${formatBadge("service", "accent", theme)} ${theme.fg("toolOutput", safe(service.name))} ${formatBadge(service.state, service.state === "failed" ? "error" : service.state === "ready" || service.state === "running" ? "success" : "warning", theme)} ${daemonMeta(service, theme).slice(1).join(theme.sep.dot)}`,
+				})),
+				...agents.map(agent => ({
+					label: `${formatBadge("agent", agent.live ? "accent" : "warning", theme)} ${theme.fg("toolOutput", safe(agent.id))} ${theme.fg("dim", formatDuration(agent.ageMs))}`,
+				})),
 			];
-		if (daemon) {
-			const output = details.terminalRows ?? (details.log ?? "").split("\n").filter(Boolean);
-			const limit = expanded ? PREVIEW_LIMITS.EXPANDED_LINES : PREVIEW_LIMITS.COLLAPSED_LINES;
-			const visible = output
-				.slice(-limit)
-				.map(
-					line =>
-						`  ${styleTerminalRow(truncateToWidth(safe(line), TRUNCATE_LENGTHS.LINE, Ellipsis.Unicode), theme.fg("toolOutput", ""))}`,
-				);
-			if (output.length > limit) visible.unshift(theme.fg("dim", `  … ${output.length - limit} earlier lines`));
-			return [header, ...visible];
-		}
-		if (id && !details?.jobs && !details?.daemons && !details?.agents) {
-			return [header, ...preview(firstText(result), expanded, theme, "toolOutput")];
-		}
-		const jobs = details?.jobs ?? [];
-		const services = details?.daemons ?? [];
-		const agents = details?.agents ?? [];
-		const meta = [
-			`${jobs.length} jobs`,
-			`${services.length} services`,
-			...(agents.length ? [`${agents.length} agents`] : []),
-		];
-		const listHeader = renderStatusLine({ icon: "info", title, meta }, theme);
-		const items = [
-			...jobs.map(job => ({ label: jobRow(job, theme) })),
-			...services.map(service => ({
-				label: `${formatBadge("service", "accent", theme)} ${theme.fg("toolOutput", safe(service.name))} ${formatBadge(service.state, service.state === "failed" ? "error" : service.state === "ready" || service.state === "running" ? "success" : "warning", theme)} ${daemonMeta(service, theme).slice(1).join(theme.sep.dot)}`,
-			})),
-			...agents.map(agent => ({
-				label: `${formatBadge("agent", agent.live ? "accent" : "warning", theme)} ${theme.fg("toolOutput", safe(agent.id))} ${theme.fg("dim", formatDuration(agent.ageMs))}`,
-			})),
-		];
-		return [
-			listHeader,
-			...renderTreeList(
-				{
-					items,
-					expanded,
-					maxCollapsed: PREVIEW_LIMITS.COLLAPSED_ITEMS,
-					itemType: "process",
-					renderItem: item => item.label,
-				},
-				theme,
-			),
-			...(items.length ? [] : [theme.fg("dim", "No background jobs or services.")]),
-		];
-	}, options);
+			const rows = items.length
+				? renderTreeList(
+						{
+							items,
+							expanded,
+							maxCollapsed: PREVIEW_LIMITS.COLLAPSED_ITEMS,
+							itemType: "process",
+							renderItem: item => item.label,
+						},
+						theme,
+					)
+				: [theme.fg("dim", "No background jobs or services.")];
+			return { status, body: rows, phase: "success", borderColor: "borderMuted", contentWidth };
+		},
+		{ paddingX: 1 },
+	);
 }
 
 // =============================================================================

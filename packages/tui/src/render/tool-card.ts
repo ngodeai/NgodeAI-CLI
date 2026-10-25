@@ -15,6 +15,7 @@ import {
 	type NativeOutputBlockSection,
 	outputBlockContentWidth,
 	type OutputBlockOptions,
+	renderOutputBlock,
 } from "./output-block";
 import { renderStatusLine, type StatusLineOptions } from "./status-line";
 import type { State } from "./types";
@@ -418,6 +419,46 @@ export function framedToolCard(
 	options: Omit<ToolCardOptions, "variant"> = {},
 ): ToolCard {
 	return new ToolCard(theme, { ...options, variant: "framed" }, build);
+}
+
+/**
+ * Wrap an already-rendered tool body in the standard frame.
+ *
+ * A few renderers build their rows by hand — the job/agent tree in `wait.ts`
+ * is the main one — because the content is a nested tree with its own row
+ * widths, not a flat line list. Rebuilding them on {@link ToolCard} would mean
+ * re-plumbing that tree through slots for no visual gain, so this adapter
+ * takes the finished rows and draws the same border every other tool gets.
+ *
+ * The header is passed through verbatim: those renderers already format it
+ * with {@link renderStatusLine}, and re-deriving a status line here would
+ * double the glyph.
+ */
+export function framedComponent(
+	theme: Theme,
+	build: (contentWidth: number) => { header?: string; lines: readonly string[]; phase?: ToolCardPhase },
+	options: { paddingX?: number } = {},
+): Component {
+	const paddingX = options.paddingX ?? 1;
+	return {
+		render(width: number): readonly string[] {
+			const contentWidth = Math.max(1, width - 2 - paddingX * 2);
+			const { header, lines, phase } = build(contentWidth);
+			const snapshot = renderOutputBlock(
+				{
+					header,
+					sections: lines.length > 0 ? [{ lines }] : [],
+					width,
+					state: toolCardState(phase),
+					contentPaddingLeft: paddingX,
+					contentPaddingRight: paddingX,
+				},
+				theme,
+			);
+			return snapshot;
+		},
+		invalidate(): void {},
+	};
 }
 
 /** Construct a lazy inline tool card, optionally state-tinted. */

@@ -6,7 +6,7 @@ import { noteText } from "./native-view";
 import type { Theme } from "../theme/theme";
 import { formatOutputPaneLines, styleToolOutputLine } from "../render/output-pane";
 import { renderStatusLine, type StatusLineOptions } from "../render/status-line";
-import { plainToolCard, type ToolCardPhase } from "../render/tool-card";
+import { framedToolCard, type ToolCardPhase } from "../render/tool-card";
 import { clipCollapsed } from "../render/render-utils";
 import {
 	describeJsonTree,
@@ -225,14 +225,22 @@ export function describeDefaultToolExecution(input: DefaultToolRenderInput): Nat
 	return { tool, tone, body: [ansi(output)] };
 }
 
-/** Render the generic fallback as the state-tinted card used by direct custom tools. */
+/**
+ * Render the generic fallback as a framed card.
+ *
+ * This is the shape a tool gets when it ships no renderer of its own — a
+ * custom tool, or a call that failed before its own renderer could run. It is
+ * framed like every other tool result so the transcript never mixes boxes and
+ * floating text; the alternative read as a stray paragraph the model had
+ * written rather than as a tool outcome.
+ */
 export function renderDefaultToolExecution(input: DefaultToolRenderInput, uiTheme: Theme): Component {
 	// The body (JSON parse + tree walk or output styling) is spinner-invariant;
 	// rebuild it only when its inputs change instead of on every animated frame.
 	let memo:
 		| { args: unknown; output: string | undefined; expanded: boolean; contentWidth: number; body: readonly string[] }
 		| undefined;
-	return plainToolCard(
+	return framedToolCard(
 		uiTheme,
 		({ contentWidth }) => {
 			const { status, phase } = buildDefaultToolStatus(input);

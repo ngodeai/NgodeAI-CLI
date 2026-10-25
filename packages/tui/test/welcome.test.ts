@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
-import { pickWeightedTip, WelcomeComponent } from "@ngodeai/tui/prompt/welcome";
+import { gradientLogo, NGODE_LOGO, pickWeightedTip, WelcomeComponent } from "@ngodeai/tui/prompt/welcome";
 import { initTheme, theme } from "@ngodeai/tui/theme";
 import { visibleWidth } from "@ngodeai/tui";
 
@@ -132,5 +132,54 @@ describe("WelcomeComponent", () => {
 		expect(stacked).toBeDefined();
 		expect(stacked).not.toContain("█");
 		expect(narrow.some(row => row.includes("v1.0.0"))).toBe(true);
+	});
+	describe("wordmark colors", () => {
+		/**
+		 * Split a rendered row into the uncolored prefix and the red suffix.
+		 *
+		 * The red is truecolor on a capable terminal and the 196 ramp slot
+		 * otherwise, so both openings count as the boundary.
+		 */
+		const RED = /\x1b\[38;(?:2;251;0;1|5;196)m/;
+		function halves(row: string): { plain: string; red: string } {
+			const index = row.search(RED);
+			return index < 0
+				? { plain: Bun.stripANSI(row), red: "" }
+				: { plain: Bun.stripANSI(row.slice(0, index)), red: Bun.stripANSI(row.slice(index)) };
+		}
+
+		it("paints Ngode in the default foreground and AI in brand red", () => {
+			const rows = gradientLogo(NGODE_LOGO, 0);
+			expect(rows).toHaveLength(NGODE_LOGO.length);
+			for (const [index, row] of rows.entries()) {
+				const { plain, red } = halves(row);
+				// Reassembling the two halves must give the source row back: the split
+				// is a paint boundary, never a change to the bitmap.
+				expect(plain + red).toBe(NGODE_LOGO[index]);
+				// No color before the suffix: `Ngode` inherits the terminal default.
+				// Rows below the baseline (`g`'s descender) hold no letters at all, so
+				// they are plain by definition and have no boundary to find.
+				const boundary = row.search(RED);
+				if (boundary >= 0) expect(row.slice(0, boundary)).not.toContain("\x1b[38;");
+			}
+			// The `A` and `I` carry the red; the first row's tail is their cap bars.
+			const top = halves(rows[0]!);
+			expect(top.red.replace(/\s/g, "")).toBe("██████");
+			// `g`'s descender is `Ngode`, so those rows must be uncolored.
+			expect(rows[5]!).not.toContain("\x1b[38;");
+			expect(rows[6]!).not.toContain("\x1b[38;");
+		});
+
+		it("falls back to the gradient for art that is not the wordmark", () => {
+			// The splash doubles every row; that is a different bitmap and keeps the
+			// sweep so the splash still reads as an animation. The tell is color in
+			// the *left* half: the two-tone mark leaves `Ngode` uncolored, the
+			// gradient paints every glyph.
+			const doubled = NGODE_LOGO.flatMap(row => [row, row]);
+			const rows = gradientLogo(doubled, 0.25);
+			expect(rows.length).toBe(doubled.length);
+			// Row 0 is `N`'s cap: the gradient colors it, the wordmark does not.
+			expect(rows[0]!.startsWith("\x1b[38;")).toBe(true);
+		});
 	});
 });
