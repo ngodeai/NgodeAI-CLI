@@ -2,7 +2,7 @@ import { type Component, type OverlayFocusOwner } from "../tui";
 import { formatKeyHint } from "../app-keybindings";
 import { editorKey, editorKeys } from "../chrome/keybinding-hints";
 import { matchesKey } from "../keys";
-import { centerLine, padding } from "../utils";
+import { centerLine, padding, visibleWidth } from "../utils";
 import { padToWidth } from "../render/utils";
 import { routeSgrMouseInput, type SgrMouseEvent } from "../mouse";
 import { APP_NAME } from "@ngodeai/utils";
@@ -274,34 +274,88 @@ export class SetupWizardComponent implements Component, OverlayFocusOwner {
 		});
 	}
 
+	/**
+	 * One square-dot card holds the whole scene: mark, step counter, title,
+	 * body, and footer. The card is the layout — there is no separate header
+	 * band, so the frame the user sees on the splash is the frame they keep
+	 * through every step.
+	 */
 	#renderScene(width: number, height: number): string[] {
 		const scene = this.scenes[this.#sceneIndex];
 		const title = this.#activeScene?.title ?? scene?.title ?? "Setup";
 		const subtitle = this.#activeScene?.subtitle;
-		const contentWidth = Math.max(MIN_CONTENT_WIDTH, width - SCENE_MARGIN_X * 2);
-		const logo = gradientLogo(NGODE_LOGO, 0);
-		const header = [
-			"",
-			...logo.map(line => centerLine(line, width)),
-			centerLine(theme.bold(theme.fg("accent", APP_NAME)), width),
-			centerLine(theme.fg("muted", `Setup step ${this.#sceneIndex + 1} of ${this.scenes.length}`), width),
-			"",
-			indentLine(theme.bold(title), width, SCENE_MARGIN_X),
-		];
-		if (subtitle) {
-			header.push(indentLine(theme.fg("muted", subtitle), width, SCENE_MARGIN_X));
-		}
-		header.push("");
-		this.#bodyRowStart = header.length;
 
-		const footer = ["", centerLine(theme.fg("dim", sceneFooterHint()), width)];
-		const maxBodyLines = Math.max(0, height - header.length - footer.length);
+		const margin = 2;
+		const cardWidth = Math.max(20, Math.min(width - margin * 2, 96));
+		const innerWidth = Math.max(0, cardWidth - 2);
+		const cardLeft = Math.floor((width - cardWidth) / 2);
+		const contentWidth = Math.max(MIN_CONTENT_WIDTH, innerWidth - SCENE_MARGIN_X * 2);
+
+		// Header rows: blank, mark, name, step counter, blank, title, subtitle, blank.
+		const logo = gradientLogo(NGODE_LOGO, 0);
+		const header: string[] = [""];
+		for (const line of logo) header.push(centerLine(line, innerWidth));
+		header.push(centerLine(theme.bold(theme.fg("accent", APP_NAME)), innerWidth));
+		header.push(
+			centerLine(theme.fg("muted", `Setup step ${this.#sceneIndex + 1} of ${this.scenes.length}`), innerWidth),
+		);
+		header.push("");
+		header.push(indentLine(theme.bold(title), innerWidth, SCENE_MARGIN_X));
+		if (subtitle) header.push(indentLine(theme.fg("muted", subtitle), innerWidth, SCENE_MARGIN_X));
+		header.push("");
+
+		const footer = ["", centerLine(theme.fg("dim", sceneFooterHint()), innerWidth)];
+		// Card chrome: top rule, bottom rule, plus the header/footer padding rows.
+		const chrome = 2 + 2;
+		const maxBodyLines = Math.max(0, height - chrome - header.length - footer.length);
 		const body = this.#activeScene?.render(contentWidth, maxBodyLines).slice(0, maxBodyLines) ?? [];
-		const lines = [...header, ...body.map(line => indentLine(line, width, SCENE_MARGIN_X))];
-		while (lines.length + footer.length < height) {
-			lines.push("");
+
+		// Body rows are indented by SCENE_MARGIN_X inside the card.
+		const bodyRows = body.map(line => indentLine(line, innerWidth, SCENE_MARGIN_X));
+		const inner = [...header, ...bodyRows, ...footer];
+
+		// Vertically centre the card, then draw it.
+		const cardHeight = inner.length + chrome;
+		const top = Math.max(0, Math.floor((height - cardHeight) / 2));
+		const lines: string[] = [];
+		for (let y = 0; y < height; y++) {
+			const row = y - top;
+			if (row < 0 || row >= cardHeight) {
+				lines.push(padding(width));
+				continue;
+			}
+			if (row === 0) {
+				lines.push(
+					padding(cardLeft) +
+						theme.fg("accent", "▪") +
+						theme.fg("border", "─".repeat(innerWidth)) +
+						theme.fg("accent", "▪") +
+						padding(Math.max(0, width - cardLeft - cardWidth)),
+				);
+				continue;
+			}
+			if (row === cardHeight - 1) {
+				lines.push(
+					padding(cardLeft) +
+						theme.fg("accent", "▪") +
+						theme.fg("border", "─".repeat(innerWidth)) +
+						theme.fg("accent", "▪") +
+						padding(Math.max(0, width - cardLeft - cardWidth)),
+				);
+				continue;
+			}
+			const content = inner[row - 1] ?? "";
+			const padded = content + padding(Math.max(0, innerWidth - visibleWidth(content)));
+			lines.push(
+				padding(cardLeft) +
+					theme.fg("border", "│") +
+					padded +
+					theme.fg("border", "│") +
+					padding(Math.max(0, width - cardLeft - cardWidth)),
+			);
 		}
-		lines.push(...footer);
+		// Body row offset inside the card, for mouse hit-testing.
+		this.#bodyRowStart = top + 1 + header.length;
 		return lines;
 	}
 

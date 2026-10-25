@@ -195,6 +195,56 @@ export function renderWelcomeTip(tip: string, width: number, phase = 0): string[
  * columns). Natively: a card with the same logo, wordmark, version and tip
  * ({@link WelcomeComponent.describe}).
  */
+/**
+ * Wrap `inner` rows in the square-dot card the splash and setup wizard use.
+ *
+ * The welcome banner is the first thing a session paints, so it carries the
+ * same frame as the onboarding screens: hairline rules between four square
+ * dots, one blank column of padding inside. `inner` rows are already padded to
+ * `width`, so they are re-centered against the card's interior instead of
+ * being clipped.
+ */
+function frameCard(inner: readonly string[], width: number): string[] {
+	if (inner.length === 0) return [];
+	const cardWidth = Math.max(8, width - 2);
+	const innerWidth = cardWidth - 2;
+	const left = Math.max(0, Math.floor((width - cardWidth) / 2));
+	const rule = theme.fg("border", "─".repeat(innerWidth));
+	const edge = (glyph: string): string =>
+		padding(left) +
+		theme.fg("accent", glyph) +
+		rule +
+		theme.fg("accent", glyph) +
+		padding(Math.max(0, width - left - cardWidth));
+
+	// Center each row on its own. The caller pre-pads the lockup to a uniform
+	// width, so every mark row has the same measure and centers identically —
+	// the lockup stays square while the tip, which wraps to its own width,
+	// centers as a paragraph. Strip the outer centering applied against `width`
+	// first, or each row would be shifted by its own half-width.
+	// Rows arrive relative to the card, already padded to their block width.
+	// Neither trimEnd nor a leading-space strip may run here: trimming discards
+	// the padding that makes the lockup rectangular, and stripping leading
+	// spaces re-introduces per-row shear.
+	const out: string[] = [edge("▪")];
+	for (const line of inner) {
+		const body = line;
+		const w = visibleWidth(body);
+		const offset = Math.max(0, Math.floor((innerWidth - w) / 2));
+		out.push(
+			padding(left) +
+				theme.fg("border", "│") +
+				padding(offset) +
+				body +
+				padding(Math.max(0, innerWidth - offset - w)) +
+				theme.fg("border", "│") +
+				padding(Math.max(0, width - left - cardWidth)),
+		);
+	}
+	out.push(edge("▪"));
+	return out;
+}
+
 export class WelcomeComponent implements Component {
 	#animStart: number | null = null;
 	#animTimer: Timer | null = null;
@@ -382,10 +432,9 @@ export class WelcomeComponent implements Component {
 		const version = theme.fg("dim", `v${this.version}`);
 		const lockupWidth = LOGO_WIDTH + LOCKUP_GAP + Math.max(WORDMARK_WIDTH, visibleWidth(version));
 		const art = room >= lockupWidth ? lockup(logo, version) : room >= LOGO_WIDTH ? logo : [];
-		const lines = centerBlock(art, termWidth);
-		const tip = termWidth >= TIP_MIN_COLUMNS ? this.#renderTip(room) : [];
-		if (tip.length > 0) lines.push("", ...tip.flatMap(line => centerBlock([line], termWidth)));
-		return lines;
+		const tip = termWidth >= TIP_MIN_COLUMNS ? this.#renderTip(room).map(line => line.trim()) : [];
+		const inner = tip.length > 0 ? [...art, "", ...tip] : art;
+		return frameCard(inner, termWidth);
 	}
 
 	/**
@@ -413,25 +462,30 @@ export class WelcomeComponent implements Component {
 }
 
 /**
- * Block-grid brand mark shared by the welcome and setup surfaces: an
- * ANSI-shadow capital **N** for NgodeAI. Two solid verticals joined by the
- * diagonal are the readable core; the pre-rebrand build used an `H` here, and
- * the mark has to read as its own thing at a glance. Five rows tall and ten
- * columns wide, so it fills the same slot the old lockup used without
- * reflowing the banner.
+ * Block-grid wordmark shared by the welcome, setup, and splash surfaces.
+ *
+ * Spells **NgodeAI** in full rather than a single-letter monogram: the pre-
+ * rebrand build showed one letter, and the brand has to be readable without a
+ * caption beside it. Five rows tall, 37 columns wide, drawn in a solid block
+ * alphabet with one column of tracking between letters.
  */
-export const NGODE_LOGO = ["███╗   ██╗", "████╗  ██║", "██╔██╗ ██║", "██║╚██╗██║", "██║ ╚████║"];
+export const NGODE_LOGO = [
+	"█▄  █ █████ █████ ████  █████ █████ █",
+	"██  █ █   █ █   █ █   █ █     █   █ █",
+	"█ █ █ █████ █   █ █   █ ████  █████ █",
+	"█  ██     █ █   █ █   █ █     █   █ █",
+	"█   █ ████  █████ ████  █████ █   █ █",
+];
 
 /** Columns of {@link NGODE_LOGO}. */
 const LOGO_WIDTH = Math.max(...NGODE_LOGO.map(row => row.length));
 
 /**
- * The `NgodeAI` wordmark, set beside {@link NGODE_LOGO} on its second row with
- * the version directly under it. Rendered as styled text rather than block
- * glyphs: seven letters in half-blocks overflow every terminal narrower than
- * ~100 columns, and the lockup's job is the mark, not the alphabet.
+ * Caption set beside {@link NGODE_LOGO}. The mark spells the name already, so
+ * this carries only the version and a one-line tagline rather than repeating
+ * the wordmark.
  */
-const WORDMARK = ["NgodeAI"];
+const WORDMARK = ["", "one key, every model"];
 
 /** Columns of {@link WORDMARK}. */
 const WORDMARK_WIDTH = Math.max(...WORDMARK.map(row => row.length));
@@ -447,11 +501,16 @@ const TIP_MIN_COLUMNS = 50;
 
 /** Logo frame `logo` with the wordmark beside it and `version` (styled) under the wordmark. */
 function lockup(logo: readonly string[], version: string): string[] {
-	const mark = WORDMARK.map(row => theme.bold(theme.fg("text", row)));
-	// Row 0 keeps the mark's cap height clear, the wordmark sits at row 1 and the
-	// version directly beneath it, so the lockup reads as mark + name + version.
-	const beside = ["", ...mark, version];
-	return logo.map((row, index) => `${row}${padding(LOCKUP_GAP)}${beside[index] ?? ""}`);
+	const mark = WORDMARK.map(row => (row ? theme.fg("muted", row) : ""));
+	// The tagline sits beside the mark's second row, the version under it, so the
+	// lockup reads as wordmark + positioning line + version.
+	const beside = [mark[0] ?? "", mark[1] ?? "", version];
+	const rows = logo.map((row, index) => `${row}${padding(LOCKUP_GAP)}${beside[index] ?? ""}`);
+	// Pad every row to the block's widest so the lockup is a rectangle. Without
+	// this the two caption rows are wider than the mark rows, and any caller
+	// that centers rows individually shears the glyphs apart.
+	const widest = rows.reduce((max, row) => Math.max(max, visibleWidth(row)), 0);
+	return rows.map(row => row + padding(Math.max(0, widest - visibleWidth(row))));
 }
 
 /**
