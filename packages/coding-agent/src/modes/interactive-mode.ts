@@ -2003,7 +2003,11 @@ export class InteractiveMode implements InteractiveModeContext {
 		// rather than to fullscreen. Without it a user can drag to copy anywhere
 		// in the session; with it they trade that for hover highlights.
 		this.ui.setInlineMouseTrackingProvider(() => this.#mouseCapture || this.composer.fullscreen);
-		this.ui.setHoverTrackingProvider(() => this.#mouseCapture);
+		// Motion reporting is needed for two things: hover bands, and extending a
+		// drag-selection. The latter only matters while a drag is in flight, so
+		// the setting alone is not the whole answer — the selector asks for it
+		// for the duration of a drag and releases it on release.
+		this.ui.setHoverTrackingProvider(() => this.#mouseCapture || this.#inputController?.isSelecting === true);
 		this.chatContainer = new TranscriptContainer();
 		this.pendingMessagesContainer = new AnchoredLiveContainer();
 		this.progressHudContainer = new AnchoredLiveContainer();
@@ -2136,6 +2140,9 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#selectorController = new SelectorController(this);
 		this.#focusController = new SessionFocusController(this);
 		this.#inputController = new InputController(this);
+		// Drag-to-copy paints over the frame the TUI is about to write; installing
+		// it here keeps the painter and the selector that feeds it in one owner.
+		this.#inputController.installSelectionPainter();
 		this.collabController = new CollabController(this);
 		this.session.setPromptDropped?.(prompt => this.#restoreDroppedPrompt(prompt));
 		this.#observerRegistry = new SessionObserverRegistry();

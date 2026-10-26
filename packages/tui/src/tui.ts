@@ -1074,6 +1074,8 @@ export class TUI extends Container {
 	#inlineMouseProvider: (() => boolean) | undefined;
 	/** Whether the surface currently draws hover feedback, read every frame. */
 	#hoverProvider: (() => boolean) | undefined;
+	/** Repaints the painted rows with a selection highlight, when one is active. */
+	#selectionPainter: ((rows: readonly string[]) => readonly string[]) | undefined;
 	#altPreviousLines: string[] = [];
 	#altPreparedRows: PreparedLine[] = [];
 	#altEnterWidth = 0;
@@ -1399,6 +1401,19 @@ export class TUI extends Container {
 	 * blanks with history rows and prepends blanks for a short viewport, so
 	 * the painted top is backed out by that net pad.
 	 */
+	/**
+	 * The rows of the frame last painted on the normal buffer.
+	 *
+	 * Exposed for drag-to-copy: a selection is a cell range over what the user
+	 * can see, so the text it covers comes from these rows rather than from any
+	 * component's own model. Empty while an alternate-screen surface owns the
+	 * display, where there is no scrollback to select from.
+	 */
+	getRenderedRows(): readonly string[] {
+		if (this.#altActive || this.#resizeAltActive) return [];
+		return this.#providerWindow;
+	}
+
 	getMutableViewport(): { top: number; length: number } {
 		if (
 			this.#altActive ||
@@ -1452,6 +1467,17 @@ export class TUI extends Container {
 	 */
 	setHoverTrackingProvider(provider: (() => boolean) | undefined): void {
 		this.#hoverProvider = provider;
+	}
+
+	/**
+	 * Paint a text selection over the rows about to be written.
+	 *
+	 * Called with the frame's rows; returns them with the selection highlighted.
+	 * The TUI stays unaware of what a selection is — it only knows that some
+	 * rows may need restyling before they reach the terminal.
+	 */
+	setSelectionPainter(painter: ((rows: readonly string[]) => readonly string[]) | undefined): void {
+		this.#selectionPainter = painter;
 	}
 
 	/**
@@ -3661,6 +3687,13 @@ export class TUI extends Container {
 				historyRows = historyRows.slice(0, historyRows.length - moved);
 				replayViewportRows = moved;
 			}
+		}
+		// A selection restyles the rows the user is dragging over, before the
+		// frame is prepared: preparation measures widths, so highlighting after
+		// it would desynchronise the cursor arithmetic from the painted text.
+		if (this.#selectionPainter !== undefined) {
+			const painted = this.#selectionPainter(viewport);
+			if (painted !== viewport) viewport = [...painted];
 		}
 		// History first: it reuses the previous viewport's rows by content, and
 		// the viewport pass replaces that memo with its own rows.

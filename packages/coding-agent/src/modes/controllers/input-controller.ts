@@ -72,6 +72,7 @@ import { blobExtensionForImageMimeType } from "@ngodeai/tui/prompt/image-format"
 import { VideoError, buildVideoContactSheetPng, probeVideo } from "../../utils/video";
 import { isVideoPath } from "@ngodeai/tui/prompt/video";
 import { resizeImage } from "../../utils/image-resize";
+import { highlightSelection, TextSelector } from "@ngodeai/tui/selection";
 
 import { cfgCycleOrder } from "../../config/model-settings";
 import {
@@ -294,6 +295,18 @@ export class InputController {
 
 	/** Click-candidate id the hover band currently tracks; repaint only on change. */
 	#lastHoverClickId: string | undefined;
+	/** Drag-to-copy state; see {@link TextSelector}. */
+	readonly #selection = new TextSelector();
+
+	/** Whether a drag-selection is in flight, so the host can enable motion reporting. */
+	get isSelecting(): boolean {
+		return this.#selection.active;
+	}
+
+	/** Paint the in-flight selection over the frame about to be written. */
+	installSelectionPainter(): void {
+		this.ctx.ui.setSelectionPainter(rows => highlightSelection(rows, this.#selection.range));
+	}
 
 	/** Return the last full editor snapshot delivered by its change contract. */
 	getDraftText(): string {
@@ -846,8 +859,36 @@ export class InputController {
 			return { consume: true };
 		}
 		if (!mouseEnabled) return undefined;
+		// A press anchors a selection, motion extends it, release copies. This is
+		// why motion reporting can stay on without taking away copy: the
+		// application does the selecting, so the user needs no modifier.
+		if (event.leftClick) {
+			this.#selection.begin({ row: event.row, col: event.col });
+			// Motion reporting must be on for the drag to report anything at all:
+			// with `1003h` off the terminal sends neither motion nor release, so the
+			// selection would never extend and never finish. Turning it on for the
+			// duration of a drag is what makes copy work without Shift — and it
+			// lasts only as long as the button is down.
+			this.ctx.ui.setSelectionPainter(rows => highlightSelection(rows, this.#selection.range));
+			this.ctx.ui.requestRender();
+			return { consume: true };
+		}
+		if (event.motion && this.#selection.active) {
+			this.#selection.extend({ row: event.row, col: event.col });
+			this.ctx.ui.requestRender();
+			return { consume: true };
+		}
+		if (event.release && this.#selection.active) {
+			const rows = this.ctx.ui.getRenderedRows();
+			const text = this.#selection.end(rows);
+			if (text) {
+				void copyToClipboard(text);
+				this.ctx.showStatus(`Copied ${text.length} characters`);
+			}
+			this.ctx.ui.requestRender();
+			return { consume: true };
+		}
 		if (event.motion) this.#updateHoverHighlight(event.row);
-		else if (event.leftClick) this.#focusClickedAgent(event.row);
 		return { consume: true };
 	}
 
