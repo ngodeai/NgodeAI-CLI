@@ -649,14 +649,23 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 			transcriptOffset,
 			Math.max(0, transcriptHeight - visibleHeader.length),
 		);
-		// A document shorter than the window hangs from the bottom, so the chrome
-		// never floats up the screen mid-conversation.
+		// A transcript shorter than the window hangs from the bottom, so the
+		// conversation stays next to the prompt instead of floating mid-screen.
+		// The welcome header is the exception: it is the top of the document, and
+		// a fresh session reads as a page starting at the top, not as a card
+		// resting on the input.
 		const body = [...visibleHeader, ...window.rows];
 		const filler = Math.max(0, transcriptHeight - body.length);
-		const top = body.length === 0 ? [] : [...Array<string>(filler).fill(""), ...body];
+		const top =
+			body.length === 0
+				? []
+				: visibleHeader.length > 0
+					? [...body, ...Array<string>(filler).fill("")]
+					: [...Array<string>(filler).fill(""), ...body];
+		const headerRowsOnScreen = visibleHeader.length;
 		const activeSpans: ViewportClickSpan[] = window.blocks.map(block => ({
-			start: block.start + visibleHeader.length + filler,
-			end: block.end + visibleHeader.length + filler,
+			start: block.start + headerRowsOnScreen + (headerRowsOnScreen > 0 ? 0 : filler),
+			end: block.end + headerRowsOnScreen + (headerRowsOnScreen > 0 ? 0 : filler),
 			candidates: rowTargetCandidates(block.component) ?? (() => []),
 		}));
 		this.#lastClickSpans = activeSpans;
@@ -1390,7 +1399,9 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		this.#header.clear();
 		for (const component of this.#headerBefore) this.#header.addChild(component);
 		if (this.#welcome) {
-			this.#header.addChild(new Spacer(1));
+			// The welcome card carries its own frame, so a leading spacer only
+			// pushed it one row down the screen. A trailing one still separates it
+			// from whatever the host appends after it.
 			this.#header.addChild(this.#welcome);
 			this.#header.addChild(new Spacer(1));
 		}

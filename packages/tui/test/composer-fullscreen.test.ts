@@ -192,8 +192,11 @@ describe("fullscreen session", () => {
 		composer.setRuntimeChildren([transcript, new Text("> prompt", 0, 0)]);
 		composer.setFullscreen(true);
 		try {
-			// Empty session: the banner is the first document row and is visible.
+			// Empty session: the banner is the top of the page, not resting on the
+			// input — a fresh session reads from the top down.
 			const empty = plain(composer.renderFrame({ columns: 80, rows: 20 }).viewport);
+			expect(empty[0]).not.toBe("");
+			expect(empty[0]).toContain("▪");
 			expect(empty.some(row => row.includes("█"))).toBe(true);
 
 			// First output retires it for good — no pinned banner, and it is not
