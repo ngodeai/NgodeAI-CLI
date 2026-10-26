@@ -1295,6 +1295,36 @@ export function groqModelManagerOptions(config?: GroqModelManagerConfig): ModelM
 export const NGODEAI_GATEWAY_BASE_URL = "https://llm.ngodeai.net/v1";
 
 /**
+ * The gateway's System One root: its chat root with the `/v1` segment removed.
+ *
+ * The gateway publishes one roster holding both chat and decision models, and
+ * marks the difference with `category` and `endpoint`. A decision row names
+ * `/v1/systemone`, which is a sibling of `/v1/chat/completions` — so the
+ * judgment transport appends its own `/v1/systemone` to a root that must not
+ * already carry `/v1`. Deriving it keeps a custom gateway base URL aligned,
+ * the same way {@link openrouterDecisionsBaseUrl} does for OpenRouter.
+ */
+export function ngodeaiDecisionsBaseUrl(chatBaseUrl: string): string {
+	const base = chatBaseUrl.replace(/\/+$/g, "");
+	return base.endsWith("/v1") ? base.slice(0, -"/v1".length) : base;
+}
+
+/**
+ * Whether a discovery row is a decision model rather than a chat model.
+ *
+ * `category: "decision"` is the gateway's own label; `endpoint` is the second
+ * signal, because a gateway that omits `category` still has to name the route
+ * it serves the model on. Either one is enough: the two are written by the
+ * same roster, and requiring both would silently demote a row that carried
+ * only one.
+ */
+export function isNgodeaiDecisionRow(entry: OpenAICompatibleModelRecord): boolean {
+	if (typeof entry.category === "string" && entry.category.trim().toLowerCase() === "decision") return true;
+	const endpoint = typeof entry.endpoint === "string" ? entry.endpoint.trim().toLowerCase() : "";
+	return endpoint.endsWith("/systemone");
+}
+
+/**
  * The first-party gateway. It speaks plain OpenAI Chat Completions, so it needs
  * no bespoke protocol work — only the base URL and the api-key requirement.
  *
@@ -1303,10 +1333,15 @@ export const NGODEAI_GATEWAY_BASE_URL = "https://llm.ngodeai.net/v1";
  * node alone therefore did nothing: `/v1/models` was never fetched, and the
  * setup model picker only ever saw whatever the bundled catalog carried.
  */
-export function ngodeaiModelManagerOptions(config?: SimpleProviderConfig): ModelManagerOptions<"openai-completions"> {
-	return createOpenAICompatibleModelManagerOptions({
+export function ngodeaiModelManagerOptions(config?: SimpleProviderConfig): ModelManagerOptions<Api> {
+	return createOpenAICompatibleModelManagerOptions<Api>({
 		api: "openai-completions",
 		providerId: "ngodeai",
+		// Rows cached before decision models were recognised carry the chat
+		// transport for every id, including Jev's. The cache is keyed on this
+		// namespace, so bumping it makes those rows refetch instead of serving a
+		// decision model as a chat model for the rest of the TTL.
+		cacheProviderId: "ngodeai:decision-rows-v2",
 		defaultBaseUrl: NGODEAI_GATEWAY_BASE_URL,
 		config,
 		headers: config?.headers,
@@ -1357,14 +1392,50 @@ function ngodeaiIdrIsPriced(pricing: unknown): boolean {
  * context/output limits, vision support, and a USD rate card. The generic
  * mapper drops all of it, which is what made every gateway model look like a
  * free text-only model with no context window.
+ *
+ * The same roster also carries **decision** models, and those are not chat
+ * models at all: they answer typed questions on `/v1/systemone` and bill input
+ * only. A decision row is mapped to the judgment transport, so the judge role
+ * reaches it natively and its calibrated probabilities survive. Without this
+ * the row arrives as an ordinary chat model, and every decision falls back to
+ * prompted keywords with one-hot confidence — the whole decision layer would
+ * run on a model that cannot express uncertainty.
  */
 function mapNgodeaiModel(
 	entry: OpenAICompatibleModelRecord,
-	defaults: ModelSpec<"openai-completions">,
-): ModelSpec<"openai-completions"> {
+	defaults: ModelSpec<Api>,
+	reference: ModelSpec<Api> | undefined,
+): ModelSpec<Api> | null {
 	const displayName = typeof entry.display_name === "string" ? entry.display_name.trim() : "";
 	const usdCost = ngodeaiUsdCost(entry);
 	const idrPriced = ngodeaiIdrIsPriced(entry.pricing);
+
+	if (isNgodeaiDecisionRow(entry)) {
+		// Built from the shared fields rather than spread from `defaults`: the
+		// chat row's `compat` block describes an OpenAI transport, and carrying it
+		// onto a System One row would be a lie the compiler correctly refuses.
+		const decision: ModelSpec<"typesafe"> = {
+			id: defaults.id,
+			provider: defaults.provider,
+			api: "typesafe",
+			kind: "judge",
+			// System One is a sibling of `/v1`, not a child of it.
+			baseUrl: ngodeaiDecisionsBaseUrl(defaults.baseUrl),
+			name: displayName || toModelName(entry.name, defaults.name),
+			// Jev reads text only; a decision row that claims vision is not one
+			// this transport can serve.
+			input: ["text"],
+			reasoning: false,
+			// Decisions return a typed answer, never a tool call.
+			supportsTools: false,
+			contextWindow: toPositiveNumber(entry.context_length, null),
+			maxTokens: toPositiveNumber(entry.max_output_tokens, null),
+			cost: usdCost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			...(usdCost === undefined && idrPriced ? { pricingStatus: "unknown" as const } : {}),
+		};
+		return decision;
+	}
+
 	return {
 		...defaults,
 		name: displayName || toModelName(entry.name, defaults.name),

@@ -91,6 +91,11 @@ function cursorCredentialSubject(apiKey: string): string | undefined {
 /** Resolve the cache namespace used by a provider's model-manager options without constructing those options. */
 export function resolveModelCacheProviderId(providerId: string, options: ModelCacheProviderIdOptions = {}): string {
 	switch (providerId) {
+		case "ngodeai":
+			// v2: decision rows (Jev) moved to the judgment transport. Rows cached
+			// under the bare provider id carry `api: "openai-completions"` for every
+			// model, which would serve a decision model as a chat model.
+			return "ngodeai:decision-rows-v2";
 		case "openai-codex": {
 			// The backend filters the roster by client version. A Codex-compatible
 			// gateway publishes its own roster; discovery is authoritative, so the

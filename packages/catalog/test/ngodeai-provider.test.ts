@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { getBundledModels } from "@ngodeai/catalog/models";
 import { PROVIDER_DESCRIPTORS } from "@ngodeai/catalog/provider-models/descriptors";
-import { NGODEAI_GATEWAY_BASE_URL, ngodeaiModelManagerOptions } from "@ngodeai/catalog/provider-models/openai-compat";
+import {
+	isNgodeaiDecisionRow,
+	NGODEAI_GATEWAY_BASE_URL,
+	ngodeaiDecisionsBaseUrl,
+	ngodeaiModelManagerOptions,
+} from "@ngodeai/catalog/provider-models/openai-compat";
 import type { FetchImpl } from "@ngodeai/catalog/types";
 
 /** One gateway row, in the shape the real endpoint returns. */
@@ -20,6 +25,34 @@ function gatewayRow(overrides: Record<string, unknown> = {}) {
 			output: 0.016586,
 			cache_read: 0.001659,
 			cache_write: 0.010394,
+			unit: "per_1m_tokens",
+			currency: "USD",
+		},
+		...overrides,
+	};
+}
+
+/** One decision row, in the shape the real gateway returns for Jev. */
+function decisionRow(overrides: Record<string, unknown> = {}) {
+	return {
+		id: "ngodeai/jev-1.14.0",
+		object: "model",
+		owned_by: "ngodeai",
+		display_name: "Jev 1.14.0",
+		description: "Decision model that answers typed questions about a state with calibrated probabilities.",
+		category: "decision",
+		status: "active",
+		endpoint: "/v1/systemone",
+		route_tier: "vip",
+		context_length: 32768,
+		max_output_tokens: 0,
+		supports_vision: false,
+		pricing: { input: 708, output: 0, cache_read: 0, cache_write: 0, currency: "IDR" },
+		pricing_usd: {
+			input: 0.039137,
+			output: 0,
+			cache_read: 0,
+			cache_write: 0,
 			unit: "per_1m_tokens",
 			currency: "USD",
 		},
@@ -151,5 +184,61 @@ describe("NgodeAI provider", () => {
 
 		expect(model.pricingStatus).toBe("unknown");
 		expect(model.cost).toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+	});
+
+	/**
+	 * The gateway publishes chat and decision models in one roster. A decision
+	 * row is not a chat model: it answers typed questions on `/v1/systemone` and
+	 * returns calibrated probabilities. Mapping it as `openai-completions` made
+	 * every decision fall back to prompted keywords with one-hot confidence,
+	 * which is exactly the uncertainty the decision layer needs to read.
+	 */
+	test("maps a decision row to the native judgment transport", async () => {
+		const { fetch } = fetchOnce([decisionRow()]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
+		expect(model.api).toBe("typesafe");
+		expect(model.kind).toBe("judge");
+		// System One is a sibling of `/v1`, not a child of it.
+		expect(model.baseUrl).toBe("https://llm.ngodeai.net");
+		// A judgment returns a typed answer, never a tool call, and reads text only.
+		expect(model.supportsTools).toBe(false);
+		expect(model.input).toEqual(["text"]);
+	});
+
+	test("keeps chat rows on the chat transport", async () => {
+		const { fetch } = fetchOnce([gatewayRow()]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
+		expect(model.api).toBe("openai-completions");
+		expect(model.kind).toBeUndefined();
+		expect(model.baseUrl).toBe(NGODEAI_GATEWAY_BASE_URL);
+	});
+
+	test("carries the decision row's price and context window", async () => {
+		const { fetch } = fetchOnce([decisionRow()]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
+		expect(model.contextWindow).toBe(32768);
+		// Jev bills input only.
+		expect(model.cost?.input).toBeCloseTo(0.039137, 6);
+		expect(model.cost?.output).toBe(0);
+	});
+
+	test("recognises a decision row by category or by endpoint", () => {
+		expect(isNgodeaiDecisionRow({ category: "decision" })).toBe(true);
+		expect(isNgodeaiDecisionRow({ endpoint: "/v1/systemone" })).toBe(true);
+		expect(isNgodeaiDecisionRow({ category: "coding", endpoint: "/v1/chat/completions" })).toBe(false);
+		expect(isNgodeaiDecisionRow({})).toBe(false);
+	});
+
+	test("derives the System One root from a custom gateway base", () => {
+		expect(ngodeaiDecisionsBaseUrl("https://llm.ngodeai.net/v1")).toBe("https://llm.ngodeai.net");
+		expect(ngodeaiDecisionsBaseUrl("https://llm.ngodeai.net/v1/")).toBe("https://llm.ngodeai.net");
+		// A base without the /v1 segment is already a root.
+		expect(ngodeaiDecisionsBaseUrl("https://gateway.internal")).toBe("https://gateway.internal");
 	});
 });
