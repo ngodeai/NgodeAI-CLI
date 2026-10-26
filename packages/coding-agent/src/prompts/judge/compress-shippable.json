@@ -1,0 +1,9 @@
+{
+	"shippable": {
+		"instructions": "Is this compressed draft safe to ship as the final text? `source` is the original; `draft` is the compressed replacement; `declared_losses` are the omissions the writer already admitted. A draft is shippable when every remaining claim is still supported by the source, no instruction or constraint was weakened, and no declared loss removed something a reader needs. Judge fidelity, not brevity: a shorter draft that drops a requirement is not shippable.",
+		"criteria": {
+			"true": "Every statement in the draft is supported by the source, and the declared losses are genuinely redundant",
+			"false": "The draft drops or distorts something a reader needs: a requirement, a constraint, an exact value, or a qualification that changes the meaning"
+		}
+	}
+}

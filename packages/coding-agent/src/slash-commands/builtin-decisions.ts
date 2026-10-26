@@ -28,7 +28,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { AgentSession } from "../session/agent-session";
 import { commandConsumed, parseSubcommand } from "./helpers/parse";
-import type { SlashCommandResult, SlashCommandRuntime, SlashCommandSpec } from "./types";
+import type { SlashCommandResult, SlashCommandRuntime, SlashCommandSpec, TuiSlashCommandRuntime } from "./types";
+import { DecisionPointWizard, decisionPointJson } from "@ngodeai/tui/overlays/decision-point-wizard";
+import { clearSubmittedText } from "./helpers/draft";
 
 /** Rows shown by a bare `/decisions` before the footer suggests paging. */
 const LIST_LIMIT = 25;
@@ -242,6 +244,50 @@ const NEW_POINT_TEMPLATE = `{
   }
 }
 `;
+
+/**
+ * Launch the authoring wizard, replacing the editor until it finishes.
+ *
+ * Restoring the editor is the wizard's job on every exit path (create, cancel,
+ * write failure), because a wizard that leaves the composer missing is a
+ * session the user cannot type into.
+ */
+function launchDecisionWizard(runtime: TuiSlashCommandRuntime): void {
+	const ctx = runtime.ctx;
+	const existing = (ctx.session.userDecisionPoints ?? []).map(point => point.id);
+	const done = () => {
+		ctx.editorContainer.clear();
+		ctx.editorContainer.addChild(ctx.editor);
+		ctx.ui.setFocus(ctx.editor);
+		ctx.ui.requestRender();
+	};
+	const wizard = new DecisionPointWizard({
+		existing,
+		requestRender: () => ctx.ui.requestRender(),
+		onCancel: () => {
+			done();
+			ctx.showStatus("Decision point not created.");
+		},
+		onCreate: async draft => {
+			const dir = path.join(ctx.sessionManager.getCwd(), ".ngodeai", "decisions");
+			const file = path.join(dir, `${draft.id}.json`);
+			if (fs.existsSync(file)) return `${draft.id} already exists.`;
+			try {
+				fs.mkdirSync(dir, { recursive: true });
+				fs.writeFileSync(file, decisionPointJson(draft), "utf8");
+			} catch (error) {
+				return `Could not write ${file}: ${error instanceof Error ? error.message : String(error)}`;
+			}
+			done();
+			ctx.showStatus(`Created ${file} · /reload-plugins to use it`);
+			return undefined;
+		},
+	});
+	ctx.editorContainer.clear();
+	ctx.editorContainer.addChild(wizard);
+	ctx.ui.setFocus(wizard.focusTarget);
+	ctx.ui.requestRender();
+}
 
 async function handleNew(name: string, runtime: SlashCommandRuntime): Promise<SlashCommandResult> {
 	const id = name.trim();
@@ -553,5 +599,26 @@ export const decisionSlashCommands: SlashCommandSpec[] = [
 		],
 		subcommandOptional: true,
 		handle: handleDecisions,
+		// `/decisions new` with no name opens the authoring wizard, which needs the
+		// TUI's editor slot. Every other subcommand stays on the shared handler.
+		handleTui: async (command, runtime) => {
+			const parsed = parseSubcommand(command.args);
+			if (parsed.verb === "new" && parsed.rest.trim() === "") {
+				launchDecisionWizard(runtime);
+				clearSubmittedText(runtime);
+				return commandConsumed();
+			}
+			// Every other subcommand works off the shared runtime, which the TUI
+			// context can build for itself.
+			return handleDecisions(command, {
+				session: runtime.ctx.session,
+				sessionManager: runtime.ctx.sessionManager,
+				settings: runtime.ctx.session.settings,
+				cwd: runtime.ctx.sessionManager.getCwd(),
+				output: text => runtime.ctx.showStatus(text),
+				refreshCommands: () => {},
+				reloadPlugins: async () => {},
+			});
+		},
 	},
 ];

@@ -12,13 +12,15 @@
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { getProjectDir, prompt, sanitizeText } from "@ngodeai/utils";
+import { judgeQuestions, type NoulAnswer } from "@ngodeai/ai";
+import { getProjectDir, logger, prompt, sanitizeText } from "@ngodeai/utils";
 import { createProgressReporter } from "../cli/progress-reporter";
 import type { AgentSession } from "../session/agent-session";
 import { mapWithConcurrencyLimitAllSettled } from "../task/parallel";
 import { shortenPath } from "@ngodeai/tui/render/render-utils";
 import requestPrompt from "./prompts/request.md" with { type: "text" };
 import reviewPrompt from "./prompts/review.md" with { type: "text" };
+import shippableQuestions from "../prompts/judge/compress-shippable.json" with { type: "json" };
 import { CompressProtocol } from "./protocol";
 import { createCompressSession } from "./session";
 import type { CompressDraft, CompressFileResult, CompressResult, CompressStatus } from "./types";
@@ -206,7 +208,21 @@ async function compressFile(input: {
 			if (!draft || draft.round === reviewed || draft.round > maxRounds) break;
 			reviewed = draft.round;
 			protocol.markReviewed(draft.round);
-			await turn(session, renderReview({ protocol, draft, nonce, maxRounds, final: draft.round >= maxRounds }));
+			// A second opinion, shown alongside the agent's own review rather than
+			// replacing it: the reviewer wrote the draft, so a calibrated reading of
+			// its fidelity is the one thing that review cannot supply itself.
+			const second = await reviewDraft(session, protocol, draft, source, input.signal);
+			await turn(
+				session,
+				renderReview({
+					protocol,
+					draft,
+					nonce,
+					maxRounds,
+					final: draft.round >= maxRounds,
+					secondOpinion: second,
+				}),
+			);
 		}
 
 		const draft = protocol.latest;
@@ -233,6 +249,75 @@ async function compressFile(input: {
 	}
 }
 
+/** The shippability question, derived from its JSON file like every other judge question. */
+const SHIPPABLE_QUESTIONS = judgeQuestions(shippableQuestions);
+
+/**
+ * Probability of `shippable` below which a draft is flagged to the reviewer.
+ *
+ * Not a gate: the draft still goes back to the agent for its own verdict. The
+ * flag is a second opinion shown *alongside* that review, because the reviewer
+ * is the same agent that wrote the draft and has every incentive to accept it.
+ */
+export const COMPRESS_REVIEW_FLAG_BELOW = 0.5;
+
+/** A judge's reading of one draft, or `undefined` when no judge answered. */
+interface SecondOpinion {
+	/** P(the draft is shippable), 0–1. */
+	shippable: number;
+	/** Whether that probability fell below {@link COMPRESS_REVIEW_FLAG_BELOW}. */
+	flagged: boolean;
+}
+
+/**
+ * Ask the judge whether a draft is shippable.
+ *
+ * The source is truncated on both sides: a fidelity judgment needs enough of
+ * the original to notice a dropped requirement, not the whole document, and
+ * the review already quotes the draft in full to the agent.
+ */
+async function reviewDraft(
+	session: AgentSession,
+	protocol: CompressProtocol,
+	draft: CompressDraft,
+	source: string,
+	signal: AbortSignal | undefined,
+): Promise<SecondOpinion | undefined> {
+	try {
+		const judge = session.decisionJudge?.("compress");
+		if (!judge) return undefined;
+		const decision = session.decisions.open("compress", { risk: "write", decisionKeys: ["shippable"] });
+		const { answers } = await judge.judge(
+			{
+				state: {
+					source: source.slice(0, 24_000),
+					draft: draft.text.slice(0, 24_000),
+					declared_losses: draft.losses.map(loss => ({ content: loss.content, reason: loss.reason })),
+				},
+				questions: { shippable: SHIPPABLE_QUESTIONS.shippable },
+			},
+			{ ...(signal === undefined ? {} : { signal }), decision },
+		);
+		const shippable = (answers.shippable as NoulAnswer).noul;
+		const flagged = shippable < COMPRESS_REVIEW_FLAG_BELOW;
+		decision.settle({
+			action: flagged ? "gated" : "silent",
+			tier: flagged ? "line" : "silent",
+			reason: flagged
+				? `second opinion doubts draft ${draft.round} (${shippable.toFixed(2)})`
+				: `draft ${draft.round} reads as faithful (${shippable.toFixed(2)})`,
+		});
+		return { shippable, flagged };
+	} catch (error) {
+		if (!signal?.aborted) {
+			logger.debug("compress second opinion failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+		return undefined;
+	}
+}
+
 /** Send one prompt and wait for the agent to settle. */
 async function turn(session: AgentSession, text: string): Promise<void> {
 	await session.prompt(text, { expandPromptTemplates: false, synthetic: true, userInitiated: false });
@@ -246,6 +331,7 @@ function renderReview(input: {
 	nonce: string;
 	maxRounds: number;
 	final: boolean;
+	secondOpinion?: SecondOpinion;
 }): string {
 	const { draft } = input;
 	const metrics = input.protocol.metrics(draft);
@@ -254,9 +340,18 @@ function renderReview(input: {
 		draft.losses.length === 0
 			? "You declared no losses. If that is wrong, the next draft must say so."
 			: draft.losses.map(loss => `- ${loss.content}\n  Accepted because: ${loss.reason}`).join("\n");
+	// The second opinion is stated as a reading, with its number, and never as
+	// an instruction: the agent still owns the verdict, and a judge that could
+	// overrule it would make the review turn decorative.
+	const second = input.secondOpinion
+		? input.secondOpinion.flagged
+			? `\nAn independent reading of this draft is doubtful: P(faithful to the source) = ${input.secondOpinion.shippable.toFixed(2)}. Treat that as a reason to look harder at the losses above, not as a verdict — yours is still the one that counts.\n`
+			: `\nAn independent reading finds this draft faithful: P(faithful) = ${input.secondOpinion.shippable.toFixed(2)}.\n`
+		: "";
 	return prompt.render(reviewPrompt, {
 		round: String(draft.round),
 		metrics: `${metrics.sourceWords} → ${metrics.draftWords} words, ${metrics.sourceTokens} → ${metrics.draftTokens} tokens (${percent}% smaller).`,
+		second_opinion: second,
 		losses,
 		draft: draft.text,
 		nonce: input.nonce,
