@@ -3507,6 +3507,15 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 		// A dialog waits for the user, not the agent: the session lets the display sleep while one is open.
 		const trackUserWait: UserWaitTracker = dialog => (hasSession ? session.waitForUser(dialog) : dialog());
 		extensionRunner.setUserWaitTracker(trackUserWait);
+		// Approval risk reaches the ledger through the runner: it is the only
+		// place that knows a prompt was actually raised rather than bypassed.
+		extensionRunner.setDecisionSink(
+			hasSession
+				? event => {
+						session.decisions.record(event);
+					}
+				: undefined,
+		);
 
 		credentialDisabledTarget = extensionRunner;
 		for (const event of startupCredentialDisabledEvents.splice(0)) {

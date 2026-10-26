@@ -28,6 +28,7 @@ import {
 	commonApprovalDirectoryKey,
 } from "./approval-cache";
 import { cfgToolsApproval, cfgToolsApprovalMode } from "./settings";
+import { type RiskAssessment, riskReason } from "./risk";
 import {
 	approvalFolderListing,
 	type ApprovalFolderListing,
@@ -572,6 +573,31 @@ export function formatApprovalArguments(args: unknown, options?: { showEmpty?: b
 }
 
 /** The prompt's header rows: tool name, MCP origin, and the reason it asks. */
+/** A ten-cell bar for a 0–1 risk score, so the number has a shape. */
+function riskBar(score: number): string {
+	const filled = Math.round(Math.max(0, Math.min(1, score)) * 10);
+	return `${"\u2588".repeat(filled)}${"\u2591".repeat(10 - filled)}`;
+}
+
+/**
+ * The risk rows shown above a tool's own details.
+ *
+ * Deliberately plain text: the dialog is rendered by hosts that range from a
+ * TUI to an ACP client to a select menu, and every one of them can print a
+ * labelled line. The `why` row names the observations that drove the score,
+ * never a generated sentence, because a model's prose in an approval dialog
+ * reads as a fact about the call.
+ */
+function riskPromptBlock(risk: RiskAssessment): string[] {
+	const reversible = risk.reversible ? "yes" : "no";
+	const judged = risk.judgeScore === undefined ? "" : ` (model ${risk.judgeScore.toFixed(2)})`;
+	return [
+		`Risk: ${risk.risk} ${riskBar(risk.score)} ${risk.score.toFixed(2)}${judged}`,
+		`Reversible: ${reversible}`,
+		`Why: ${riskReason(risk)}`,
+	];
+}
+
 function approvalHeader(tool: ApprovalSubject, reason?: string): string[] {
 	const lines = [`Allow tool: ${tool.name}`];
 
@@ -598,8 +624,14 @@ function approvalDetails(tool: ApprovalSubject, args: unknown): string[] {
 }
 
 /** Format the approval prompt body shown to the user: the header, then the tool's own details. */
-export function formatApprovalPrompt(tool: ApprovalSubject, args: unknown, reason?: string): string {
-	return [...approvalHeader(tool, reason), ...approvalDetails(tool, args)].join("\n");
+export function formatApprovalPrompt(
+	tool: ApprovalSubject,
+	args: unknown,
+	reason?: string,
+	risk?: RiskAssessment,
+): string {
+	const block = risk ? riskPromptBlock(risk) : [];
+	return [...approvalHeader(tool, reason), ...block, ...approvalDetails(tool, args)].join("\n");
 }
 
 /**
@@ -700,10 +732,18 @@ export async function requestApproval(
 	ui: Pick<ExtensionUIContext, "select" | "approve">,
 	tool: ApprovalSubject,
 	args: unknown,
-	options: { reason?: string; appendix?: readonly string[]; sessionSubject?: string; grants?: boolean } = {},
+	options: {
+		reason?: string;
+		appendix?: readonly string[];
+		sessionSubject?: string;
+		grants?: boolean;
+		/** Deterministic-and-judged risk read, when the host computed one. */
+		risk?: RiskAssessment;
+	} = {},
 ): Promise<ExtensionApprovalAnswer> {
 	const { reason, appendix = [], sessionSubject } = options;
-	const header = approvalHeader(tool, reason);
+	const riskBlock = options.risk ? riskPromptBlock(options.risk) : [];
+	const header = [...approvalHeader(tool, reason), ...riskBlock];
 	const details = approvalDetails(tool, args);
 	const session = sessionSubject === undefined ? undefined : `Approve ${sessionSubject} for this session`;
 	const folder = options.grants ? approvalFolderCandidate(tool, args) : undefined;

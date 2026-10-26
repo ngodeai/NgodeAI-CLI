@@ -166,6 +166,17 @@ export class DecisionLayer {
 		});
 	}
 
+	/**
+	 * Record an already-built event.
+	 *
+	 * Some call sites cannot open a scope before acting — the approval gate
+	 * knows its risk only once it has resolved the call — so they build the
+	 * event themselves and hand it here. Same sink, same ledger, same counters.
+	 */
+	record(event: DecisionEvent): void {
+		this.#onDecision(event);
+	}
+
 	/** Open a decision scope for `point`. */
 	open(point: string, options: Parameters<DecisionRecorder["open"]>[1] = {}) {
 		return this.#recorder.open(point, options);

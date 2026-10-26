@@ -23,6 +23,7 @@ import {
 	truncateForPrompt,
 } from "../../tools/approval";
 import { getApprovalGrants } from "../../tools/approval-cache";
+import { approvalDecision, assessRiskDeterministically } from "../../tools/risk";
 import { defaultLoadModeForToolName } from "../../tools/essential-tools";
 import { withFileMutationSession } from "../../tools/file-write-fallback";
 import { normalizeToolEventInput, resolveToolEventInput } from "../tool-event-input";
@@ -440,15 +441,32 @@ export class ExtensionToolWrapper<TParameters extends TSchema = TSchema, TDetail
 			const uiContext = this.runner.getUIContext();
 			const safetyAppendix =
 				pendingSafetyChecks.length > 0 ? ["Provider safety checks:", ...safetyCheckLines(pendingSafetyChecks)] : [];
+			// The risk read is advisory: it fills the dialog's rows and gives the
+			// decision layer something to record, and it never changes the answer.
+			// Approval stays fail-closed on an explicit yes, whatever the score.
+			const risk = assessRiskDeterministically({
+				toolName: this.tool.name,
+				tier: resolved.tier,
+				args: resolvedArgs,
+				cwd: this.runner.cwd,
+				granted: false,
+				...(resolved.reason === undefined ? {} : { reason: resolved.reason }),
+			});
+			// One decision per prompt, recorded after the answer: what the user did
+			// is half of what the decision was, and a prompt that was bypassed
+			// never reaches here at all.
 			let approved: boolean;
+			let answer: Awaited<ReturnType<typeof requestApproval>> | undefined;
 			try {
-				const answer = await requestApproval(uiContext, this.tool, resolvedArgs, {
+				answer = await requestApproval(uiContext, this.tool, resolvedArgs, {
 					reason: approvalCheck.reason,
 					appendix: safetyAppendix,
 					sessionSubject: sessionScope?.subject,
 					grants: cacheTargets,
+					risk,
 				});
 				approved = answer !== "deny";
+				this.runner.recordDecision(approvalDecision(this.tool.name, resolved.tier, risk, approved, answer));
 				if (answer === "session" && sessionScope) this.runner.grantSessionApproval(sessionScope.key);
 				if (typeof answer === "object" && approvalGrants) {
 					recordApprovalGrant(this.tool, resolvedArgs, approvalGrants, resolved.tier, answer);

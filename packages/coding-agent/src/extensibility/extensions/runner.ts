@@ -2,6 +2,8 @@
  * Extension runner - executes extensions and manages their lifecycle.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { DecisionEvent } from "@ngodeai/ai";
+import type { DecisionSink } from "@ngodeai/ai";
 import {
 	type AgentMessage,
 	type AgentTool,
@@ -514,6 +516,7 @@ export class ExtensionRunner {
 	#toolApprovalPreviewWaiter?: (toolCallId: string) => Promise<void>;
 	/** Grant keys (see `sessionApprovalScope`) approved "for this session", each prefixed by the session it covers. */
 	#sessionApprovals = new Set<string>();
+	#decisionSink: DecisionSink | undefined;
 	#trackUserWait?: UserWaitTracker;
 	#errorListeners: Set<ExtensionErrorListener> = new Set();
 	#getModel: () => Model | undefined = () => undefined;
@@ -999,6 +1002,23 @@ export class ExtensionRunner {
 	 * Runs each dialog of the UI context the next {@link initialize} receives (tool approvals, extension prompts) as a
 	 * wait for the user.
 	 */
+	/**
+	 * Artificial Decisions sink, when the host session has a layer.
+	 *
+	 * Approval risk is recorded here rather than at the call site because the
+	 * runner is where the dialog is actually raised: a decision recorded when
+	 * the prompt opens is a decision the user saw, and one recorded before a
+	 * bypass would claim an approval that never happened.
+	 */
+	setDecisionSink(sink: DecisionSink | undefined): void {
+		this.#decisionSink = sink;
+	}
+
+	/** Record one approval decision, if a sink is wired. */
+	recordDecision(event: DecisionEvent): void {
+		this.#decisionSink?.(event);
+	}
+
 	setUserWaitTracker(track: UserWaitTracker): void {
 		this.#trackUserWait = track;
 	}
