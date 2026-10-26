@@ -864,13 +864,21 @@ export class InputController {
 		if (this.ctx.ui.hasOverlay()) return undefined;
 		const event = parseAnyMouse(data);
 		if (!event) return undefined;
-		// In a fullscreen session the transcript has no terminal scrollback, so the
-		// wheel belongs to the output area: 3 rows a notch. This runs even when
-		// `tui.mouse` (click-to-focus) is off, because the terminal cannot scroll
-		// an alternate-screen buffer itself.
-		if (event.wheel !== null && isFullscreen) {
-			this.ctx.composer.scrollBy(-event.wheel * 3);
-			return { consume: true };
+		// Fullscreen has no scrollback, so the wheel is the only way to move the
+		// transcript there and the application must handle it.
+		//
+		// Inline is the opposite: the transcript lives in the terminal's own
+		// scrollback, and `composer.scrollBy` refuses to move an inline document at
+		// all. Swallowing the wheel here would scroll neither the composer nor the
+		// terminal, which is exactly the regression that made vertical scrolling
+		// stop working. The event is left unconsumed so the terminal scrolls.
+		if (event.wheel !== null) {
+			if (isFullscreen) {
+				this.ctx.composer.scrollBy(-event.wheel * 3);
+				return { consume: true };
+			}
+			// Inline: leave it for the terminal's scrollback.
+			return undefined;
 		}
 		// A press anchors a selection, motion extends it, release copies. This is
 		// why motion reporting can stay on without taking away copy: the
@@ -902,6 +910,9 @@ export class InputController {
 			return { consume: true };
 		}
 		if (mouseEnabled && event.motion) this.#updateHoverHighlight(event.row);
+		// Inline: everything else is swallowed so button bytes never reach the
+		// editor as typed input. The wheel was already returned above, before this
+		// point, so a terminal scrollback keeps working either way.
 		return { consume: true };
 	}
 
