@@ -607,8 +607,7 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 			return { viewport: plain.slice(-rows) };
 		}
 		const transcript = roots[transcriptIndex] as TranscriptContainer;
-		const header = this.#headerRetired ? [] : this.#header.render(width);
-		const before = [...header, ...this.#renderRoots(roots.slice(0, transcriptIndex), width)];
+		const preRoots = this.#renderRoots(roots.slice(0, transcriptIndex), width);
 		const afterRoots = roots.slice(transcriptIndex + 1);
 		const after: string[] = [];
 		const afterSpans: ViewportClickSpan[] = [];
@@ -620,10 +619,19 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		// as a hole. Chrome taller than the screen keeps its tail: the editor is
 		// the last root, so it is the part that must stay.
 		const needsSeparator = after[0] === undefined || after[0].trim() !== "";
-		const chromeRows = [...before, ...(needsSeparator ? [""] : []), ...after];
+		const chromeRows = [...preRoots, ...(needsSeparator ? [""] : []), ...after];
 		const visibleChrome = chromeRows.length > rows ? chromeRows.slice(chromeRows.length - rows) : chromeRows;
 		const transcriptHeight = Math.max(0, rows - visibleChrome.length);
-		const documentRows = transcript.documentRowCount(width);
+		// The welcome header is the first row of the document, not pinned chrome:
+		// a logo held on screen while the conversation scrolls under it would
+		// eat rows the transcript needs and never let the reader scroll past it.
+		// It scrolls away with the transcript and, once the conversation has
+		// output, retires for good — the same rule the normal screen applies,
+		// expressed as document rows instead of a history batch.
+		if (!this.#headerRetired && this.#hasTranscriptOutput(transcript, width)) this.#headerRetired = true;
+		const headerRows = this.#headerRetired ? [] : this.#header.render(width);
+		const headerBlock = headerRows.length > 0 ? [...headerRows, ""] : [];
+		const documentRows = headerBlock.length + transcript.documentRowCount(width);
 		this.#lastDocumentRows = documentRows;
 		this.#lastTranscriptHeight = transcriptHeight;
 		// Clamp here as well as in scrollBy: output arriving while the reader is
@@ -632,19 +640,40 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		const maxOffset = Math.max(0, documentRows - transcriptHeight);
 		if (this.#scrollOffset > maxOffset) this.#scrollOffset = maxOffset;
 		const offset = Math.max(0, documentRows - transcriptHeight - this.#scrollOffset);
-		const window = transcript.renderDocumentWindow(width, offset, transcriptHeight);
+		// Split the window at the header seam so the transcript is asked for the
+		// rows it owns, with the header covering the rest.
+		const visibleHeader = offset < headerBlock.length ? headerBlock.slice(offset) : [];
+		const transcriptOffset = Math.max(0, offset - headerBlock.length);
+		const window = transcript.renderDocumentWindow(
+			width,
+			transcriptOffset,
+			Math.max(0, transcriptHeight - visibleHeader.length),
+		);
 		// A document shorter than the window hangs from the bottom, so the chrome
 		// never floats up the screen mid-conversation.
-		const filler = Math.max(0, transcriptHeight - window.rows.length);
-		const top = window.rows.length === 0 ? [] : [...Array<string>(filler).fill(""), ...window.rows];
+		const body = [...visibleHeader, ...window.rows];
+		const filler = Math.max(0, transcriptHeight - body.length);
+		const top = body.length === 0 ? [] : [...Array<string>(filler).fill(""), ...body];
 		const activeSpans: ViewportClickSpan[] = window.blocks.map(block => ({
-			start: block.start + before.length + 1 + filler,
-			end: block.end + before.length + 1 + filler,
+			start: block.start + visibleHeader.length + filler,
+			end: block.end + visibleHeader.length + filler,
 			candidates: rowTargetCandidates(block.component) ?? (() => []),
 		}));
 		this.#lastClickSpans = activeSpans;
 		const mutable = [...top, ...visibleChrome];
 		return { viewport: this.#paintHoverBand(mutable, activeSpans) };
+	}
+
+	/**
+	 * Whether the transcript holds anything worth scrolling to.
+	 *
+	 * The welcome header retires on the first real output. A block that renders
+	 * no rows (a container whose children are still empty) does not count, or
+	 * the logo would vanish on the first frame of a session that has not said
+	 * anything yet.
+	 */
+	#hasTranscriptOutput(transcript: TranscriptContainer, width: number): boolean {
+		return transcript.documentRowCount(width, 1) > 0;
 	}
 
 	#renderFrameInner(viewport: ViewportSize): TerminalFramePlan {

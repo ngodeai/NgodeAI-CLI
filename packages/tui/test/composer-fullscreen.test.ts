@@ -178,6 +178,41 @@ describe("fullscreen session", () => {
 		}
 	});
 
+	/**
+	 * The welcome header scrolls with the document. Pinning it would cost the
+	 * transcript a screenful at the top and let the reader never scroll past
+	 * the logo; retiring it on first output keeps it out of the conversation
+	 * entirely, matching the normal screen.
+	 */
+	it("scrolls the welcome header with the document, then retires it", () => {
+		const term = new VirtualTerminal(80, 20);
+		const composer = new Composer({ terminal: term, preferences: { ...COMPOSER_DEFAULTS, quiet: false } });
+		composer.start();
+		const transcript = new TranscriptContainer();
+		composer.setRuntimeChildren([transcript, new Text("> prompt", 0, 0)]);
+		composer.setFullscreen(true);
+		try {
+			// Empty session: the banner is the first document row and is visible.
+			const empty = plain(composer.renderFrame({ columns: 80, rows: 20 }).viewport);
+			expect(empty.some(row => row.includes("█"))).toBe(true);
+
+			// First output retires it for good — no pinned banner, and it is not
+			// the first row of the document either.
+			transcript.addChild(new Text("hello", 0, 0));
+			const after = plain(composer.renderFrame({ columns: 80, rows: 20 }).viewport);
+			expect(after.some(row => row.includes("█"))).toBe(false);
+			// The document hangs from the bottom of the transcript area, so the
+			// banner's absence is what leaves the head blank.
+			expect(after.join("\n")).toContain("hello");
+
+			composer.scrollToEdge("top");
+			const top = plain(composer.renderFrame({ columns: 80, rows: 20 }).viewport);
+			expect(top.some(row => row.includes("█"))).toBe(false);
+		} finally {
+			composer.stop();
+		}
+	});
+
 	it("follows the tail again once the reader returns to it", () => {
 		const { composer, transcript } = fullscreenComposer({ blocks: 30, rows: 20, columns: 80 });
 		try {
