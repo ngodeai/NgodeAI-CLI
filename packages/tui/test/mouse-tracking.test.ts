@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test";
 import { type Component, TUI } from "@ngodeai/tui";
 import type { Terminal, TerminalAppearance } from "@ngodeai/tui/terminal";
 
-const TRACKING_ON = "\x1b[?1000h\x1b[?1003h\x1b[?1006h";
+/** Clicks and wheel only: safe to report, keeps native drag-to-select working. */
+const TRACKING_CLICKS = "\x1b[?1000h\x1b[?1006h";
+/** Every pointer motion, for hover bands; suppresses native text selection. */
+const TRACKING_HOVER = "\x1b[?1003h";
+const TRACKING_HOVER_OFF = "\x1b[?1003l";
 const TRACKING_OFF = "\x1b[?1006l\x1b[?1003l\x1b[?1000l";
 
 class MinimalTerminal implements Terminal {
@@ -65,26 +69,82 @@ class StaticOverlay implements Component {
 	}
 }
 
-function makeInlineTui(enabled: { current: boolean }): { terminal: MinimalTerminal; tui: TUI } {
+function makeInlineTui(
+	enabled: { current: boolean },
+	hover?: { current: boolean },
+): { terminal: MinimalTerminal; tui: TUI } {
 	const terminal = new MinimalTerminal();
 	const tui = new TUI(terminal);
 	tui.setInlineMouseTrackingProvider(() => enabled.current);
+	if (hover) tui.setHoverTrackingProvider(() => hover.current);
 	return { terminal, tui };
 }
 
 describe("inline mouse tracking", () => {
-	it("enables capture on the normal buffer and releases it on stop", () => {
+	it("enables click capture on the normal buffer and releases it on stop", () => {
 		const enabled = { current: true };
 		const { terminal, tui } = makeInlineTui(enabled);
 		try {
 			tui.start();
 			tui.renderNow();
-			expect(terminal.output.includes(TRACKING_ON)).toBe(true);
+			expect(terminal.output.includes(TRACKING_CLICKS)).toBe(true);
 
 			tui.stop();
 			const offAt = terminal.output.lastIndexOf(TRACKING_OFF);
 			expect(offAt).toBeGreaterThan(-1);
-			expect(offAt).toBeGreaterThan(terminal.output.lastIndexOf(TRACKING_ON));
+			expect(offAt).toBeGreaterThan(terminal.output.lastIndexOf(TRACKING_CLICKS));
+		} finally {
+			tui.stop();
+		}
+	});
+
+	/**
+	 * The reason this split exists: `1003h` is what makes a terminal stop
+	 * selecting text on drag, and not every terminal offers Shift as an escape.
+	 * Click capture alone leaves the user able to copy.
+	 */
+	it("leaves every-motion reporting off when no surface draws hover", () => {
+		const enabled = { current: true };
+		const { terminal, tui } = makeInlineTui(enabled);
+		try {
+			tui.start();
+			tui.renderNow();
+			expect(terminal.output.includes(TRACKING_CLICKS)).toBe(true);
+			expect(terminal.output.includes(TRACKING_HOVER)).toBe(false);
+		} finally {
+			tui.stop();
+		}
+	});
+
+	it("turns every-motion reporting on when a surface asks for hover", () => {
+		const enabled = { current: true };
+		const hover = { current: true };
+		const { terminal, tui } = makeInlineTui(enabled, hover);
+		try {
+			tui.start();
+			tui.renderNow();
+			expect(terminal.output.includes(TRACKING_CLICKS)).toBe(true);
+			expect(terminal.output.includes(TRACKING_HOVER)).toBe(true);
+		} finally {
+			tui.stop();
+		}
+	});
+
+	it("drops every-motion reporting when hover turns off, keeping clicks", () => {
+		const enabled = { current: true };
+		const hover = { current: true };
+		const { terminal, tui } = makeInlineTui(enabled, hover);
+		try {
+			tui.start();
+			tui.renderNow();
+			hover.current = false;
+			tui.renderNow();
+
+			const hoverOffAt = terminal.output.lastIndexOf(TRACKING_HOVER_OFF);
+			expect(hoverOffAt).toBeGreaterThan(-1);
+			// Clicks stay on: only the motion layer was released.
+			expect(terminal.output.lastIndexOf(TRACKING_CLICKS)).toBeLessThan(hoverOffAt);
+			expect(terminal.output.includes(TRACKING_OFF)).toBe(false);
 		} finally {
 			tui.stop();
 		}
@@ -96,17 +156,17 @@ describe("inline mouse tracking", () => {
 		try {
 			tui.start();
 			tui.renderNow();
-			expect(terminal.output.includes(TRACKING_ON)).toBe(true);
+			expect(terminal.output.includes(TRACKING_CLICKS)).toBe(true);
 
 			const overlay = tui.showOverlay(new StaticOverlay(), {});
 			tui.renderNow();
 			const offAt = terminal.output.lastIndexOf(TRACKING_OFF);
 			expect(offAt).toBeGreaterThan(-1);
-			expect(offAt).toBeGreaterThan(terminal.output.lastIndexOf(TRACKING_ON));
+			expect(offAt).toBeGreaterThan(terminal.output.lastIndexOf(TRACKING_CLICKS));
 
 			overlay.hide();
 			tui.renderNow();
-			expect(terminal.output.lastIndexOf(TRACKING_ON)).toBeGreaterThan(offAt);
+			expect(terminal.output.lastIndexOf(TRACKING_CLICKS)).toBeGreaterThan(offAt);
 		} finally {
 			tui.stop();
 		}
@@ -118,17 +178,17 @@ describe("inline mouse tracking", () => {
 		try {
 			tui.start();
 			tui.renderNow();
-			expect(terminal.output.includes(TRACKING_ON)).toBe(true);
+			expect(terminal.output.includes(TRACKING_CLICKS)).toBe(true);
 
 			const overlay = tui.showOverlay(new StaticOverlay(), { fullscreen: true, mouseTracking: false });
 			tui.renderNow();
 			const offAt = terminal.output.lastIndexOf(TRACKING_OFF);
 			expect(offAt).toBeGreaterThan(-1);
-			expect(offAt).toBeGreaterThan(terminal.output.lastIndexOf(TRACKING_ON));
+			expect(offAt).toBeGreaterThan(terminal.output.lastIndexOf(TRACKING_CLICKS));
 
 			overlay.hide();
 			tui.renderNow();
-			expect(terminal.output.lastIndexOf(TRACKING_ON)).toBeGreaterThan(offAt);
+			expect(terminal.output.lastIndexOf(TRACKING_CLICKS)).toBeGreaterThan(offAt);
 		} finally {
 			tui.stop();
 		}
@@ -173,7 +233,9 @@ describe("inline mouse tracking", () => {
 			tui.stop();
 
 			expect(terminal.output.includes(TRACKING_OFF)).toBe(true);
-			expect(terminal.output.lastIndexOf(TRACKING_OFF)).toBeGreaterThan(terminal.output.lastIndexOf(TRACKING_ON));
+			expect(terminal.output.lastIndexOf(TRACKING_OFF)).toBeGreaterThan(
+				terminal.output.lastIndexOf(TRACKING_CLICKS),
+			);
 		} finally {
 			tui.stop();
 		}
@@ -185,7 +247,7 @@ describe("inline mouse tracking", () => {
 		try {
 			tui.start();
 			tui.renderNow();
-			expect(terminal.output.includes(TRACKING_ON)).toBe(false);
+			expect(terminal.output.includes(TRACKING_CLICKS)).toBe(false);
 		} finally {
 			tui.stop();
 		}

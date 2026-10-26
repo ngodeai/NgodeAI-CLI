@@ -1992,10 +1992,18 @@ export class InteractiveMode implements InteractiveModeContext {
 				this.ui.requestRender();
 			}),
 		);
-		// A fullscreen session always captures: the wheel is the transcript's own
-		// scroller there, and without reporting the terminal would have nothing to
-		// scroll (there is no scrollback) and the wheel would do nothing at all.
+		// A fullscreen session always captures *clicks and the wheel*: the wheel is
+		// the transcript's own scroller there, and without reporting the terminal
+		// would have nothing to scroll (there is no scrollback) and the wheel would
+		// do nothing at all.
+		//
+		// Hover is a separate question. Every-motion reporting is what makes a
+		// terminal stop selecting text on drag, and not every terminal offers
+		// Shift as an escape, so it stays tied to the opt-in `tui.mouse` setting
+		// rather than to fullscreen. Without it a user can drag to copy anywhere
+		// in the session; with it they trade that for hover highlights.
 		this.ui.setInlineMouseTrackingProvider(() => this.#mouseCapture || this.composer.fullscreen);
+		this.ui.setHoverTrackingProvider(() => this.#mouseCapture);
 		this.chatContainer = new TranscriptContainer();
 		this.pendingMessagesContainer = new AnchoredLiveContainer();
 		this.progressHudContainer = new AnchoredLiveContainer();

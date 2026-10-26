@@ -103,11 +103,19 @@ const PAINT_BEGIN_NO_SYNC = `${HIDE_CURSOR}${DISABLE_AUTOWRAP}`;
 const PAINT_END_NO_SYNC = ENABLE_AUTOWRAP;
 // Mouse reporting is scoped to fullscreen overlays that opt into pointer
 // interaction, plus the opt-in normal-buffer click capture (`tui.mouse`).
-// 1000h = button click tracking, 1003h = any-motion tracking for hover
-// targets, and 1006h = SGR extended coordinates past column/row 223.
-// Selection-first surfaces leave these modes disabled so the terminal retains
-// native text selection.
-const MOUSE_TRACKING_ON = "\x1b[?1000h\x1b[?1003h\x1b[?1006h";
+//
+// 1000h = button press/release and wheel, 1003h = every pointer motion (needed
+// for hover bands), 1006h = SGR extended coordinates past column/row 223.
+//
+// The split matters for copying. With 1003h on, a drag is reported as pointer
+// motion and the terminal stops selecting text — and not every terminal honors
+// Shift as an escape hatch, so a user can be left with no way to copy anything.
+// Click and wheel (1000h) cost nothing here: a drag still selects text, because
+// the terminal only reports presses and releases, not the movement between
+// them. Hover is therefore a separate, opt-in layer that only turns 1003h on
+// when a surface actually draws hover feedback.
+const MOUSE_TRACKING_CLICKS = "\x1b[?1000h\x1b[?1006h";
+const MOUSE_TRACKING_HOVER = "\x1b[?1003h";
 const MOUSE_TRACKING_OFF = "\x1b[?1006l\x1b[?1003l\x1b[?1000l";
 // Cell-size replies: CSI 6 ; height ; width t in pixels, and iTerm2's
 // OSC 1337 ; ReportCellSize = height ; width [; scale] ST in points.
@@ -1054,8 +1062,18 @@ export class TUI extends Container {
 	 */
 	#fullscreenSession = false;
 	#mouseTracking: MouseTrackingState = "off";
+	/**
+	 * Whether 1003h (every pointer motion) is currently reported.
+	 *
+	 * Tracked apart from {@link #mouseTracking} because hover is the only
+	 * feature that needs it, and it is the mode that costs native text
+	 * selection. A surface that wants clicks and wheel keeps it off.
+	 */
+	#mouseHover = false;
 	/** Product-owned probe for opt-in normal-buffer click capture (`tui.mouse`). Read every frame. */
 	#inlineMouseProvider: (() => boolean) | undefined;
+	/** Whether the surface currently draws hover feedback, read every frame. */
+	#hoverProvider: (() => boolean) | undefined;
 	#altPreviousLines: string[] = [];
 	#altPreparedRows: PreparedLine[] = [];
 	#altEnterWidth = 0;
@@ -1426,6 +1444,17 @@ export class TUI extends Container {
 	}
 
 	/**
+	 * Probe for whether hover feedback is currently drawn.
+	 *
+	 * Hover needs every-motion reporting (`1003h`), which suppresses a
+	 * terminal's native drag-to-select. Surfaces that only need clicks and the
+	 * wheel leave this undefined and the user keeps text selection.
+	 */
+	setHoverTrackingProvider(provider: (() => boolean) | undefined): void {
+		this.#hoverProvider = provider;
+	}
+
+	/**
 	 * Run the whole session on the alternate screen (vim/less idiom) instead of
 	 * the normal screen plus terminal scrollback.
 	 *
@@ -1447,18 +1476,31 @@ export class TUI extends Container {
 		return this.#fullscreenSession;
 	}
 
-	/** Transition mouse reporting, emitting only the sequences a change needs. */
-	#setMouseTracking(state: MouseTrackingState): void {
-		if (state === this.#mouseTracking) return;
+	/**
+	 * Transition mouse reporting, emitting only the sequences a change needs.
+	 *
+	 * `hover` is requested separately from the mode: clicks and wheel are safe
+	 * to report on any surface, while every-motion reporting is what suppresses
+	 * a terminal's own text selection. A caller that draws no hover feedback
+	 * should leave it off and keep the user's drag-to-select working.
+	 */
+	#setMouseTracking(state: MouseTrackingState, hover = false): void {
+		if (state === this.#mouseTracking && hover === this.#mouseHover) return;
 		const wasOff = this.#mouseTracking === "off";
+		const wanted = state !== "off";
 		this.#mouseTracking = state;
-		if (state === "off") {
+		if (!wanted) {
 			if (!wasOff) this.terminal.write(MOUSE_TRACKING_OFF);
+			this.#mouseHover = false;
 			return;
 		}
 		// Inline and fullscreen reporting are the same bytes: moving between
 		// live modes needs no emission, only entering from off does.
-		if (wasOff) this.terminal.write(MOUSE_TRACKING_ON);
+		if (wasOff) this.terminal.write(MOUSE_TRACKING_CLICKS);
+		if (hover !== this.#mouseHover) {
+			this.terminal.write(hover ? MOUSE_TRACKING_HOVER : "\x1b[?1003l");
+			this.#mouseHover = hover;
+		}
 	}
 
 	/** Check if an overlay entry is currently visible */
@@ -3892,6 +3934,10 @@ export class TUI extends Container {
 				: wantAlt && topOverlay.options?.mouseTracking !== false
 					? "full"
 					: "off";
+		// Every-motion reporting is opt-in per surface: it is the mode that takes
+		// away the terminal's own drag-to-select, and not every terminal offers
+		// Shift as an escape. Clicks and wheel need only `wantMouse`.
+		const wantHover = wantMouse !== "off" && this.#hoverProvider?.() === true;
 		if (wantAlt && !this.#altActive) {
 			// Enhanced keyboard modes can be buffer-local: re-push the active
 			// modified-key reporting sequence on the freshly entered alternate
@@ -3910,7 +3956,7 @@ export class TUI extends Container {
 				this.#imageBudget.beginAltScreenLifecycle();
 				this.terminal.write(`\x1b[?1049h${this.#keyboardEnhancementEnter()}`);
 			}
-			this.#setMouseTracking(wantMouse);
+			this.#setMouseTracking(wantMouse, wantHover);
 			setAltScreenActive(true);
 			this.terminal.hideCursor();
 			this.#forgetHardwareCursorState();
@@ -3928,7 +3974,12 @@ export class TUI extends Container {
 			// A fullscreen overlay that disabled reporting leaves tracking off:
 			// restore it in the fused exit or later frames see matching states
 			// and inline click/hover stays dead until the setting toggles.
-			const mouseEnter = wantMouse !== "off" && this.#mouseTracking === "off" ? MOUSE_TRACKING_ON : "";
+			const mouseEnter =
+				wantMouse !== "off" && this.#mouseTracking === "off"
+					? `${MOUSE_TRACKING_CLICKS}${wantHover ? MOUSE_TRACKING_HOVER : ""}`
+					: wantHover && !this.#mouseHover
+						? MOUSE_TRACKING_HOVER
+						: "";
 			const exitSequence = `${mouseExit}${mouseEnter}${this.#altScreenExit()}`;
 			// Session replacement finishes while its fullscreen selector still
 			// covers the old normal buffer. Fuse the restore into the destructive
@@ -3961,8 +4012,11 @@ export class TUI extends Container {
 				}
 				this.#forceViewportRepaintOnNextRender = true;
 			}
-		} else if (wantMouse !== this.#mouseTracking) {
-			this.#setMouseTracking(wantMouse);
+		} else if (wantMouse !== this.#mouseTracking || wantHover !== this.#mouseHover) {
+			// Hover can change on its own while the mode stays put: a surface that
+			// starts drawing hover bands turns `1003h` on without re-entering the
+			// buffer, and dropping them must release it just as promptly.
+			this.#setMouseTracking(wantMouse, wantHover);
 		}
 		if (this.#altActive) {
 			this.#renderAltFrame(width, height);
