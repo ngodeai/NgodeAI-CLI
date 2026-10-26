@@ -490,9 +490,10 @@ behavior {
 	//
 	// `ngodeai/mercury-decide` is the gateway's shared-tier decision model and
 	// bills nothing; a session that can reach it gets calibrated judgments for
-	// free. `jev-1.14` on the same gateway is the VIP tier and is priced per
-	// input token, so it is offered but never chosen by default. TypeSafe direct
-	// stays for accounts that hold a TypeSafe key and no gateway key.
+	// free. `jev-1.14` on the same gateway is the VIP tier and bills input only
+	// (its output and cache legs are zero), so it is offered but never chosen by
+	// default. TypeSafe direct stays for accounts that hold a TypeSafe key and
+	// no gateway key.
 	//
 	// An unreachable pattern is skipped, not fatal, so listing a provider the
 	// account cannot reach costs nothing.

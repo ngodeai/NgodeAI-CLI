@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { getBundledModels } from "@ngodeai/catalog/models";
+import { buildModel } from "@ngodeai/catalog/build";
+import { calculateCost, getBundledModels } from "@ngodeai/catalog/models";
 import { PROVIDER_DESCRIPTORS } from "@ngodeai/catalog/provider-models/descriptors";
 import {
 	isNgodeaiDecisionRow,
@@ -273,15 +274,23 @@ describe("NgodeAI provider", () => {
 		expect(model.cost).toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
 	});
 
-	test("keeps a paid decision row priced, with its output leg", async () => {
+	/**
+	 * Jev bills input only: the gateway's card prices the prompt and leaves
+	 * every other leg at zero. The output leg must stay zero rather than being
+	 * backfilled from a bundled reference — a judgment returns a typed answer,
+	 * not a completion, and charging for output would overstate its cost by the
+	 * whole answer.
+	 */
+	test("keeps a paid decision row input-only", async () => {
 		const { fetch } = fetchOnce([
 			decisionRow({
 				id: "ngodeai/jev-1.14",
+				pricing: { input: 761, output: 0, cache_read: 0, cache_write: 0, currency: "IDR" },
 				pricing_usd: {
-					input: 0.016583,
-					output: 0.033167,
-					cache_read: 0.002764,
-					cache_write: 0.016583,
+					input: 0.042067,
+					output: 0,
+					cache_read: 0,
+					cache_write: 0,
 					unit: "per_1m_tokens",
 					currency: "USD",
 				},
@@ -291,8 +300,43 @@ describe("NgodeAI provider", () => {
 		const [model] = (await options.fetchDynamicModels?.()) ?? [];
 
 		expect(model.pricingStatus).toBeUndefined();
-		expect(model.cost?.input).toBeCloseTo(0.016583, 6);
-		expect(model.cost?.output).toBeCloseTo(0.033167, 6);
+		expect(model.cost?.input).toBeCloseTo(0.042067, 6);
+		expect(model.cost?.output).toBe(0);
+		expect(model.cost?.cacheRead).toBe(0);
+		expect(model.cost?.cacheWrite).toBe(0);
+	});
+
+	/** A judgment's billed total is its prompt, and nothing else. */
+	test("prices a judgment on input tokens alone", async () => {
+		const { fetch } = fetchOnce([
+			decisionRow({
+				id: "ngodeai/jev-1.14",
+				pricing_usd: {
+					input: 0.042067,
+					output: 0,
+					cache_read: 0,
+					cache_write: 0,
+					unit: "per_1m_tokens",
+					currency: "USD",
+				},
+			}),
+		]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [spec] = (await options.fetchDynamicModels?.()) ?? [];
+		const model = buildModel(spec);
+		const cost = calculateCost(model, {
+			input: 10_000,
+			output: 500,
+			cacheRead: 0,
+			cacheWrite: 0,
+			totalTokens: 10_500,
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		});
+
+		// 10,000 input tokens at $0.042067/M.
+		expect(cost.input).toBeCloseTo(0.00042067, 8);
+		expect(cost.output).toBe(0);
+		expect(cost.total).toBeCloseTo(0.00042067, 8);
 	});
 
 	test("does not call an unpriced decision row free", async () => {
