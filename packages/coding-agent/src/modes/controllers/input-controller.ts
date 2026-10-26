@@ -831,19 +831,21 @@ export class InputController {
 	 */
 	#handleInlineMouse(data: string): { consume?: boolean; data?: string } | undefined {
 		if (!data.startsWith("\x1b[<")) return undefined;
-		if (!cfgTuiMouse.get(this.ctx.settings)) return undefined;
+		const isFullscreen = this.ctx.composer.fullscreen;
+		const mouseEnabled = cfgTuiMouse.get(this.ctx.settings);
+		if (!isFullscreen && !mouseEnabled) return undefined;
 		if (this.ctx.ui.hasOverlay()) return undefined;
 		const event = parseSgrMouse(data);
 		if (!event) return undefined;
-		// In a fullscreen session the transcript has no scrollback, so the wheel
-		// belongs to it: three rows a notch, matching the pickers and the git
-		// sidebar. Outside one it is left alone so the terminal can scroll.
-		if (event.wheel !== null && this.ctx.composer.fullscreen) {
-			// `wheel` is -1 for a notch up, and the composer counts rows up from
-			// the tail, so the two signs cancel.
+		// In a fullscreen session the transcript has no terminal scrollback, so the
+		// wheel belongs to the output area: 3 rows a notch. This runs even when
+		// `tui.mouse` (click-to-focus) is off, because the terminal cannot scroll
+		// an alternate-screen buffer itself.
+		if (event.wheel !== null && isFullscreen) {
 			this.ctx.composer.scrollBy(-event.wheel * 3);
 			return { consume: true };
 		}
+		if (!mouseEnabled) return undefined;
 		if (event.motion) this.#updateHoverHighlight(event.row);
 		else if (event.leftClick) this.#focusClickedAgent(event.row);
 		return { consume: true };
