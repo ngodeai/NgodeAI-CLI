@@ -6,6 +6,8 @@ import {
 	type Component,
 	emergencyTerminalRestore,
 	matchesKey,
+	isMouseReport,
+	parseAnyMouse,
 	parseSgrMouse,
 	type PasteOptions,
 	type SlashCommand,
@@ -843,12 +845,24 @@ export class InputController {
 	 * the editor as typed input; clicks on chrome simply swallow.
 	 */
 	#handleInlineMouse(data: string): { consume?: boolean; data?: string } | undefined {
-		if (!data.startsWith("\x1b[<")) return undefined;
+		// Two dialects reach here: SGR (`ESC [ <`) and the older X10 form
+		// (`ESC [ M` + three bytes) that Windows conhost sends even when asked
+		// for SGR. Understanding only SGR means CMD reports no mouse at all.
+		if (!isMouseReport(data)) return undefined;
 		const isFullscreen = this.ctx.composer.fullscreen;
 		const mouseEnabled = cfgTuiMouse.get(this.ctx.settings);
-		if (!isFullscreen && !mouseEnabled) return undefined;
+		// Drag-to-copy is not the click-to-focus feature: copying is a basic
+		// expectation, so it runs whether or not `tui.mouse` is on. Only the
+		// hover and click-to-focus paths below are gated on that setting.
+		const selecting = this.#selection.active;
+		if (!isFullscreen && !mouseEnabled && !selecting) {
+			// Not a drag in progress. A press still has to be seen to start one,
+			// so presses are handled below; everything else is ignored.
+			const press = parseAnyMouse(data);
+			if (!press?.leftClick) return undefined;
+		}
 		if (this.ctx.ui.hasOverlay()) return undefined;
-		const event = parseSgrMouse(data);
+		const event = parseAnyMouse(data);
 		if (!event) return undefined;
 		// In a fullscreen session the transcript has no terminal scrollback, so the
 		// wheel belongs to the output area: 3 rows a notch. This runs even when
@@ -858,7 +872,6 @@ export class InputController {
 			this.ctx.composer.scrollBy(-event.wheel * 3);
 			return { consume: true };
 		}
-		if (!mouseEnabled) return undefined;
 		// A press anchors a selection, motion extends it, release copies. This is
 		// why motion reporting can stay on without taking away copy: the
 		// application does the selecting, so the user needs no modifier.
@@ -888,7 +901,7 @@ export class InputController {
 			this.ctx.ui.requestRender();
 			return { consume: true };
 		}
-		if (event.motion) this.#updateHoverHighlight(event.row);
+		if (mouseEnabled && event.motion) this.#updateHoverHighlight(event.row);
 		return { consume: true };
 	}
 

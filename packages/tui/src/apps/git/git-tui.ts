@@ -33,7 +33,7 @@ import { SplitPane } from "../../components/layout/split-pane";
 import { Stack } from "../../components/layout/stack";
 import { matchesKey } from "../../keys";
 import { ProcessTerminal } from "../../terminal";
-import { routeSgrMouseInput } from "../../mouse";
+import { isMouseReport, routeMouseInput } from "../../mouse";
 import { col, compact, keyed, node, row, span, stableKey, text } from "../../native/describe";
 import { Memo } from "../../native/memo";
 import type { DescribeContext, NativeNode, NativeUiEvent } from "../../native/node";
@@ -736,8 +736,10 @@ class GitTuiComponent implements Component {
 	}
 
 	#handleMouse(data: string): boolean {
-		if (!data.startsWith("\x1b[<")) return false;
-		return routeSgrMouseInput(data, event => {
+		// CMD's conhost reports X10 even when asked for SGR; a SGR-only gate
+		// leaves the overlay with no pointer at all there.
+		if (!isMouseReport(data)) return false;
+		return routeMouseInput(data, event => {
 			if (event.wheel !== null) {
 				if (event.row < 2) return true;
 				const hit = this.#split.locate(event.row - 2, event.col);

@@ -7,6 +7,7 @@
  * padding with it.
  */
 import { describe, expect, it } from "bun:test";
+import { isMouseReport, parseAnyMouse, parseX10Mouse } from "../src/mouse";
 import {
 	extractSelection,
 	highlightSelection,
@@ -168,5 +169,57 @@ describe("highlightSelection", () => {
 	it("does not highlight a single-cell click", () => {
 		const rows = highlightSelection(["abc"], { start: { row: 0, col: 1 }, end: { row: 0, col: 1 } });
 		expect(rows[0]).toBe("abc");
+	});
+});
+
+describe("X10 mouse reports", () => {
+	/** X10 encodes each field offset by 32; coordinates are 1-based, so -33. */
+	function x10(button: number, col: number, row: number): string {
+		return `\x1b[M${String.fromCharCode(button + 32, col + 33, row + 33)}`;
+	}
+
+	it("decodes a press", () => {
+		const event = parseX10Mouse(x10(0, 10, 5));
+		expect(event?.leftClick).toBe(true);
+		expect(event?.col).toBe(10);
+		expect(event?.row).toBe(5);
+	});
+
+	it("decodes motion with the button held", () => {
+		const event = parseX10Mouse(x10(32, 12, 6));
+		expect(event?.motion).toBe(true);
+		expect(event?.leftClick).toBe(false);
+	});
+
+	it("treats button 3 with no motion as a release", () => {
+		// X10 has no explicit release: "no button" is how it says released.
+		const event = parseX10Mouse(x10(3, 12, 6));
+		expect(event?.release).toBe(true);
+		expect(event?.leftClick).toBe(false);
+	});
+
+	it("decodes the wheel", () => {
+		expect(parseX10Mouse(x10(64, 10, 5))?.wheel).toBe(-1);
+		expect(parseX10Mouse(x10(65, 10, 5))?.wheel).toBe(1);
+	});
+
+	it("rejects a truncated report", () => {
+		expect(parseX10Mouse("\x1b[M")).toBeNull();
+		expect(parseX10Mouse("\x1b[M\x20\x21")).toBeNull();
+	});
+
+	it("rejects a non-mouse escape", () => {
+		expect(parseX10Mouse("\x1b[A")).toBeNull();
+	});
+
+	it("parses either dialect through parseAnyMouse", () => {
+		expect(parseAnyMouse("\x1b[<0;10;5M")?.leftClick).toBe(true);
+		expect(parseAnyMouse(x10(0, 10, 5))?.leftClick).toBe(true);
+	});
+
+	it("recognises both dialects as mouse reports", () => {
+		expect(isMouseReport("\x1b[<0;1;1M")).toBe(true);
+		expect(isMouseReport("\x1b[M\x20\x21\x21")).toBe(true);
+		expect(isMouseReport("\x1b[A")).toBe(false);
 	});
 });

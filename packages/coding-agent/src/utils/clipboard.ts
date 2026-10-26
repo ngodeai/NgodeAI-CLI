@@ -115,6 +115,11 @@ let macClipboardWrite = Promise.resolve();
  * @param text - UTF-8 text to place on the clipboard.
  */
 export async function copyToClipboard(text: string): Promise<void> {
+	// OSC 52 first: it is the only path that crosses SSH and mosh, where the
+	// local clipboard belongs to another machine. It is not universal, though —
+	// Windows conhost and several older terminals ignore it silently — so the
+	// native write below still runs and is what actually fills the clipboard
+	// there. Neither path reports failure, so both are attempted.
 	if (process.stdout.isTTY) writeTerminalSequence(`\x1b]52;c;${Buffer.from(text).toString("base64")}\x07`);
 
 	// Keep pbcopy, document-header writes, and native fallbacks in invocation order.

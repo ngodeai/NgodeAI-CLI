@@ -49,6 +49,43 @@ export function parseSgrMouse(data: string): SgrMouseEvent | null {
 	return { button, col, row, release, wheel, motion, leftClick };
 }
 
+/**
+ * Decode an old-style X10 mouse report: `ESC [ M` then three bytes, each
+ * offset by 32.
+ *
+ * Windows conhost reports pointer events in this format even when asked for
+ * SGR, so a parser that only understands `ESC [ <` sees no mouse at all there.
+ * The encoding is lossy — coordinates cap at 223 and no modifier bits are
+ * carried — but it is enough for a drag, which is what needs it.
+ *
+ * `release` is not reported by X10 at all: it emits a button code of 3 for
+ * "no button", which is what a release looks like here.
+ */
+export function parseX10Mouse(data: string): SgrMouseEvent | null {
+	if (!data.startsWith("\x1b[M") || data.length < 6) return null;
+	const raw = data.slice(3, 6);
+	const button = raw.charCodeAt(0) - 32;
+	const col = raw.charCodeAt(1) - 33;
+	const row = raw.charCodeAt(2) - 33;
+	if (col < 0 || row < 0) return null;
+	const wheel = button & 64 ? ((button & 1 ? 1 : -1) as 1 | -1) : null;
+	const motion = (button & 32) !== 0 && wheel === null;
+	// Button 3 with no motion bits is X10's "all buttons up".
+	const release = (button & 3) === 3 && !motion;
+	const leftClick = !release && wheel === null && !motion && (button & 3) === 0;
+	return { button, col, row, release, wheel, motion, leftClick };
+}
+
+/** Decode either mouse report dialect the terminal may send. */
+export function parseAnyMouse(data: string): SgrMouseEvent | null {
+	return parseSgrMouse(data) ?? parseX10Mouse(data);
+}
+
+/** Whether `data` begins a mouse report in either dialect. */
+export function isMouseReport(data: string): boolean {
+	return data.startsWith("\x1b[<") || data.startsWith("\x1b[M");
+}
+
 /** Handler invoked with a decoded SGR event; returning `false` reports unhandled. */
 export type SgrMouseHandler = (event: SgrMouseEvent) => boolean | undefined;
 
@@ -61,6 +98,19 @@ export type SgrMouseHandler = (event: SgrMouseEvent) => boolean | undefined;
 export function routeSgrMouseInput(data: string, handler: SgrMouseHandler): boolean {
 	if (!data.startsWith("\x1b[<")) return false;
 	const event = parseSgrMouse(data);
+	if (!event) return false;
+	return handler(event) !== false;
+}
+
+/**
+ * Decode either dialect and forward it to `handler`.
+ *
+ * Use this instead of {@link routeSgrMouseInput} anywhere the pointer has to
+ * work on Windows conhost, which sends X10 reports even when SGR was requested.
+ */
+export function routeMouseInput(data: string, handler: SgrMouseHandler): boolean {
+	if (!isMouseReport(data)) return false;
+	const event = parseAnyMouse(data);
 	if (!event) return false;
 	return handler(event) !== false;
 }
