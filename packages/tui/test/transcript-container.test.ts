@@ -1306,6 +1306,48 @@ describe("TranscriptContainer insertChildAt", () => {
 		expect(historyReads).toBe(0);
 	});
 
+	describe("document window", () => {
+		/** `n` one-row blocks, so every document row is easy to name. */
+		function document(n: number): TranscriptContainer {
+			const transcript = new TranscriptContainer();
+			for (let index = 0; index < n; index++) transcript.addChild(new Block([`row ${index}`], false));
+			return transcript;
+		}
+
+		it("counts one separator row between blocks", () => {
+			const transcript = document(5);
+			// 5 blocks + 4 separators.
+			expect(transcript.documentRowCount(40)).toBe(9);
+		});
+
+		/**
+		 * The separator is a document row: a window that starts past the first
+		 * block must include the blank above it, or the window comes back shorter
+		 * than requested and the caller pads the top with filler — which is what
+		 * left a band of blank rows above the transcript in a fullscreen session.
+		 */
+		it("returns a full-height window across separator rows", () => {
+			const transcript = document(20);
+			const total = transcript.documentRowCount(40);
+			for (const height of [1, 2, 3, 7, 13, 25]) {
+				for (const top of [0, 1, 4, 9, total - height]) {
+					if (top < 0) continue;
+					const window = transcript.renderDocumentWindow(40, top, height);
+					expect(window.rows.length, `top=${top} height=${height}`).toBe(Math.min(height, total - top));
+				}
+			}
+		});
+
+		it("places separators on the document rows that own them", () => {
+			const transcript = document(3);
+			// Document rows: 0 "row 0", 1 "", 2 "row 1", 3 "", 4 "row 2".
+			const whole = transcript.renderDocumentWindow(40, 0, 5).rows.map(row => Bun.stripANSI(row).trim());
+			expect(whole).toEqual(["row 0", "", "row 1", "", "row 2"]);
+			const tail = transcript.renderDocumentWindow(40, 3, 2).rows.map(row => Bun.stripANSI(row).trim());
+			expect(tail).toEqual(["", "row 2"]);
+		});
+	});
+
 	it("keeps inserted blocks ordered and removable across repeated inserts", () => {
 		const transcript = new TranscriptContainer();
 		const first = new Block(["first"], false);

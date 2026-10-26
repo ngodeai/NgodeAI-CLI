@@ -615,9 +615,12 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		for (const root of afterRoots) this.#renderBelowRoot(root, width, after, afterSpans);
 		// The chrome owns the bottom of the screen; the transcript gets the rest.
 		// One blank row separates them so a tool card's closing rule does not sit
-		// directly on the composer's top rule. Chrome taller than the screen keeps
-		// its tail: the editor is the last root, so it is the part that must stay.
-		const chromeRows = [...before, "", ...after];
+		// directly on the composer's top rule — unless the chrome already opens
+		// with its own blank (a HUD's leading spacer), where a second one reads
+		// as a hole. Chrome taller than the screen keeps its tail: the editor is
+		// the last root, so it is the part that must stay.
+		const needsSeparator = after[0] === undefined || after[0].trim() !== "";
+		const chromeRows = [...before, ...(needsSeparator ? [""] : []), ...after];
 		const visibleChrome = chromeRows.length > rows ? chromeRows.slice(chromeRows.length - rows) : chromeRows;
 		const transcriptHeight = Math.max(0, rows - visibleChrome.length);
 		const documentRows = transcript.documentRowCount(width);

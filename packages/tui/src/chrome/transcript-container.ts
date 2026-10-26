@@ -1112,7 +1112,12 @@ export class TranscriptContainer extends Container {
 		let cursor = 0;
 		for (const block of this.#documentBlocks(width)) {
 			if (block.rows.length === 0) continue;
+			// The blank separator between two blocks is a document row like any
+			// other: it must be emitted when the window starts inside it, and it
+			// is why `documentRowCount` bills one extra row per block after the
+			// first. Skipping it here made every window shorter than requested.
 			const start = cursor > 0 ? cursor + 1 : 0;
+			if (start > top) rows.push("");
 			const end = start + block.rows.length;
 			if (end > top && start < bottom) {
 				// Row indices inside the block that fall inside the window.

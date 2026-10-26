@@ -142,6 +142,42 @@ describe("fullscreen session", () => {
 		}
 	});
 
+	/**
+	 * A window that came back short used to be padded with blank filler at the
+	 * top, so a full screen of output showed a band of empty rows above it.
+	 * The transcript must fill its allocation exactly when the document is at
+	 * least that tall.
+	 */
+	it("fills the transcript area with no blank band above it", () => {
+		const { composer } = fullscreenComposer({ blocks: 60, rows: 24, columns: 80, linesPerBlock: 1 });
+		try {
+			const rows = plain(composer.renderFrame({ columns: 80, rows: 24 }).viewport);
+			const transcriptRows = rows.slice(0, -CHROME_ROWS);
+			expect(transcriptRows[0]).not.toBe("");
+			// Every transcript row is content or the separator between two blocks;
+			// no run of blanks at the head.
+			expect(transcriptRows.findIndex(row => row !== "")).toBe(0);
+		} finally {
+			composer.stop();
+		}
+	});
+
+	/** Chrome that opens with its own blank must not get a second separator row. */
+	it("does not double the blank above chrome that starts blank", () => {
+		const { composer, term } = fullscreenComposer({ blocks: 40, rows: 20, columns: 80 });
+		try {
+			const withBlank = new Text("\nTODO", 0, 0);
+			composer.setRuntimeChildren([new TranscriptContainer(), withBlank]);
+			const rows = plain(composer.renderFrame({ columns: 80, rows: 20 }).viewport);
+			// One blank above the HUD, not two: the HUD's own leading blank is the
+			// separator, so the composer adds none of its own.
+			expect(rows.slice(-2)).toEqual(["", "TODO"]);
+			expect(rows.at(-3)).not.toBe("");
+		} finally {
+			composer.stop();
+		}
+	});
+
 	it("follows the tail again once the reader returns to it", () => {
 		const { composer, transcript } = fullscreenComposer({ blocks: 30, rows: 20, columns: 80 });
 		try {
