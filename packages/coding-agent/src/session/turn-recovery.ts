@@ -76,6 +76,7 @@ import { EPHEMERAL_MODEL_CHANGE_ROLE, type SessionEntry } from "./session-entrie
 import type { SessionManager } from "./session-manager";
 import { sameMessageContent, sessionMessagePersistenceKey } from "./turn-persistence";
 import { journalJudgmentUsage } from "../judgment";
+import type { DecisionLayer } from "../judgment/decisions";
 import { classifyUnexpectedStop, isUnexpectedStopCandidate } from "./unexpected-stop-classifier";
 
 import {
@@ -255,6 +256,8 @@ export interface TurnRecoveryHost {
 	 */
 	unexpectedStopAbortSignal?(): AbortSignal;
 	sessionId(): string;
+	/** Artificial Decisions layer, when the session has one. */
+	decisions?(): DecisionLayer;
 	emitSessionEvent(event: AgentSessionEvent): Promise<void>;
 	scheduleAgentContinue(options: {
 		source: string;
@@ -1174,6 +1177,7 @@ export class TurnRecovery {
 					onUsage: journalJudgmentUsage(this.#host.sessionManager),
 					telemetry: this.#host.agent.telemetry,
 					signal: controller.signal,
+					decision: this.#host.decisions?.().open("unexpected_stop", { risk: "read" }),
 				});
 			} finally {
 				clearTimeout(timeout);

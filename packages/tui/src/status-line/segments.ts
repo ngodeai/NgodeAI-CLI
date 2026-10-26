@@ -1116,6 +1116,33 @@ const VIM_MODE_COLORS: Record<NonNullable<SegmentContext["vim"]>["mode"], ThemeC
 	replace: "accent",
 };
 
+/**
+ * Decision count for the session.
+ *
+ * Reads as `⚖ 47`, or `⚖ 47·3` when three of them reached a human — the
+ * count is the layer's activity and the second number is the part the user
+ * actually had to act on. Hidden when nothing has been decided yet, so a fresh
+ * session's status line is unchanged.
+ */
+const decisionsSegment: StatusLineSegment = {
+	id: "decisions",
+	render(ctx) {
+		const decisions = ctx.decisions;
+		if (!decisions || decisions.count === 0) return { content: "", visible: false };
+		const label = decisions.gated > 0 ? `⚖ ${decisions.count}·${decisions.gated}` : `⚖ ${decisions.count}`;
+		return { content: theme.fg(decisions.gated > 0 ? "warning" : "muted", label), visible: true };
+	},
+	describe(ctx) {
+		const decisions = ctx.decisions;
+		if (!decisions || decisions.count === 0) return null;
+		const label =
+			decisions.gated > 0
+				? `${decisions.count} decisions, ${decisions.gated} gated`
+				: `${decisions.count} decisions`;
+		return segView([span(label, decisions.gated > 0 ? "warning" : "muted")], "decisions");
+	},
+};
+
 const vimSegment: StatusLineSegment = {
 	id: "vim",
 	render(ctx) {
@@ -1326,6 +1353,7 @@ export const SEGMENTS: Record<StatusLineSegmentId, StatusLineSegment> = {
 	collab: collabSegment,
 	stream: streamSegment,
 	vim: vimSegment,
+	decisions: decisionsSegment,
 };
 
 export function renderSegment(id: StatusLineSegmentId, ctx: SegmentContext): RenderedSegment {

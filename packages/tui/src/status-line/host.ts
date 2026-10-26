@@ -32,6 +32,8 @@ export interface StatusLineSession {
 	agent?: { state?: { tools?: readonly Pick<Tool, "name" | "description" | "parameters">[] }; tokenizer?: unknown };
 	skills?: readonly unknown[];
 	compactionSpeculation?: "idle" | "running" | "armed";
+	/** Session decision counts for the `decisions` segment; absent hosts hide it. */
+	getDecisionCounts?(): { count: number; gated: number } | null;
 	sessionManager: {
 		getSessionName(): string | undefined;
 		getSessionId(): string;

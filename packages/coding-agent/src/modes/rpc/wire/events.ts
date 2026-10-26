@@ -136,6 +136,10 @@ export const eventDefs = {
 	AdvisorCostChangedEvent: { type: "'advisor_cost_changed'" },
 	AdvisorYieldedEvent: { type: "'advisor_yielded'" },
 	TtsrTriggeredEvent: { type: "'ttsr_triggered'", rules: `${JSON_OBJECT}[]` },
+	DecisionEvent: doc(
+		{ type: "'decision'", decision: JSON_OBJECT },
+		"An Artificial Decision was settled and earned transcript space. The payload is the ledger's own event.",
+	),
 	TodoReminderEvent: {
 		type: "'todo_reminder'",
 		todos: "TodoItem[]",
@@ -200,6 +204,7 @@ export const eventDefs = {
 			"AdvisorCostChangedEvent",
 			"AdvisorYieldedEvent",
 			"TtsrTriggeredEvent",
+			"DecisionEvent",
 			"TodoReminderEvent",
 			"TodoAutoClearEvent",
 			"IrcMessageEvent",

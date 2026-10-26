@@ -125,6 +125,14 @@ export interface SegmentContext {
 	} | null;
 	collab: CollabStatus | null;
 	stream: { viewers: number } | null;
+	/**
+	 * Artificial Decisions recorded this session, or null when the layer is off.
+	 *
+	 * `count` is every decision, `gated` the ones that reached a human. The
+	 * segment shows the count and flags gated ones, so a session that needed
+	 * attention is visible without opening `/decisions`.
+	 */
+	decisions?: { count: number; gated: number } | null;
 	/** A `/record` capture of this screen is running. */
 	recording: boolean;
 	// Cached values for performance (computed once per render)

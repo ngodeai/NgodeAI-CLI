@@ -15,6 +15,7 @@
  * the caller falls back to a concrete level and continues the turn.
  */
 import type { AgentTelemetryConfig } from "@ngodeai/agent-core";
+import type { DecisionScope } from "@ngodeai/ai";
 import { type ChoiceQuestion, Effort, judgeQuestions, type Model, renderQuestion } from "@ngodeai/ai";
 import { getSupportedEfforts } from "@ngodeai/catalog/model-thinking";
 import type { ModelRegistry } from "../config/model-registry";
@@ -124,6 +125,8 @@ export interface ClassifyDifficultyDeps {
 	metadataResolver?: (provider: string) => Record<string, unknown> | undefined;
 	onUsage?: (usage: JudgmentUsage) => void;
 	telemetry?: AgentTelemetryConfig;
+	/** Decision the classification feeds; settled by this function with the tier it chose. */
+	decision?: DecisionScope;
 }
 
 /**
@@ -164,7 +167,7 @@ export async function classifyDifficulty(
 		? { solution_space: preprocessTinyMessage(solutionSpace) }
 		: { request: preprocessTinyMessage(input.request) };
 	const questions = solutionSpace ? SOLUTION_SPACE_QUESTIONS : REQUEST_QUESTIONS;
-	const options = { signal: deps.signal };
+	const options = { signal: deps.signal, ...(deps.decision === undefined ? {} : { decision: deps.decision }) };
 	const ceiling = autoEffortCeiling(deps);
 	const level = filterSupportedLevels(ceiling === Effort.Max ? questions.levelWithMax : questions.level, deps.model);
 	const [onlyLevel, ...otherLevels] = level.levels;
@@ -193,5 +196,11 @@ export async function classifyDifficulty(
 	}, options);
 	// Local bucket choices are unfiltered and may fall below every supported tier.
 	// Passing the ceiling prevents snapping upward into an excluded tier.
-	return clampAutoThinkingEffort(deps.model, classified.effort, classified.ceiling);
+	const effort = clampAutoThinkingEffort(deps.model, classified.effort, classified.ceiling);
+	deps.decision?.settle({
+		action: "auto",
+		tier: "line",
+		reason: `reasoning effort set to ${effort}`,
+	});
+	return effort;
 }

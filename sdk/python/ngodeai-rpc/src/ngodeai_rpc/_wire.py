@@ -1146,6 +1146,13 @@ class TtsrTriggeredEvent:
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
+class DecisionEvent:
+    """An Artificial Decision was settled and earned transcript space. The payload is the ledger's own event."""
+    type: Literal["decision"] = "decision"
+    decision: JsonObject
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
 class TodoReminderEvent:
     type: Literal["todo_reminder"] = "todo_reminder"
     todos: tuple[TodoItem, ...]
@@ -1605,7 +1612,7 @@ UsageLimitState: TypeAlias = UsageLimitLowPriority | UsageLimitWrapUp
 """Provider-neutral state of an account past its usage limit, discriminated by `stage`."""
 
 
-RpcAgentEvent: TypeAlias = AgentStartEvent | AgentEndEvent | TurnStartEvent | TurnEndEvent | MessageStartEvent | MessageUpdateEvent | MessageEndEvent | ToolExecutionStartEvent | ToolExecutionUpdateEvent | ToolStreamUpdateEvent | ToolExecutionEndEvent | AutoCompactionStartEvent | AutoCompactionEndEvent | AutoRetryStartEvent | AutoRetryEndEvent | CacheWarmingStartEvent | CacheWarmingEndEvent | RetryFallbackAppliedEvent | RetryFallbackSucceededEvent | ModelChangedEvent | ConfigWarningsChangedEvent | AdvisorCostChangedEvent | AdvisorYieldedEvent | TtsrTriggeredEvent | TodoReminderEvent | TodoAutoClearEvent | IrcMessageEvent | NoticeEvent | ThinkingLevelChangedEvent | GoalUpdatedEvent | QueueUpdateEvent
+RpcAgentEvent: TypeAlias = AgentStartEvent | AgentEndEvent | TurnStartEvent | TurnEndEvent | MessageStartEvent | MessageUpdateEvent | MessageEndEvent | ToolExecutionStartEvent | ToolExecutionUpdateEvent | ToolStreamUpdateEvent | ToolExecutionEndEvent | AutoCompactionStartEvent | AutoCompactionEndEvent | AutoRetryStartEvent | AutoRetryEndEvent | CacheWarmingStartEvent | CacheWarmingEndEvent | RetryFallbackAppliedEvent | RetryFallbackSucceededEvent | ModelChangedEvent | ConfigWarningsChangedEvent | AdvisorCostChangedEvent | AdvisorYieldedEvent | TtsrTriggeredEvent | DecisionEvent | TodoReminderEvent | TodoAutoClearEvent | IrcMessageEvent | NoticeEvent | ThinkingLevelChangedEvent | GoalUpdatedEvent | QueueUpdateEvent
 """A session event, discriminated by `type`; `set_event_filter` selects which are sent."""
 
 
@@ -2496,6 +2503,14 @@ def parse_ttsr_triggered_event(value: object, path: str = "TtsrTriggeredEvent") 
     )
 
 
+def parse_decision_event(value: object, path: str = "DecisionEvent") -> DecisionEvent:
+    payload = expect_object(value, path)
+    required(payload, "type", cast('Decoder[Literal["decision"]]', literal(frozenset({"decision"}))), path)
+    return DecisionEvent(
+        decision=required(payload, "decision", decode_json_object, path),
+    )
+
+
 def parse_todo_reminder_event(value: object, path: str = "TodoReminderEvent") -> TodoReminderEvent:
     payload = expect_object(value, path)
     required(payload, "type", cast('Decoder[Literal["todo_reminder"]]', literal(frozenset({"todo_reminder"}))), path)
@@ -3049,6 +3064,7 @@ _RPC_AGENT_EVENT_CASES: Final[dict[str, Decoder[RpcAgentEvent]]] = {
         "advisor_cost_changed": parse_advisor_cost_changed_event,
         "advisor_yielded": parse_advisor_yielded_event,
         "ttsr_triggered": parse_ttsr_triggered_event,
+        "decision": parse_decision_event,
         "todo_reminder": parse_todo_reminder_event,
         "todo_auto_clear": parse_todo_auto_clear_event,
         "irc_message": parse_irc_message_event,
@@ -3103,6 +3119,7 @@ _RPC_NOTIFICATION_CASES: Final[dict[str, Decoder[RpcNotification]]] = {
         "advisor_cost_changed": parse_rpc_agent_event,
         "advisor_yielded": parse_rpc_agent_event,
         "ttsr_triggered": parse_rpc_agent_event,
+        "decision": parse_rpc_agent_event,
         "todo_reminder": parse_rpc_agent_event,
         "todo_auto_clear": parse_rpc_agent_event,
         "irc_message": parse_rpc_agent_event,
@@ -3686,6 +3703,10 @@ class WireClient:
         """Subscribe to `ttsr_triggered` frames."""
         return self._listen("ttsr_triggered", listener)
 
+    def on_decision(self, listener: Callable[[DecisionEvent], None]) -> Callable[[], None]:
+        """Subscribe to `decision`: An Artificial Decision was settled and earned transcript space. The payload is the ledger's own event."""
+        return self._listen("decision", listener)
+
     def on_todo_reminder(self, listener: Callable[[TodoReminderEvent], None]) -> Callable[[], None]:
         """Subscribe to `todo_reminder` frames."""
         return self._listen("todo_reminder", listener)
@@ -3779,6 +3800,7 @@ __all__ = [
     "ConfirmUiRequest",
     "ContextUsage",
     "CustomMessage",
+    "DecisionEvent",
     "DeveloperMessage",
     "EditorUiRequest",
     "Effort",
@@ -3962,6 +3984,7 @@ __all__ = [
     "parse_confirm_ui_request",
     "parse_context_usage",
     "parse_custom_message",
+    "parse_decision_event",
     "parse_developer_message",
     "parse_editor_ui_request",
     "parse_extension_error",

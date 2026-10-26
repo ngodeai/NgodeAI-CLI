@@ -4037,6 +4037,24 @@
 				"rules"
 			]
 		},
+		"DecisionEvent": {
+			"type": "object",
+			"properties": {
+				"type": {
+					"const": "decision"
+				},
+				"decision": {
+					"type": "object",
+					"properties": {},
+					"additionalProperties": {}
+				}
+			},
+			"required": [
+				"type",
+				"decision"
+			],
+			"description": "An Artificial Decision was settled and earned transcript space. The payload is the ledger's own event."
+		},
 		"TodoReminderEvent": {
 			"type": "object",
 			"properties": {
@@ -4264,6 +4282,9 @@
 				},
 				{
 					"$ref": "#/$defs/TtsrTriggeredEvent"
+				},
+				{
+					"$ref": "#/$defs/DecisionEvent"
 				},
 				{
 					"$ref": "#/$defs/TodoReminderEvent"

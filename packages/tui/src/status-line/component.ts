@@ -2614,6 +2614,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 			vim: this.#vimStatus,
 			collab: this.#collabStatus,
 			stream: this.#streamStatus,
+			decisions: this.session.getDecisionCounts?.() ?? null,
 			recording: this.#recording,
 			usageStats,
 			contextPercent,

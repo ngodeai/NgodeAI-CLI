@@ -14,7 +14,7 @@
  * malformed answer, abort, timeout); the caller treats both as "do not arm".
  */
 import type { AgentMessage, AgentTelemetryConfig } from "@ngodeai/agent-core";
-import { type ChoiceAnswer, judgeQuestions } from "@ngodeai/ai";
+import { type ChoiceAnswer, type DecisionScope, judgeQuestions } from "@ngodeai/ai";
 import { titleTextFromSkillPrompt } from "@ngodeai/tui/chat/skill-title-input";
 import { textContent } from "@ngodeai/tui/chat/transcript-entry";
 import { assistantText } from "@ngodeai/tui/overlays/copy-targets";
@@ -63,6 +63,8 @@ export interface ClassifyAutoPrewalkDeps {
 	signal?: AbortSignal;
 	onUsage?: (usage: JudgmentUsage) => void;
 	telemetry?: AgentTelemetryConfig;
+	/** Decision the routing feeds; settled here with the route it chose. */
+	decision?: DecisionScope;
 }
 
 /** Text of a user-authored request: a typed prompt or a user-invoked skill, never an injected or agent-attributed one. */
@@ -137,11 +139,22 @@ export async function classifyAutoPrewalk(
 		cache: sharedJudgmentCache(),
 	});
 	const timeout = AbortSignal.timeout(AUTO_PREWALK_TIMEOUT_MS);
-	const options = { signal: deps.signal ? AbortSignal.any([deps.signal, timeout]) : timeout };
+	const options = {
+		signal: deps.signal ? AbortSignal.any([deps.signal, timeout]) : timeout,
+		...(deps.decision === undefined ? {} : { decision: deps.decision }),
+	};
 	// The cached execution chain can lag the fresh gate after credentials or discovery change.
 	const { answers } = await judge.withCandidate((candidate, kind) => {
 		if (kind !== "native") throw new Error("auto-prewalk: the judge role has no native backend");
 		return candidate.judge({ state: buildState(input), questions: QUESTIONS }, options);
 	}, options);
-	return toDecision(answers.route);
+	const decision = toDecision(answers.route);
+	// The route is the whole point of the call: `prewalk` hands the task to a
+	// cheap model, so the row says which way it went and how sure it was.
+	deps.decision?.settle({
+		action: "auto",
+		tier: "line",
+		reason: `routed to ${decision.route}${decision.arm ? " · armed" : ""}`,
+	});
+	return decision;
 }

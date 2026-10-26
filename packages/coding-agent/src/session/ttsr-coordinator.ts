@@ -17,6 +17,7 @@ import type { AssistantMessage, Judge, ToolCall } from "@ngodeai/ai";
 import { logger, prompt, relativePathWithinRoot, withTimeout } from "@ngodeai/utils";
 import { BUILTIN_DEFAULTS_PROVIDER_ID, type Rule } from "../capability/rule";
 import type { Settings } from "../config/settings";
+import type { DecisionLayer } from "../judgment/decisions";
 import {
 	judgeRules,
 	type TtsrCheckOptions,
@@ -64,6 +65,8 @@ export interface TtsrCoordinatorHost {
 	promptGeneration(): number;
 	/** Judge for `question` rules, or `undefined` while judged rules are off (`ttsr.judge`). */
 	ruleJudge(): Judge | undefined;
+	/** Artificial Decisions layer, when the session has one. */
+	decisions?(): DecisionLayer;
 	/** Delivers a judged-rule warning without interrupting the run. */
 	deliverRuleWarning(content: string, ruleNames: string[]): Promise<void>;
 	/** Changes when the session is replaced; verdicts from an older generation are dropped. */
@@ -569,7 +572,19 @@ export class TtsrCoordinator {
 		if (candidates.length === 0) return;
 		const judge = this.#host.ruleJudge();
 		if (!judge) return;
-		const flagged = await judgeRules(judge, output, candidates);
+		// One scope for the whole batch: every eligible rule's question rides in
+		// one request, so one decision covers all of them. A clean output is the
+		// common case and stays out of the transcript.
+		const decision = this.#host.decisions?.().open("ttsr", { risk: "read" });
+		const flagged = await judgeRules(judge, output, candidates, decision === undefined ? undefined : { decision });
+		decision?.settle({
+			action: flagged.length > 0 ? "auto" : "silent",
+			tier: flagged.length > 0 ? "line" : "silent",
+			reason:
+				flagged.length > 0
+					? `${flagged.length} of ${candidates.length} rules flagged`
+					: `${candidates.length} rules checked, none flagged`,
+		});
 		if (flagged.length === 0 || this.#host.sessionGeneration() !== generation) return;
 		const rules = manager.claim(flagged);
 		if (rules.length === 0) return;

@@ -30,6 +30,7 @@ import {
 	toolRenderName,
 } from "@ngodeai/tui/chat/tool-execution";
 import { TtsrNotificationComponent } from "@ngodeai/tui/chat/ttsr-notification";
+import { createDecisionComponent } from "@ngodeai/tui/chat/decision-message";
 import { createUsageRowBlock, TurnUsageTally, turnElapsedMs } from "@ngodeai/tui/overlays/usage-row";
 import { appKey } from "@ngodeai/tui/chrome/keybinding-hints";
 import { getSymbolTheme, theme } from "@ngodeai/tui/theme";
@@ -394,6 +395,7 @@ export class EventController {
 			retry_fallback_applied: e => this.#handleRetryFallbackApplied(e),
 			retry_fallback_succeeded: e => this.#handleRetryFallbackSucceeded(e),
 			ttsr_triggered: e => this.#handleTtsrTriggered(e),
+			decision: e => this.#handleDecision(e),
 			todo_reminder: e => this.#handleTodoReminder(e),
 			todo_auto_clear: e => this.#handleTodoAutoClear(e),
 			irc_message: e => this.#handleIrcMessage(e),
@@ -2735,6 +2737,21 @@ export class EventController {
 		event: Extract<AgentSessionEvent, { type: "retry_fallback_succeeded" }>,
 	): Promise<void> {
 		this.ctx.showStatus(`Fallback succeeded on ${event.model}`);
+	}
+
+	/**
+	 * Show a settled decision in the transcript.
+	 *
+	 * Silent decisions never reach this handler — the session emits only the
+	 * ones that earned space — so there is no filtering to do here. A card
+	 * lands as a transcript entry; a line is appended the same way, because
+	 * both are history the reader may scroll back to.
+	 */
+	async #handleDecision(event: Extract<AgentSessionEvent, { type: "decision" }>): Promise<void> {
+		const decision = event.decision;
+		if (decision.tier === "silent") return;
+		const component = createDecisionComponent(decision, this.ctx.toolOutputExpanded);
+		this.ctx.present(component);
 	}
 
 	async #handleTtsrTriggered(event: Extract<AgentSessionEvent, { type: "ttsr_triggered" }>): Promise<void> {

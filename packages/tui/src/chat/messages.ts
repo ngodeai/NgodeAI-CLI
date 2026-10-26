@@ -32,6 +32,15 @@ export const VIBE_MODE_CONTEXT_MESSAGE_TYPE = "vibe-mode-context";
 /** Fallback type for extension-injected messages that omit a custom type. */
 export const DEFAULT_CUSTOM_MESSAGE_TYPE = "custom-message";
 
+/**
+ * A recorded Artificial Decision shown in the transcript.
+ *
+ * The payload is the {@link DecisionEvent} itself rather than a rendering
+ * summary, so a resumed session renders the decision from what was recorded,
+ * not from a copy that could drift from the ledger.
+ */
+export const DECISION_MESSAGE_TYPE = "decision";
+
 /** Custom message carrying a coding request delegated by the live voice model. */
 export const LIVE_DELEGATION_MESSAGE_TYPE = "live-delegation";
 

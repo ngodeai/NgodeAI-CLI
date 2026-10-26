@@ -1,6 +1,6 @@
 import type { AgentEvent, ThinkingLevel } from "@ngodeai/agent-core";
 import type { CompactionResult } from "@ngodeai/agent-core/compaction";
-import type { Effort } from "@ngodeai/ai";
+import type { DecisionEvent, Effort } from "@ngodeai/ai";
 import type { Rule } from "../capability/rule";
 import type { RetryErrorUpdate } from "../extensibility/shared-events";
 import type { Goal } from "@ngodeai/tui/tools/goal";
@@ -68,6 +68,14 @@ export type AgentSessionEvent =
 	| { type: "advisor_cost_changed" }
 	| { type: "advisor_yielded" }
 	| { type: "ttsr_triggered"; rules: Rule[] }
+	/**
+	 * An Artificial Decision was settled and earned transcript space.
+	 *
+	 * Carries the event the ledger stored, so a listener renders exactly what
+	 * was recorded. Silent decisions never reach this event: they changed
+	 * nothing, and the transcript is not a log.
+	 */
+	| { type: "decision"; decision: DecisionEvent }
 	| { type: "todo_reminder"; todos: TodoItem[]; attempt: number; maxAttempts: number }
 	| { type: "todo_auto_clear" }
 	| { type: "irc_message"; message: CustomMessage }

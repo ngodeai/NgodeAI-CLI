@@ -4,7 +4,7 @@
  * from the live `judge` role chain resolved by {@link resolveJudge}.
  */
 import type { AgentTelemetryConfig } from "@ngodeai/agent-core";
-import { type AssistantMessage, type JudgmentState, judgeQuestions, type Model } from "@ngodeai/ai";
+import { type AssistantMessage, type DecisionScope, type JudgmentState, judgeQuestions, type Model } from "@ngodeai/ai";
 import { logger } from "@ngodeai/utils";
 import type { ModelRegistry } from "../config/model-registry";
 import type { Settings } from "../config/settings";
@@ -53,6 +53,8 @@ export interface ClassifyUnexpectedStopDeps {
 	onUsage?: (usage: JudgmentUsage) => void;
 	telemetry?: AgentTelemetryConfig;
 	signal?: AbortSignal;
+	/** Decision the check feeds; settled here with the threshold verdict. */
+	decision?: DecisionScope;
 }
 
 /** Detects terminal turns eligible for mechanical recovery or smart classification. */
@@ -100,9 +102,18 @@ export async function classifyUnexpectedStop(
 		const state: JudgmentState = request ? { request, message: stop.message } : { message: stop.message };
 		const { answers } = await judge.judge(
 			{ state, questions: { stopped: QUESTIONS.stopped } },
-			{ signal: deps.signal },
+			{ signal: deps.signal, ...(deps.decision === undefined ? {} : { decision: deps.decision }) },
 		);
-		return answers.stopped.noul >= UNEXPECTED_STOP_THRESHOLD;
+		const stopped = answers.stopped.noul >= UNEXPECTED_STOP_THRESHOLD;
+		// A "no" is the common case and changes nothing, so it stays out of the
+		// transcript; the ledger keeps both, which is what makes the threshold
+		// tunable from real data later.
+		deps.decision?.settle({
+			action: stopped ? "auto" : "silent",
+			tier: stopped ? "line" : "silent",
+			reason: stopped ? "promised work then stopped" : "turn ended normally",
+		});
+		return stopped;
 	} catch (error) {
 		logger.debug("unexpected-stop: classification failed", {
 			error: error instanceof Error ? error.message : String(error),

@@ -131,6 +131,11 @@ export interface JudgmentResult<Q extends Questions = Questions> {
 
 export interface JudgeOptions {
 	signal?: AbortSignal;
+	/**
+	 * Decision this judgment feeds. When set, the judge reports the completed
+	 * request to the scope so the caller can settle it with the outcome.
+	 */
+	decision?: import("./decision").DecisionScope;
 }
 
 /** Answers typed questions about a state. Implementations are stateless and safe to share. */

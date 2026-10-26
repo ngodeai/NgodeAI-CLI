@@ -12,10 +12,10 @@
  * component reuse could.
  */
 import type { AgentMessage, AgentTool } from "@ngodeai/agent-core";
-import type { Usage } from "@ngodeai/ai";
+import type { DecisionEvent, Usage } from "@ngodeai/ai";
 import { type Component, type TUI } from "../tui";
 import type { AdvisorMessageDetails } from "./messages";
-import { COLLAB_PROMPT_MESSAGE_TYPE, type CollabPromptDetails } from "./messages";
+import { COLLAB_PROMPT_MESSAGE_TYPE, type CollabPromptDetails, DECISION_MESSAGE_TYPE } from "./messages";
 import { chatTranscriptDisplayPreferences as displayPreferences } from "./display-preferences";
 import type { MessageRenderer } from "./extension-types";
 import { LAUNCH_COMPLETION_MESSAGE_TYPE } from "./messages";
@@ -46,6 +46,7 @@ import {
 	splitAssistantMessageToolTimeline,
 } from "./transcript-render-helpers";
 import { createAdvisorMessageCard } from "./advisor-message";
+import { createDecisionComponent } from "./decision-message";
 import { AssistantMessageComponent } from "./assistant-message";
 import { createBackgroundTanDispatchBlock } from "./background-tan-message";
 import { BashExecutionComponent } from "./bash-execution";
@@ -601,6 +602,15 @@ export class ChatTranscriptBuilder {
 		) {
 			this.container.addChild(buildIrcMessageCard(message, () => this.#expanded));
 			return;
+		}
+		if (message.customType === DECISION_MESSAGE_TYPE) {
+			const details = (message as CustomMessage<DecisionEvent>).details;
+			if (details?.point) {
+				const component = createDecisionComponent(details, this.#expanded);
+				this.#trackExpandable(component);
+				this.container.addChild(component);
+				return;
+			}
 		}
 		if (message.customType === "advisor") {
 			const details = (message as CustomMessage<AdvisorMessageDetails>).details;

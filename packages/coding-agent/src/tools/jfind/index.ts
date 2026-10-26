@@ -108,6 +108,9 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 		});
 		const started = performance.now();
 		const timeout = AbortSignal.timeout(FIND_TIMEOUT_MS);
+		// One scope for the whole cascade: its three waves are one decision about
+		// where the query's evidence lives, and the row reports the hit count.
+		const decision = this.session.getDecisions?.()?.open("find", { risk: "read" });
 		let result: CascadeResult;
 		try {
 			result = await runCascade({
@@ -118,6 +121,7 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 				judge,
 				includeHidden: false,
 				signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+				decision,
 				onProgress: message => onUpdate?.({ content: [{ type: "text", text: message }] }),
 			});
 		} catch (error) {
@@ -128,6 +132,14 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 		}
 		const elapsedMs = performance.now() - started;
 		const { stats, threshold, keywords, coverage } = result;
+		decision?.settle({
+			action: result.hits.length > 0 ? "auto" : "silent",
+			tier: result.hits.length > 0 ? "line" : "silent",
+			reason:
+				result.hits.length > 0
+					? `${result.hits.length} hits · ${stats.requests} judge requests`
+					: `no hits · ${stats.requests} judge requests · ${coverage}`,
+		});
 		// Cascade paths are root-relative; the model and renderer want paths
 		// `read` resolves (cwd-relative files, URLs under URL scopes, including
 		// with `:start-end` selectors) without knowing the scope.

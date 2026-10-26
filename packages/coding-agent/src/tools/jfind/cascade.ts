@@ -13,7 +13,7 @@
  * the critical path is three dependent waves.
  */
 import * as path from "node:path";
-import type { Judge, JudgmentResult, NoulQuestion } from "@ngodeai/ai";
+import type { DecisionScope, Judge, JudgmentResult, NoulQuestion } from "@ngodeai/ai";
 import type { FindCoverage, FindHit, FindStats } from "@ngodeai/tui/tools/find";
 import type { InternalUrlFilesystem } from "../../internal-urls/url-filesystem";
 import { throwIfAborted } from "../tool-errors";
@@ -67,6 +67,8 @@ export interface CascadeOptions {
 	judge: Judge;
 	includeHidden: boolean;
 	signal?: AbortSignal;
+	/** Decision the cascade feeds; settled here with the hit count. */
+	decision?: DecisionScope;
 	onProgress?: (message: string) => void;
 }
 

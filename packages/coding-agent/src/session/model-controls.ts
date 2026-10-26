@@ -18,6 +18,7 @@ import { modelsAreEqual } from "@ngodeai/catalog/models";
 import { logger } from "@ngodeai/utils";
 import { classifyDifficulty } from "../auto-thinking/classifier";
 import type { ModelRegistry } from "../config/model-registry";
+import type { DecisionLayer } from "../judgment/decisions";
 import {
 	filterAvailableModelsByEnabledPatterns,
 	formatModelStringWithRouting,
@@ -73,6 +74,8 @@ export interface ModelControlsHost {
 	clearActiveRetryFallback(): void;
 	clearInheritedProviderPromptCacheKey(): void;
 	magicKeywordEnabled(keyword: MagicKeywordId): boolean;
+	/** Artificial Decisions layer for this session; `undefined` when the host has none. */
+	decisions?: DecisionLayer;
 	emit(event: AgentSessionEvent): void;
 	emitSessionEvent(event: AgentSessionEvent): Promise<void>;
 	emitNotice(level: "info" | "warning" | "error", message: string, source?: string): void;
@@ -650,10 +653,12 @@ export class ModelControls {
 				sessionId: this.#host.sessionManager.getSessionId(),
 				parentId: this.#host.sessionManager.getLeafId(),
 			};
+			const decision = this.#host.decisions?.open("thinking_level", { risk: "read" });
 			try {
 				resolved = await classifyDifficulty(
 					{ request: promptText, solutionSpace },
 					{
+						...(decision === undefined ? {} : { decision }),
 						settings: this.#host.settings,
 						registry: this.#host.modelRegistry,
 						model,

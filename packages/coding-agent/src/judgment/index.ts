@@ -64,6 +64,9 @@ import { tinyModelClient } from "../tiny/title-client";
 import type { JudgmentCache } from "./cache";
 
 export * from "./cache";
+export * from "./decisions";
+export * from "./ledger";
+export * from "./settings";
 
 /** Usage of one billed judgment attempt, recorded on the session ledger by callers. */
 export interface JudgmentUsage {
@@ -386,24 +389,62 @@ export class ChainJudge implements Judge {
 			}
 		}
 		checkBoxQuestions(request);
-		return this.#withCandidate(
-			async (candidateJudge, kind, model) => {
-				if (kind === "local" || requestImages.length === 0) return candidateJudge.judge(request, options);
-				const fitted = kind === "native" ? await fitNativeImages(model, requestImages) : undefined;
-				const images = fitted
-					? fitted.map(fit => fit.image)
-					: ((await normalizeModelContextImages([...requestImages], { model })) ?? []);
-				const signal = options.signal;
-				if (signal?.aborted) {
-					const reason = signal.reason;
-					throw reason instanceof Error ? reason : new AIError.AbortError("judgment aborted");
-				}
-				const result = await candidateJudge.judge({ ...request, images }, options);
-				return fitted ? sourceBoxes(request.questions, result, fitted) : result;
-			},
-			options,
-			request,
-		);
+		const scope = options.decision;
+		const startedAt = Date.now();
+		let timing: { cached?: boolean; cachedQuestions?: number } = {};
+		try {
+			const result = await this.#withCandidate(
+				async (candidateJudge, kind, model) => {
+					if (kind === "local" || requestImages.length === 0) {
+						const answered = await candidateJudge.judge(request, options);
+						if (kind === "native") timing = this.#timingOf(request, answered);
+						return answered;
+					}
+					const fitted = kind === "native" ? await fitNativeImages(model, requestImages) : undefined;
+					const images = fitted
+						? fitted.map(fit => fit.image)
+						: ((await normalizeModelContextImages([...requestImages], { model })) ?? []);
+					const signal = options.signal;
+					if (signal?.aborted) {
+						const reason = signal.reason;
+						throw reason instanceof Error ? reason : new AIError.AbortError("judgment aborted");
+					}
+					const answered = await candidateJudge.judge({ ...request, images }, options);
+					const final = fitted ? sourceBoxes(request.questions, answered, fitted) : answered;
+					if (kind === "native") timing = this.#timingOf(request, final);
+					return final;
+				},
+				options,
+				request,
+			);
+			scope?.complete(request, result, {
+				startedAt,
+				finishedAt: Date.now(),
+				...(timing.cached === undefined ? {} : { cached: timing.cached }),
+				...(timing.cachedQuestions === undefined ? {} : { cachedQuestions: timing.cachedQuestions }),
+			});
+			return result;
+		} catch (error) {
+			scope?.fail(error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Whether this judgment was answered wholly or partly from the answer cache.
+	 *
+	 * The native backend consumes cache hits before it calls the provider and
+	 * reports the split only as an attempt, which {@link #report} has already
+	 * consumed by the time the result reaches here. A cache hit is observable
+	 * another way: a native result whose usage is empty billed nothing and
+	 * carried no response model, which only happens when every answer came
+	 * from the cache.
+	 */
+	#timingOf(request: JudgmentRequest, result: JudgmentResult): { cached?: boolean; cachedQuestions?: number } {
+		const questions = Object.keys(request.questions).length;
+		const billedNothing = result.usage.input === 0 && result.usage.output === 0 && result.usage.cost.total === 0;
+		if (billedNothing && questions > 0) return { cached: true, cachedQuestions: questions };
+		return {};
 	}
 
 	/**
@@ -415,8 +456,47 @@ export class ChainJudge implements Judge {
 		return this.#resolveCandidates()[0]?.model;
 	}
 
+	/**
+	 * Run `run` against the first candidate that answers.
+	 *
+	 * When `options.decision` is set, the judge handed to `run` is wrapped so
+	 * every request it answers reports to that scope. Callers on this path
+	 * (auto-thinking, auto-prewalk) choose their questions per candidate and
+	 * therefore call `judge.judge` directly instead of going through
+	 * {@link judge}, so the reporting has to happen here or their decisions
+	 * would never reach the ledger.
+	 */
 	async withCandidate<T>(run: (judge: Judge, kind: JudgeKind) => Promise<T>, options: JudgeOptions = {}): Promise<T> {
-		return this.#withCandidate((judge, kind) => run(judge, kind), options);
+		const scope = options.decision;
+		if (!scope) return this.#withCandidate((judge, kind) => run(judge, kind), options);
+		const startedAt = Date.now();
+		const timingOf = (request: JudgmentRequest, result: JudgmentResult) => this.#timingOf(request, result);
+		try {
+			const result = await this.#withCandidate(
+				(judge, kind) =>
+					run(
+						{
+							label: judge.label,
+							...(judge.supportsImages === undefined ? {} : { supportsImages: judge.supportsImages }),
+							async judge(request, innerOptions) {
+								const answered = await judge.judge(request, innerOptions);
+								scope.complete(request, answered, {
+									startedAt,
+									finishedAt: Date.now(),
+									...(kind === "native" ? timingOf(request, answered) : {}),
+								});
+								return answered;
+							},
+						} as Judge,
+						kind,
+					),
+				options,
+			);
+			return result;
+		} catch (error) {
+			scope.fail(error);
+			throw error;
+		}
 	}
 
 	/** Run `run` against each candidate able to answer `request` (any candidate when omitted) until one succeeds. */

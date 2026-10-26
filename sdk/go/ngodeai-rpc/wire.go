@@ -4213,6 +4213,32 @@ func (v TtsrTriggeredEvent) MarshalJSON() ([]byte, error) {
 	return encodeObject(plain(v), `"type":"ttsr_triggered"`, nil)
 }
 
+// An Artificial Decision was settled and earned transcript space. The payload is the ledger's own event.
+type DecisionEvent struct {
+	Decision map[string]json.RawMessage `json:"decision"`
+}
+
+func (v *DecisionEvent) UnmarshalJSON(data []byte) error {
+	return decodeWith(data, "DecisionEvent", v.decodeFrom)
+}
+
+func (v *DecisionEvent) decodeFrom(raw map[string]json.RawMessage) error {
+	var out DecisionEvent
+	d := fieldDecoder{raw: raw, owner: "DecisionEvent"}
+	d.constant("type", "decision")
+	d.required("decision", &out.Decision)
+	if d.err != nil {
+		return d.err
+	}
+	*v = out
+	return nil
+}
+
+func (v DecisionEvent) MarshalJSON() ([]byte, error) {
+	type plain DecisionEvent
+	return encodeObject(plain(v), `"type":"decision"`, nil)
+}
+
 type TodoReminderEvent struct {
 	Todos       []TodoItem `json:"todos"`
 	Attempt     int64      `json:"attempt"`
@@ -4445,6 +4471,7 @@ func (ConfigWarningsChangedEvent) isRpcAgentEvent()  {}
 func (AdvisorCostChangedEvent) isRpcAgentEvent()     {}
 func (AdvisorYieldedEvent) isRpcAgentEvent()         {}
 func (TtsrTriggeredEvent) isRpcAgentEvent()          {}
+func (DecisionEvent) isRpcAgentEvent()               {}
 func (TodoReminderEvent) isRpcAgentEvent()           {}
 func (TodoAutoClearEvent) isRpcAgentEvent()          {}
 func (IrcMessageEvent) isRpcAgentEvent()             {}
@@ -4521,6 +4548,8 @@ func (v *RpcAgentEvent) decodeFrom(raw map[string]json.RawMessage) error {
 		value, err = decodeVariant[AdvisorYieldedEvent](raw)
 	case "ttsr_triggered":
 		value, err = decodeVariant[TtsrTriggeredEvent](raw)
+	case "decision":
+		value, err = decodeVariant[DecisionEvent](raw)
 	case "todo_reminder":
 		value, err = decodeVariant[TodoReminderEvent](raw)
 	case "todo_auto_clear":
@@ -6481,6 +6510,7 @@ func (ConfigWarningsChangedEvent) isRpcNotification()   {}
 func (AdvisorCostChangedEvent) isRpcNotification()      {}
 func (AdvisorYieldedEvent) isRpcNotification()          {}
 func (TtsrTriggeredEvent) isRpcNotification()           {}
+func (DecisionEvent) isRpcNotification()                {}
 func (TodoReminderEvent) isRpcNotification()            {}
 func (TodoAutoClearEvent) isRpcNotification()           {}
 func (IrcMessageEvent) isRpcNotification()              {}
@@ -6588,6 +6618,8 @@ func (v *RpcNotification) UnmarshalJSON(data []byte) error {
 		value, err = decodeVariant[AdvisorYieldedEvent](raw)
 	case "ttsr_triggered":
 		value, err = decodeVariant[TtsrTriggeredEvent](raw)
+	case "decision":
+		value, err = decodeVariant[DecisionEvent](raw)
 	case "todo_reminder":
 		value, err = decodeVariant[TodoReminderEvent](raw)
 	case "todo_auto_clear":
@@ -6671,6 +6703,7 @@ func (ConfigWarningsChangedEvent) isRpcServerFrame()   {}
 func (AdvisorCostChangedEvent) isRpcServerFrame()      {}
 func (AdvisorYieldedEvent) isRpcServerFrame()          {}
 func (TtsrTriggeredEvent) isRpcServerFrame()           {}
+func (DecisionEvent) isRpcServerFrame()                {}
 func (TodoReminderEvent) isRpcServerFrame()            {}
 func (TodoAutoClearEvent) isRpcServerFrame()           {}
 func (IrcMessageEvent) isRpcServerFrame()              {}
@@ -6788,6 +6821,8 @@ func (v *RpcServerFrame) UnmarshalJSON(data []byte) error {
 		value, err = decodeVariant[AdvisorYieldedEvent](raw)
 	case "ttsr_triggered":
 		value, err = decodeVariant[TtsrTriggeredEvent](raw)
+	case "decision":
+		value, err = decodeVariant[DecisionEvent](raw)
 	case "todo_reminder":
 		value, err = decodeVariant[TodoReminderEvent](raw)
 	case "todo_auto_clear":

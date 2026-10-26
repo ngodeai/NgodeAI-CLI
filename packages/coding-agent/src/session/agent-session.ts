@@ -172,7 +172,15 @@ import { GoalRuntime } from "../goals/runtime";
 import type { GoalModeState, GoalTokenUsage } from "../goals/state";
 import type { HindsightSessionState } from "../hindsight/state";
 import { InternalUrlRouter, type LocalProtocolOptions } from "../internal-urls";
-import { type ChainJudge, hasNativeJudge, journalJudgmentUsage, resolveJudge, sharedJudgmentCache } from "../judgment";
+import {
+	type ChainJudge,
+	DecisionLayer,
+	hasNativeJudge,
+	journalJudgmentUsage,
+	resolveJudge,
+	sharedDecisionLedger,
+	sharedJudgmentCache,
+} from "../judgment";
 import type { IrcMessage } from "@ngodeai/tui/tools/irc";
 import type { JobWidgetEntry } from "@ngodeai/tui/tools/job-widget";
 import type { DaemonCompletionNotification } from "../launch/protocol";
@@ -849,6 +857,16 @@ export class AgentSession implements SettingsScope {
 	getXdevToolEntries: () => Array<{ name: string; summary: string }>;
 	readonly yieldQueue: YieldQueue;
 	editStore?: EditStore;
+
+	/**
+	 * Artificial Decisions for this session.
+	 *
+	 * Every decision point opens a scope from here and settles it after acting.
+	 * The layer records to the ledger and emits the ones that earned transcript
+	 * space. It is `silent` when the user turned recording off, which is also
+	 * what tests and throwaway subagents get.
+	 */
+	readonly decisions: DecisionLayer;
 
 	/** Materializes this session's live extension-root policy per discovery call. */
 	readonly #extensionRoots: () => EffectiveExtensionRoots;
@@ -1875,6 +1893,7 @@ export class AgentSession implements SettingsScope {
 						signal,
 						onUsage: journalJudgmentUsage(this.sessionManager),
 						telemetry: this.agent.telemetry,
+						decision: this.decisions.open("route_task", { risk: "read" }),
 					},
 				),
 			emitNotice: (level, message, source) => this.emitNotice(level, message, source),
@@ -1925,6 +1944,9 @@ export class AgentSession implements SettingsScope {
 		});
 		this.#ownedAsyncJobManager = config.ownedAsyncJobManager;
 		this.#asyncJobManager = config.asyncJobManager ?? config.ownedAsyncJobManager;
+		// Built before its consumers: the model-controls host reads `decisions`
+		// to open the thinking-level scope on every auto-classified turn.
+		this.decisions = this.#createDecisionLayer();
 		const modelControlsHost: ModelControlsHost = {
 			agent: this.agent,
 			settings: this.settings,
@@ -1944,6 +1966,7 @@ export class AgentSession implements SettingsScope {
 			clearActiveRetryFallback: () => this.#recovery.clearActiveRetryFallback(),
 			clearInheritedProviderPromptCacheKey: () => this.#clearInheritedProviderPromptCacheKey(),
 			magicKeywordEnabled: keyword => this.#magicKeywordEnabled(keyword),
+			decisions: this.decisions,
 			emit: event => this.#emit(event),
 			emitSessionEvent: event => this.#emitSessionEvent(event),
 			emitNotice: (level, message, source) => this.emitNotice(level, message, source),
@@ -1994,6 +2017,7 @@ export class AgentSession implements SettingsScope {
 			promptSequence: () => this.#promptSequence,
 			unexpectedStopAbortSignal: () => this.#postPromptTasksAbortController.signal,
 			sessionId: () => this.sessionId,
+			decisions: () => this.decisions,
 			emitSessionEvent: event => this.#emitSessionEvent(event),
 			scheduleAgentContinue: options => this.#scheduleAgentContinue(options),
 			waitForSessionMessagePersistence: message => this.#waitForSessionMessagePersistence(message),
@@ -2285,6 +2309,7 @@ export class AgentSession implements SettingsScope {
 			scheduleAgentContinue: options => this.#scheduleAgentContinue(options),
 			promptGeneration: () => this.#promptGeneration,
 			ruleJudge: () => this.ruleJudge(),
+			decisions: () => this.decisions,
 			deliverRuleWarning: (content, ruleNames) => this.#deliverRuleWarning(content, ruleNames),
 			sessionGeneration: () => this.#sessionGeneration,
 		};
@@ -3326,6 +3351,17 @@ export class AgentSession implements SettingsScope {
 	}
 
 	/**
+	 * Decision counts for the status line.
+	 *
+	 * Reads the layer's in-memory counters rather than the ledger: this runs on
+	 * every status repaint, and an aggregate query per frame would cost more
+	 * than the feature it reports.
+	 */
+	getDecisionCounts(): { count: number; gated: number } | null {
+		return this.decisions.enabled ? this.decisions.counts : null;
+	}
+
+	/**
 	 * Judge for TTSR `question` rules per `ttsr.judge`, used by live judging and
 	 * `/omfg` validation. `auto` requires the judge role to resolve to a native
 	 * System One model, since every completed output may cost a request. Rebuilt
@@ -3419,6 +3455,24 @@ export class AgentSession implements SettingsScope {
 	// =========================================================================
 
 	/** Emit an event to all listeners */
+	/**
+	 * Build this session's decision layer.
+	 *
+	 * The emitter is bound to `#emit` rather than `#emitSessionEvent`: a
+	 * decision is already settled and already stored by the time it reaches
+	 * here, so extension hooks must not be able to delay or veto the row. The
+	 * ledger is the shared one; when it cannot open, the layer still records
+	 * nothing but the gate matrix still works, which is what Phase 2 needs.
+	 */
+	#createDecisionLayer(): DecisionLayer {
+		return DecisionLayer.open({
+			sessionId: this.sessionManager.getSessionId(),
+			settings: this.settings,
+			ledger: sharedDecisionLedger(),
+			emit: decision => this.#emit({ type: "decision", decision }),
+		});
+	}
+
 	#emit(event: AgentSessionEvent): void {
 		// Listener array is copy-on-write (see `subscribe`), so iterating the
 		// current array is safe against (un)subscribes made by a listener.

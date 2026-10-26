@@ -999,6 +999,16 @@ export function getJudgmentCacheDbPath(): string {
 	return dirs.rootSubdir(path.join("cache", "judgment-cache.db"), "cache");
 }
 
+/**
+ * Get the decision ledger database path (~/.ngodeai/cache/decisions.db).
+ * Honors `NGODEAI_DECISIONS_DB` so tests and operators can isolate the ledger.
+ */
+export function getDecisionsDbPath(): string {
+	const override = process.env.NGODEAI_DECISIONS_DB;
+	if (override) return override;
+	return dirs.rootSubdir(path.join("cache", "decisions.db"), "cache");
+}
+
 /** Get the legacy Pi extension parse cache database path. */
 export function getLegacyPiExtensionCacheDbPath(): string {
 	return dirs.rootSubdir(path.join("cache", "legacy-pi-extension-cache.db"), "cache");
