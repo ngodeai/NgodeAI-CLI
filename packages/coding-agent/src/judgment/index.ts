@@ -63,9 +63,11 @@ import localPromptTemplate from "../prompts/system/judgment-local.md" with { typ
 import { tinyModelClient } from "../tiny/title-client";
 import type { JudgmentCache } from "./cache";
 
+export * from "./benchmark";
 export * from "./cache";
 export * from "./decisions";
 export * from "./ledger";
+export * from "./points";
 export * from "./settings";
 
 /** Usage of one billed judgment attempt, recorded on the session ledger by callers. */

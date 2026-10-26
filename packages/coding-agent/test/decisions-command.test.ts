@@ -7,6 +7,7 @@
  * instead of printing an empty block.
  */
 import { describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { TempDir } from "@ngodeai/utils";
 import { decisionFromResult, type JudgmentRequest, type JudgmentResult } from "@ngodeai/ai";
@@ -198,6 +199,73 @@ describe("/decisions", () => {
 		const ledger = DecisionLedger.open(path.join(tempDir.path(), "decisions.db"));
 		try {
 			expect(await run("999", ledger)).toContain("No decision #999");
+		} finally {
+			ledger.close();
+		}
+	});
+});
+
+describe("/decisions new", () => {
+	it("writes a starter point file under the project", async () => {
+		using tempDir = TempDir.createSync("@ngodeai-decisions-new-");
+		const ledger = DecisionLedger.open(path.join(tempDir.path(), "decisions.db"));
+		try {
+			const outputs: string[] = [];
+			const handle = decisionSlashCommands[0].handle!;
+			await handle({ name: "decisions", args: "new release-ready", text: "/decisions new release-ready" }, {
+				session: fakeSession(ledger),
+				cwd: tempDir.path(),
+				output: (text: string) => {
+					outputs.push(text);
+				},
+			} as Parameters<typeof handle>[1]);
+
+			const file = path.join(tempDir.path(), ".ngodeai", "decisions", "release-ready.json");
+			expect(fs.existsSync(file)).toBe(true);
+			const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+			expect(parsed.questions).toBeDefined();
+			expect(outputs.join("\n")).toContain("Created");
+		} finally {
+			ledger.close();
+		}
+	});
+
+	it("refuses to overwrite an existing point", async () => {
+		using tempDir = TempDir.createSync("@ngodeai-decisions-new-");
+		const ledger = DecisionLedger.open(path.join(tempDir.path(), "decisions.db"));
+		try {
+			const dir = path.join(tempDir.path(), ".ngodeai", "decisions");
+			fs.mkdirSync(dir, { recursive: true });
+			fs.writeFileSync(path.join(dir, "taken.json"), "{}");
+			const outputs: string[] = [];
+			const handle = decisionSlashCommands[0].handle!;
+			await handle({ name: "decisions", args: "new taken", text: "/decisions new taken" }, {
+				session: fakeSession(ledger),
+				cwd: tempDir.path(),
+				output: (text: string) => {
+					outputs.push(text);
+				},
+			} as Parameters<typeof handle>[1]);
+			expect(outputs.join("\n")).toContain("already exists");
+		} finally {
+			ledger.close();
+		}
+	});
+
+	it("rejects a name with path separators", async () => {
+		using tempDir = TempDir.createSync("@ngodeai-decisions-new-");
+		const ledger = DecisionLedger.open(path.join(tempDir.path(), "decisions.db"));
+		try {
+			const outputs: string[] = [];
+			const handle = decisionSlashCommands[0].handle!;
+			await handle({ name: "decisions", args: "new ../escape", text: "/decisions new ../escape" }, {
+				session: fakeSession(ledger),
+				cwd: tempDir.path(),
+				output: (text: string) => {
+					outputs.push(text);
+				},
+			} as Parameters<typeof handle>[1]);
+			expect(outputs.join("\n")).toContain("may contain letters");
 		} finally {
 			ledger.close();
 		}

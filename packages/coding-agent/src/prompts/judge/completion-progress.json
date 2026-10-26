@@ -1,0 +1,12 @@
+{
+	"progress": {
+		"instructions": "How complete is this subagent's task? Read `request` for what it was asked to do and `transcript` for what it has actually done and said. A task that has only been planned is early; one whose work is written but unverified is most of the way; one that has verified its own result is done. Judge the work, not how confident the agent sounds.",
+		"criteria": [
+			"Barely started: it is still exploring or planning and has produced no result",
+			"A quarter done: the approach is chosen and the first concrete steps are taken",
+			"Half done: substantial work exists but the task is visibly unfinished",
+			"Nearly done: the work exists and only verification or cleanup remains",
+			"Complete: the requested result exists and has been checked"
+		]
+	}
+}

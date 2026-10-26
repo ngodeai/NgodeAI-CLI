@@ -16,9 +16,11 @@
  * finishes, so without it the estimate stalls near 0% for minutes.
  */
 import { getStreamingPartialJson } from "@ngodeai/ai/utils/block-symbols";
+import { judgeQuestions, type Judge } from "@ngodeai/ai";
 import { formatDuration, isInteractiveHost, isRecord, logger, prompt, sanitizeText } from "@ngodeai/utils";
 import type { Settings } from "../config/settings";
 import completionProbePrompt from "../prompts/system/subagent-completion-probe.md" with { type: "text" };
+import progressQuestions from "../prompts/judge/completion-progress.json" with { type: "json" };
 import type { AgentSession } from "../session/agent-session";
 import { cfgTaskCompletionProbe } from "./settings";
 
@@ -27,6 +29,68 @@ import { cfgTaskCompletionProbe } from "./settings";
  * off to one side request an hour. The last entry repeats.
  */
 const PROBE_DELAYS_MS = [2, 5, 10, 30, 60].map(minutes => minutes * 60_000);
+
+/** The completion ladder, derived from its JSON file the same way every other judge question is. */
+const PROGRESS_QUESTIONS = judgeQuestions(progressQuestions);
+
+/** Levels of {@link PROGRESS_QUESTIONS.progress}, low to high; a score's `value` indexes them. */
+const PROGRESS_LEVELS = 5;
+
+/**
+ * Percentage from a calibrated score answer.
+ *
+ * The ladder has five rungs, so each rung covers a fifth of the range; the
+ * answer's position *within* its rung is what the probabilities say. Taking the
+ * distribution's mean rather than its peak is what makes a probe that is torn
+ * between "half done" and "nearly done" report 60% instead of snapping to one.
+ */
+function percentFromScore(probabilities: Record<string, number> | undefined, score: number): number {
+	if (!probabilities) return Math.round((score / (PROGRESS_LEVELS - 1)) * 100);
+	let weighted = 0;
+	let mass = 0;
+	for (const [level, p] of Object.entries(probabilities)) {
+		const index = Number(level);
+		if (!Number.isFinite(index) || !Number.isFinite(p)) continue;
+		weighted += index * p;
+		mass += p;
+	}
+	if (mass <= 0) return Math.round((score / (PROGRESS_LEVELS - 1)) * 100);
+	return Math.round((weighted / mass / (PROGRESS_LEVELS - 1)) * 100);
+}
+
+/**
+ * The state a completion judgment reads: what was asked, and what has happened.
+ *
+ * Only the tail of the transcript: the judge needs the shape of the work, not
+ * its full text, and a probe that costs more than the work it watches is a bad
+ * trade.
+ */
+function progressState(session: AgentSession, request: string | undefined): Record<string, string> {
+	const messages = session.agent.state.messages.slice(-24);
+	const transcript = messages
+		.map(message => {
+			const content = (message as { content?: unknown }).content;
+			if (typeof content === "string") return `${message.role}: ${content.slice(0, 900)}`;
+			if (!Array.isArray(content)) return "";
+			const text = content
+				.map((block: unknown) => {
+					if (typeof block !== "object" || block === null) return "";
+					const typed = block as { type?: string; text?: string; name?: string };
+					if (typed.type === "text") return typed.text ?? "";
+					if (typed.type === "toolCall") return `[tool ${typed.name ?? "?"}]`;
+					return "";
+				})
+				.filter(Boolean)
+				.join(" ");
+			return text ? `${message.role}: ${text.slice(0, 900)}` : "";
+		})
+		.filter(Boolean)
+		.join("\n\n");
+	return {
+		...(request === undefined ? {} : { request: request.slice(0, 2000) }),
+		transcript: transcript.slice(0, 12_000),
+	};
+}
 
 /**
  * Whether a subagent spawned by a session at `parentDepth` gets completion probes.
@@ -192,6 +256,55 @@ function inflightToolCalls(session: AgentSession): InflightToolCall[] {
  * overlap. A tick that finds the session idle is skipped; failures are logged.
  * Both still advance the schedule.
  */
+/**
+ * Ask the judge how complete the run is, in percent.
+ *
+ * Returns `undefined` when no judge answers, so the caller can fall back to the
+ * side turn's own number. The judge is consulted for the *number* only: the
+ * stage label and the watch hint are prose about what the agent is doing, which
+ * is exactly what a judge does not produce.
+ */
+async function estimateProgress(session: AgentSession, signal: AbortSignal): Promise<number | undefined> {
+	try {
+		const judge: Judge | undefined = session.decisionJudge?.("completion");
+		if (!judge) return undefined;
+		const request = latestOperatorRequest(session);
+		const { answers } = await judge.judge(
+			{ state: progressState(session, request), questions: { progress: PROGRESS_QUESTIONS.progress } },
+			{ signal },
+		);
+		const answer = answers.progress;
+		return percentFromScore(answer.probabilities, answer.score);
+	} catch (error) {
+		if (!signal.aborted) {
+			logger.debug("Completion judge failed", { error: error instanceof Error ? error.message : String(error) });
+		}
+		return undefined;
+	}
+}
+
+/** The most recent user-authored request, so the judge knows what "done" means here. */
+function latestOperatorRequest(session: AgentSession): string | undefined {
+	for (let i = session.agent.state.messages.length - 1; i >= 0; i--) {
+		const message = session.agent.state.messages[i];
+		if (message.role !== "user") continue;
+		const content = (message as { content?: unknown }).content;
+		if (typeof content === "string" && content.trim()) return content;
+		if (Array.isArray(content)) {
+			const text = content
+				.map((block: unknown) => {
+					if (typeof block !== "object" || block === null) return "";
+					const typed = block as { type?: string; text?: string };
+					return typed.type === "text" ? (typed.text ?? "") : "";
+				})
+				.filter(Boolean)
+				.join(" ");
+			if (text.trim()) return text;
+		}
+	}
+	return undefined;
+}
+
 export function startCompletionProbe(options: CompletionProbeOptions): void {
 	const { signal } = options;
 	if (signal.aborted) return;

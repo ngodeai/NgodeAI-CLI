@@ -81,7 +81,7 @@ import type {
 	UsageReport,
 	UserMessage,
 } from "@ngodeai/ai";
-import { type Effort, serviceTierFamily, streamSimple } from "@ngodeai/ai";
+import { type Effort, type JudgmentResult, type JudgmentState, serviceTierFamily, streamSimple } from "@ngodeai/ai";
 import * as AIError from "@ngodeai/ai/error";
 import { prewarmModelConnection } from "@ngodeai/ai/providers/connection-prewarm";
 import { resetOpenAICodexHistoryAfterCompaction } from "@ngodeai/ai/providers/openai-codex-responses";
@@ -178,8 +178,11 @@ import {
 	hasNativeJudge,
 	journalJudgmentUsage,
 	resolveJudge,
+	loadDecisionPoints,
+	reportDecisionPointErrors,
 	sharedDecisionLedger,
 	sharedJudgmentCache,
+	type UserDecisionPoint,
 } from "../judgment";
 import type { IrcMessage } from "@ngodeai/tui/tools/irc";
 import type { JobWidgetEntry } from "@ngodeai/tui/tools/job-widget";
@@ -867,6 +870,16 @@ export class AgentSession implements SettingsScope {
 	 * what tests and throwaway subagents get.
 	 */
 	readonly decisions: DecisionLayer;
+
+	/**
+	 * Decision points declared by the user, from `.ngodeai/decisions/*.json`
+	 * and the user config directory.
+	 *
+	 * Loaded once per session: a point is a definition, and re-reading it on
+	 * every use would let a half-written file change a gate mid-turn. Reloading
+	 * is `/reload-plugins`, which rebuilds the session's registries.
+	 */
+	readonly userDecisionPoints: readonly UserDecisionPoint[];
 
 	/** Materializes this session's live extension-root policy per discovery call. */
 	readonly #extensionRoots: () => EffectiveExtensionRoots;
@@ -1947,6 +1960,12 @@ export class AgentSession implements SettingsScope {
 		// Built before its consumers: the model-controls host reads `decisions`
 		// to open the thinking-level scope on every auto-classified turn.
 		this.decisions = this.#createDecisionLayer();
+		const loadedPoints = loadDecisionPoints({
+			cwd: this.sessionManager.getCwd(),
+			agentDir: this.settings.getAgentDir(),
+		});
+		this.userDecisionPoints = loadedPoints.points;
+		reportDecisionPointErrors(loadedPoints.errors);
 		const modelControlsHost: ModelControlsHost = {
 			agent: this.agent,
 			settings: this.settings,
@@ -3381,6 +3400,67 @@ export class AgentSession implements SettingsScope {
 			telemetry: this.agent.telemetry,
 			cache: sharedJudgmentCache(),
 		});
+	}
+
+	/**
+	 * A judge for one decision point, or `undefined` when none resolves.
+	 *
+	 * Same role chain, cache, and telemetry as every other judgment; the point
+	 * name becomes the ledger's `purpose` so a decision's spend is attributable.
+	 */
+	decisionJudge(point: string): ChainJudge | undefined {
+		try {
+			return resolveJudge({
+				settings: this.settings,
+				registry: this.#modelRegistry,
+				sessionModel: this.model,
+				sessionId: this.sessionId,
+				metadataResolver: provider => this.agent.metadataForProvider(provider),
+				purpose: point,
+				onUsage: journalJudgmentUsage(this.sessionManager),
+				telemetry: this.agent.telemetry,
+				cache: sharedJudgmentCache(),
+			});
+		} catch {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Run one user-declared decision point over `state`.
+	 *
+	 * This is how a project-defined gate is actually used: the caller supplies
+	 * the state, the point supplies the questions, and the layer records what
+	 * came back. It deliberately does not act on the answer — a caller that
+	 * wants to gate on it compares the result to the point's threshold and
+	 * settles the decision itself.
+	 */
+	async askDecisionPoint(
+		id: string,
+		state: JudgmentState,
+		options: { signal?: AbortSignal } = {},
+	): Promise<{ point: UserDecisionPoint; result: JudgmentResult } | undefined> {
+		const point = this.userDecisionPoints.find(candidate => candidate.id === id);
+		if (!point) return undefined;
+		const judge = resolveJudge({
+			settings: this.settings,
+			registry: this.#modelRegistry,
+			sessionModel: this.model,
+			sessionId: this.sessionId,
+			metadataResolver: provider => this.agent.metadataForProvider(provider),
+			purpose: `decision:${point.id}`,
+			onUsage: journalJudgmentUsage(this.sessionManager),
+			telemetry: this.agent.telemetry,
+			cache: sharedJudgmentCache(),
+		});
+		const decision = this.decisions.open(point.id, { risk: point.risk, keepState: true });
+		const result = await judge.judge({ state, questions: point.questions }, { ...options, decision });
+		decision.settle({
+			action: "asked",
+			tier: "card",
+			reason: `answered ${Object.keys(result.answers).length} questions for ${point.label ?? point.id}`,
+		});
+		return { point, result };
 	}
 
 	/**

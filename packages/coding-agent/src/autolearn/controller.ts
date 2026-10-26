@@ -12,16 +12,28 @@
  * session's lifetime — `newSession` resets the session in place without
  * re-running startup — so the controller needs no disposal.
  */
+import { judgeQuestions } from "@ngodeai/ai";
+import type { ChainJudge } from "../judgment";
 import { logger } from "@ngodeai/utils";
 import type { Settings } from "../config/settings";
 import autolearnGuidance from "../prompts/system/autolearn-guidance.md" with { type: "text" };
 import autolearnGuidanceLearn from "../prompts/system/autolearn-guidance-learn.md" with { type: "text" };
 import autolearnNudgeAutoContinue from "../prompts/system/autolearn-nudge-autocontinue.md" with { type: "text" };
+import autolearnQuestions from "../prompts/judge/autolearn.json" with { type: "json" };
 import type { AgentSession, AgentSessionEvent } from "../session/agent-session";
 
 import { cfgAutolearnAutoContinue, cfgAutolearnEnabled, cfgAutolearnMinToolCalls } from "./settings";
 
 const AUTOLEARN_NUDGE_AUTOCONTINUE = autolearnNudgeAutoContinue.trim();
+
+/** The keep-or-not ladder, derived from its JSON file like every other judge question. */
+const AUTOLEARN_QUESTIONS = judgeQuestions(autolearnQuestions);
+
+/** Probability of `nothing` at or above which a capture turn is not worth running. */
+const AUTOLEARN_SKIP_AT = 0.6;
+
+/** Leading characters of each turn message the gate reads. */
+const AUTOLEARN_MESSAGE_CHARS = 1_200;
 
 /**
  * Build the standing auto-learn guidance for the system prompt from the tools
@@ -134,7 +146,81 @@ export class AutoLearnController {
 			this.#capturePending = true;
 			return;
 		}
-		this.#startCapture();
+		// A capture turn is a whole agent turn. When a judge is available, ask it
+		// whether there is anything to keep before paying for one: most
+		// substantive turns have nothing generalizable, and the gate is a single
+		// cheap request. Without a judge the path stays synchronous, so a session
+		// that never configured one behaves exactly as it did before.
+		const judge = this.#session.decisionJudge?.("autolearn");
+		if (!judge) {
+			this.#startCapture();
+			return;
+		}
+		void this.#worthCapturing(event.messages, judge)
+			.then(worth => {
+				if (!worth) return;
+				this.#startCapture();
+			})
+			.catch(error => logger.warn("auto-learn gate failed", { error: String(error) }));
+	}
+
+	/**
+	 * Whether this turn holds something worth a capture turn.
+	 *
+	 * Fails open: a judge that cannot answer leaves the existing behavior
+	 * untouched, because a missing gate must not silently disable a feature the
+	 * user turned on. The decision is recorded either way, so a session that
+	 * skipped twenty captures can show why.
+	 */
+	async #worthCapturing(messages: readonly unknown[], judge: ChainJudge): Promise<boolean> {
+		const transcript = messages
+			.map(message => {
+				if (typeof message !== "object" || message === null) return "";
+				const typed = message as { role?: string; content?: unknown };
+				const content = typed.content;
+				const text =
+					typeof content === "string"
+						? content
+						: Array.isArray(content)
+							? content
+									.map((block: unknown) => {
+										if (typeof block !== "object" || block === null) return "";
+										const part = block as { type?: string; text?: string; name?: string };
+										if (part.type === "text") return part.text ?? "";
+										if (part.type === "toolCall") return `[tool ${part.name ?? "?"}]`;
+										return "";
+									})
+									.filter(Boolean)
+									.join(" ")
+							: "";
+				return text ? `${typed.role ?? "?"}: ${text.slice(0, AUTOLEARN_MESSAGE_CHARS)}` : "";
+			})
+			.filter(Boolean)
+			.join("\n\n")
+			.slice(0, 16_000);
+		if (!transcript.trim()) return true;
+
+		const decision = this.#session.decisions.open("autolearn", { risk: "read", decisionKeys: ["worth"] });
+		try {
+			const { answers } = await judge.judge(
+				{ state: { turn: transcript }, questions: { worth: AUTOLEARN_QUESTIONS.worth } },
+				{ decision },
+			);
+			const nothing = answers.worth.probabilities.nothing ?? 0;
+			const keep = 1 - nothing;
+			const worth = nothing < AUTOLEARN_SKIP_AT;
+			decision.settle({
+				action: worth ? "auto" : "skipped",
+				tier: worth ? "line" : "silent",
+				reason: worth
+					? `worth keeping (${answers.worth.choice}) · ${keep.toFixed(2)}`
+					: `nothing to keep · ${nothing.toFixed(2)}`,
+			});
+			return worth;
+		} catch (error) {
+			decision.fail(error);
+			return true;
+		}
 	}
 
 	#startCapture(): void {

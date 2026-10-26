@@ -19,13 +19,16 @@
  * and is a later step; a table that works everywhere is the right first shape.
  */
 import { formatDuration, formatNumber } from "@ngodeai/utils";
-import type { DecisionEvent } from "@ngodeai/ai";
+import type { DecisionEvent, JudgmentState } from "@ngodeai/ai";
+import { reportTask } from "../judgment/benchmark";
 import type { DecisionTotals } from "../judgment/ledger";
 import { pointLabel, probabilityBar } from "@ngodeai/tui/chat/decision-message";
 import { theme } from "@ngodeai/tui/theme";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import type { AgentSession } from "../session/agent-session";
 import { commandConsumed, parseSubcommand } from "./helpers/parse";
-import type { SlashCommandRuntime, SlashCommandSpec } from "./types";
+import type { SlashCommandResult, SlashCommandRuntime, SlashCommandSpec } from "./types";
 
 /** Rows shown by a bare `/decisions` before the footer suggests paging. */
 const LIST_LIMIT = 25;
@@ -96,9 +99,7 @@ function renderList(events: readonly DecisionEvent[], totals: DecisionTotals): s
 		lines.push(`  ${time} ${id} ${point} ${answer} ${action} ${cost(event.cost).padStart(11)}${conflict}`);
 	}
 	lines.push(theme.fg("dim", `  ${"─".repeat(76)}`));
-	lines.push(
-		theme.fg("dim", "  /decisions <id> detail · status thresholds · points summary · conflicts disagreements"),
-	);
+	lines.push(theme.fg("dim", "  /decisions <id> detail · status · points · conflicts · replay <id>"));
 	return lines.join("\n");
 }
 
@@ -192,7 +193,15 @@ function renderStatus(session: AgentSession): string {
 
 function renderPoints(session: AgentSession): string {
 	const points = session.decisions.points();
-	if (points.length === 0) return theme.fg("muted", "  No decisions recorded yet.");
+	// Optional on the session: hosts that predate user points (and test stubs)
+	// simply declare none.
+	const declared = session.userDecisionPoints ?? [];
+	if (points.length === 0 && declared.length === 0) {
+		return [
+			theme.fg("muted", "  No decisions recorded yet."),
+			theme.fg("dim", "  Declare a point in .ngodeai/decisions/<name>.json to add your own."),
+		].join("\n");
+	}
 	const lines: string[] = [];
 	lines.push(
 		theme.fg(
@@ -206,10 +215,264 @@ function renderPoints(session: AgentSession): string {
 			`  ${cell(pointLabel(point.point), 18)} ${String(point.count).padStart(6)} ${String(point.gated).padStart(6)} ${(point.meanConfidence === undefined ? "—" : point.meanConfidence.toFixed(2)).padStart(10)} ${cost(point.cost).padStart(12)}`,
 		);
 	}
+	if (declared.length > 0) {
+		lines.push("");
+		lines.push(theme.fg("dim", "  declared by this project"));
+		for (const point of declared) {
+			const auto = point.autoThreshold === undefined ? "class default" : point.autoThreshold.toFixed(2);
+			const questions = Object.keys(point.questions).length;
+			lines.push(
+				`  ${cell(point.label ?? pointLabel(point.id), 18)} ${theme.fg("dim", `${point.risk} · auto ${auto} · ${questions} questions`)}`,
+			);
+		}
+	}
 	return lines.join("\n");
 }
 
-async function handleDecisions(command: { args: string }, runtime: SlashCommandRuntime): Promise<{ consumed: true }> {
+/** The starter file `/decisions new` writes: a working point the user edits. */
+const NEW_POINT_TEMPLATE = `{
+  "label": "My decision",
+  "description": "What this decision changes, in one sentence.",
+  "risk": "read",
+  "autoThreshold": 0.85,
+  "questions": {
+    "example": {
+      "instructions": "Ask one narrow question about the state, naming the fields it should read."
+    }
+  }
+}
+`;
+
+async function handleNew(name: string, runtime: SlashCommandRuntime): Promise<SlashCommandResult> {
+	const id = name.trim();
+	if (id === "") {
+		await runtime.output(theme.fg("muted", "  Usage: /decisions new <name>"));
+		return commandConsumed({ failed: true });
+	}
+	if (!/^[a-z0-9][a-z0-9-]*$/i.test(id)) {
+		await runtime.output(
+			theme.fg(
+				"error",
+				"  A point name may contain letters, digits, and hyphens, and must start with a letter or digit.",
+			),
+		);
+		return commandConsumed({ failed: true });
+	}
+	const dir = path.join(runtime.cwd, ".ngodeai", "decisions");
+	const file = path.join(dir, `${id}.json`);
+	if (fs.existsSync(file)) {
+		await runtime.output(theme.fg("muted", `  ${file} already exists.`));
+		return commandConsumed({ failed: true });
+	}
+	try {
+		fs.mkdirSync(dir, { recursive: true });
+		fs.writeFileSync(file, NEW_POINT_TEMPLATE, "utf8");
+	} catch (error) {
+		await runtime.output(
+			theme.fg("error", `  Could not write ${file}: ${error instanceof Error ? error.message : String(error)}`),
+		);
+		return commandConsumed({ failed: true });
+	}
+	await runtime.output(
+		[
+			theme.fg("success", `  Created ${file}`),
+			theme.fg("dim", "  Edit the questions, then run /decisions ask " + id + " with a state file."),
+			theme.fg("dim", "  Reload with /reload-plugins to pick up the change."),
+		].join("\n"),
+	);
+	return commandConsumed();
+}
+
+async function handleAsk(rest: string, runtime: SlashCommandRuntime): Promise<SlashCommandResult> {
+	const [id, ...stateParts] = rest.trim().split(/\s+/);
+	if (!id) {
+		await runtime.output(theme.fg("muted", "  Usage: /decisions ask <point> [state-file-or-json]"));
+		return commandConsumed({ failed: true });
+	}
+	const session = runtime.session;
+	const declared = (session.userDecisionPoints ?? []).find(point => point.id === id);
+	if (!declared) {
+		const known = (session.userDecisionPoints ?? []).map(point => point.id);
+		await runtime.output(
+			known.length === 0
+				? theme.fg("muted", `  No point named "${id}". Declare one with /decisions new ${id}`)
+				: theme.fg("muted", `  No point named "${id}". Known: ${known.join(", ")}`),
+		);
+		return commandConsumed({ failed: true });
+	}
+
+	// State is either inline JSON or a path to a file holding it. A path is the
+	// common case: the thing being judged is usually too big to paste.
+	const raw = stateParts.join(" ").trim();
+	let state: JudgmentState = { note: "no state supplied" };
+	if (raw !== "") {
+		try {
+			state =
+				raw.startsWith("{") || raw.startsWith("[") ? JSON.parse(raw) : JSON.parse(fs.readFileSync(raw, "utf8"));
+		} catch (error) {
+			await runtime.output(
+				theme.fg("error", `  Could not read state: ${error instanceof Error ? error.message : String(error)}`),
+			);
+			return commandConsumed({ failed: true });
+		}
+	}
+
+	try {
+		const asked = await session.askDecisionPoint(id, state);
+		if (!asked) {
+			await runtime.output(theme.fg("muted", `  Point "${id}" disappeared before it could run.`));
+			return commandConsumed({ failed: true });
+		}
+		const lines: string[] = [theme.fg("text", theme.bold(`  ${declared.label ?? declared.id}`))];
+		lines.push(theme.fg("dim", `  ${asked.result.model} via ${asked.result.api} · risk ${declared.risk}`));
+		lines.push("");
+		for (const [questionId, answer] of Object.entries(asked.result.answers)) {
+			const question = declared.questions[questionId];
+			lines.push(`  ${theme.fg("muted", questionId)}  ${theme.fg("dim", question?.instructions ?? "")}`);
+			if (answer.type === "choice") {
+				for (const [label, p] of Object.entries(answer.probabilities)) {
+					const mark = label === answer.choice ? theme.fg("accent", "▸") : " ";
+					lines.push(`   ${mark} ${cell(label, 14)} ${theme.fg("dim", probabilityBar(p, 1, 20))} ${p.toFixed(2)}`);
+				}
+			} else if (answer.type === "score") {
+				lines.push(
+					`    ${theme.fg("text", String(answer.score))} ${theme.fg("dim", `conf ${answer.confidence.toFixed(2)}`)}`,
+				);
+			} else if (answer.type === "noul") {
+				lines.push(
+					`    ${theme.fg("text", answer.noul >= 0.5 ? "yes" : "no")} ${theme.fg("dim", answer.noul.toFixed(2))}`,
+				);
+			}
+			lines.push("");
+		}
+		await runtime.output(lines.join("\n"));
+		return commandConsumed();
+	} catch (error) {
+		await runtime.output(
+			theme.fg("error", `  Decision failed: ${error instanceof Error ? error.message : String(error)}`),
+		);
+		return commandConsumed({ failed: true });
+	}
+}
+
+/**
+ * Re-ask a recorded decision's questions against a new state.
+ *
+ * This is the tuning loop the whole feature exists for: a decision went one way
+ * and the operator thinks it should have gone another. Replay sends the same
+ * questions over a corrected state, so the two answers are comparable — same
+ * criteria, same model role, one variable changed.
+ */
+async function handleReplay(id: string, runtime: SlashCommandRuntime): Promise<SlashCommandResult> {
+	const session = runtime.session;
+	const original = session.decisions.get(Number(id));
+	if (!original) {
+		await runtime.output(theme.fg("muted", `  No decision #${id} in this ledger.`));
+		return commandConsumed({ failed: true });
+	}
+	const declared = (session.userDecisionPoints ?? []).find(point => point.id === original.point);
+	if (!declared) {
+		await runtime.output(
+			theme.fg(
+				"muted",
+				`  "${original.point}" is a built-in point; only points declared in .ngodeai/decisions can be replayed.`,
+			),
+		);
+		return commandConsumed({ failed: true });
+	}
+	if (original.state === undefined) {
+		await runtime.output(
+			theme.fg("muted", `  Decision #${id} did not keep its state, so there is nothing to re-ask.`),
+		);
+		return commandConsumed({ failed: true });
+	}
+
+	try {
+		const replayed = await session.askDecisionPoint(declared.id, original.state as JudgmentState);
+		if (!replayed) {
+			await runtime.output(theme.fg("muted", `  Point "${declared.id}" disappeared before it could run.`));
+			return commandConsumed({ failed: true });
+		}
+		const lines: string[] = [
+			theme.fg("text", theme.bold(`  replay ${declared.label ?? declared.id}`)),
+			theme.fg("dim", `  original #${id} at ${clock(original.at)} · now ${replayed.result.model}`),
+			"",
+		];
+		for (const [questionId, answer] of Object.entries(replayed.result.answers)) {
+			const before = original.answers.find(a => a.question === questionId);
+			const now =
+				answer.type === "choice"
+					? answer.choice
+					: answer.type === "score"
+						? String(answer.score)
+						: answer.type === "noul"
+							? answer.noul >= 0.5
+								? "yes"
+								: "no"
+							: "box";
+			const previous = before === undefined ? "—" : String(before.value);
+			const changed = before !== undefined && previous !== now;
+			const mark = changed ? theme.fg("warning", "≠") : theme.fg("dim", "=");
+			lines.push(
+				`  ${mark} ${cell(questionId, 18)} ${cell(previous, 14)} → ${theme.fg(changed ? "warning" : "text", now)}`,
+			);
+		}
+		await runtime.output(lines.join("\n"));
+		return commandConsumed();
+	} catch (error) {
+		await runtime.output(
+			theme.fg("error", `  Replay failed: ${error instanceof Error ? error.message : String(error)}`),
+		);
+		return commandConsumed({ failed: true });
+	}
+}
+
+/**
+ * The session as one benchmark row.
+ *
+ * The session is the only task boundary the CLI can observe on its own, so
+ * that is what this reports. A caller comparing configurations runs the same
+ * task set twice and compares `cost per finished task` between the two rows.
+ */
+function renderBench(session: AgentSession): string {
+	const decisions = session.decisions.list({ limit: 10_000 });
+	const totals = session.decisions.totals();
+	const report = reportTask({
+		task: session.sessionId ?? "session",
+		outcome: "running",
+		startedAt: decisions.length > 0 ? Math.min(...decisions.map(d => d.at)) : Date.now(),
+		decisions,
+	});
+	const lines: string[] = [];
+	lines.push(theme.fg("text", theme.bold("  Decision layer · this session")));
+	lines.push(theme.fg("dim", `  ${"─".repeat(64)}`));
+	lines.push(`  decisions        ${report.decisions}  (${report.cached} from cache, ${report.gated} gated)`);
+	lines.push(`  judge cost       ${cost(report.cost)}`);
+	lines.push(
+		`  judge latency    ${formatDuration(report.judgeMs)}  (mean ${formatDuration(report.meanJudgeMs)}/decision)`,
+	);
+	lines.push(`  session wall     ${formatDuration(report.elapsedMs)}`);
+	lines.push(
+		`  cache hit rate   ${report.decisions === 0 ? "—" : `${Math.round((report.cached / report.decisions) * 100)}%`}`,
+	);
+	if (report.byPoint.length > 0) {
+		lines.push("");
+		lines.push(theme.fg("dim", "  by point"));
+		for (const point of report.byPoint) {
+			lines.push(
+				`  ${cell(pointLabel(point.point), 18)} ${String(point.count).padStart(5)} ${cost(point.cost).padStart(12)} ${formatDuration(point.judgeMs).padStart(9)}`,
+			);
+		}
+	}
+	lines.push("");
+	lines.push(
+		theme.fg("dim", "  Cost per finished task needs a finished task set: run the same tasks with and without"),
+	);
+	lines.push(theme.fg("dim", "  the layer, then compare `summarise()` rows. This row alone is not a saving."));
+	return lines.join("\n");
+}
+
+async function handleDecisions(command: { args: string }, runtime: SlashCommandRuntime): Promise<SlashCommandResult> {
 	const session = runtime.session;
 	const raw = command.args.trim();
 	// A bare number is a decision id, not a subcommand: `parseSubcommand` would
@@ -218,6 +481,19 @@ async function handleDecisions(command: { args: string }, runtime: SlashCommandR
 	const parsed = parseSubcommand(command.args);
 	const target = numeric ? raw : parsed.rest;
 
+	if (parsed.verb === "new") {
+		return handleNew(parsed.rest, runtime);
+	}
+	if (parsed.verb === "ask") {
+		return handleAsk(parsed.rest, runtime);
+	}
+	if (parsed.verb === "bench") {
+		await runtime.output(renderBench(runtime.session));
+		return commandConsumed();
+	}
+	if (parsed.verb === "replay") {
+		return handleReplay(parsed.rest.trim(), runtime);
+	}
 	if (parsed.verb === "status") {
 		await runtime.output(renderStatus(session));
 		return commandConsumed();
@@ -265,11 +541,15 @@ export const decisionSlashCommands: SlashCommandSpec[] = [
 		icon: "plan",
 		description: "Inspect the Artificial Decisions ledger",
 		allowArgs: true,
-		inlineHint: "[status|points|conflicts|<id>]",
+		inlineHint: "[status|points|conflicts|new|ask|replay|bench|<id>]",
 		subcommands: [
 			{ name: "status", description: "Backend, cache, and confidence thresholds" },
 			{ name: "points", description: "Per-point counts, confidence, and cost" },
 			{ name: "conflicts", description: "Decisions where code disagreed with the answer" },
+			{ name: "new", description: "Create a decision point file", usage: "<name>" },
+			{ name: "ask", description: "Run a declared point over a state", usage: "<point> [state-file-or-json]" },
+			{ name: "replay", description: "Re-ask a recorded decision against its stored state", usage: "<id>" },
+			{ name: "bench", description: "Session cost and latency per decision point" },
 		],
 		subcommandOptional: true,
 		handle: handleDecisions,

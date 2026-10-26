@@ -1,0 +1,10 @@
+{
+	"worth": {
+		"instructions": "Does this finished turn contain something worth keeping for future sessions? Judge the turn's substance, not its length. A repeated correction, a project-specific rule, a non-obvious command, or a hard-won diagnosis is worth keeping. Routine edits, ordinary question answering, and work already covered by the project's own docs are not.",
+		"criteria": {
+			"nothing": "Nothing generalizable: routine work, a plain answer, or something the repository already documents",
+			"memory": "A fact about this project or environment that would save time next session, such as a build quirk or a service's real behavior",
+			"skill": "A repeatable procedure worth naming, such as a multi-step release check or a debugging sequence that worked"
+		}
+	}
+}
