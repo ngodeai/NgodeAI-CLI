@@ -166,12 +166,19 @@ function renderStatus(session: AgentSession): string {
 	const layer = session.decisions;
 	const totals = layer.totals();
 	const thresholds = layer.thresholds;
+	// The backend line names the model that will answer, and what it costs.
+	// A free tier and a per-token tier look identical in a ledger otherwise,
+	// and the whole point of preferring one is the price.
+	// Optional on the session: hosts that predate the backend summary (and test
+	// stubs) simply omit the row.
+	const backend = session.judgeBackendSummary?.();
 	const threshold = (value: number) => (Number.isFinite(value) ? value.toFixed(2) : "never");
 	const lines: string[] = [];
 	lines.push(theme.fg("text", theme.bold("  Artificial Decisions")));
 	lines.push(theme.fg("dim", `  ${"─".repeat(60)}`));
 	lines.push(`  recording   ${layer.enabled ? theme.fg("success", "on") : theme.fg("muted", "off")}`);
 	lines.push(`  ledger      ${layer.ledger ? theme.fg("success", "open") : theme.fg("muted", "unavailable")}`);
+	lines.push(`  backend     ${backend ?? theme.fg("muted", "no judge resolved")}`);
 	lines.push(
 		`  this session ${formatNumber(totals.count)} decisions · ${cost(totals.cost)} · ${formatDuration(totals.elapsedMs)}`,
 	);

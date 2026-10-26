@@ -107,6 +107,32 @@ function formatLimit(n: number | null): string {
 	return n === null ? "-" : formatNumber(n);
 }
 
+/**
+ * A model's price as one cell.
+ *
+ * `free` and `?` are distinct answers and must stay distinct: a zero rate card
+ * with no declared pricing state is a price nobody published, not a model that
+ * costs nothing. Decisions in particular are billed per input token only, so
+ * the cell shows `in/out` and lets a zero output leg speak for itself.
+ */
+export function formatPrice(model: Model<Api>): string {
+	const status = getModelPricingStatus(model);
+	if (status === "free") return "free";
+	if (status === "included") return "included";
+	if (status === "unknown") return "?";
+	if (status === "variable") return "variable";
+	const { input, output } = getEffectiveTokenCost(model.cost);
+	const leg = (n: number): string => {
+		if (n === 0) return "0";
+		// Sub-cent rates keep enough digits to stay recognisable: $0.016583/M
+		// rounded to $0.02 is off by 20%.
+		if (n < 0.01) return n.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+		if (n < 1) return n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+		return n.toFixed(2).replace(/\.00$/, "");
+	};
+	return `$${leg(input)}/$${leg(output)}`;
+}
+
 function byProviderThenId(left: Model<Api>, right: Model<Api>): number {
 	const providerCmp = left.provider.localeCompare(right.provider);
 	if (providerCmp !== 0) return providerCmp;
@@ -274,6 +300,7 @@ export function renderProviderModels(
 			// Wire truth, not the declared `input`: the transport drops image parts for
 			// models the catalog marks text-only (`compat.stripImageInput`, #9697).
 			sendsImageInputOnWire(model) ? "yes" : "no",
+			formatPrice(model),
 		]);
 		for (const line of boxTable(
 			[
@@ -282,6 +309,7 @@ export function renderProviderModels(
 				{ header: "max-out", align: "right" },
 				{ header: "thinking" },
 				{ header: "images" },
+				{ header: "price/M", align: "right" },
 			],
 			rows,
 		)) {

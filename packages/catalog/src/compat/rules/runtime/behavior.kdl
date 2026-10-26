@@ -485,8 +485,22 @@ behavior {
 	role-defaults "dictation" {
 		model "local/parakeet-tdt-0.6b-v3"
 	}
+	// Ordering principle: a free, first-party decision model first, then the
+	// paid specialists, then whatever chat model the session already has.
+	//
+	// `ngodeai/mercury-decide` is the gateway's shared-tier decision model and
+	// bills nothing; a session that can reach it gets calibrated judgments for
+	// free. `jev-1.14` on the same gateway is the VIP tier and is priced per
+	// input token, so it is offered but never chosen by default. TypeSafe direct
+	// stays for accounts that hold a TypeSafe key and no gateway key.
+	//
+	// An unreachable pattern is skipped, not fatal, so listing a provider the
+	// account cannot reach costs nothing.
+	//
 	// Pinned: TypeSafe's `jev-latest` alias trails the newest release (it answers as jev-1.13.0).
 	role-defaults "judge" {
+		model "ngodeai/mercury-decide"
+		model "ngodeai/jev-1.14"
 		model "typesafe/jev-1.14.0"
 		model "openrouter/typesafe/jev-1.14"
 		model "@tiny"

@@ -1381,6 +1381,19 @@ function ngodeaiUsdCost(entry: OpenAICompatibleModelRecord): ModelSpec<"openai-c
 	};
 }
 
+/**
+ * Whether the gateway is serving this row at no charge.
+ *
+ * A zero USD card is only meaningful when the row also carries a card at all:
+ * an absent `pricing_usd` is "unpriced", which is a different fact from "free"
+ * and must not be labelled as one.
+ */
+function isNgodeaiFreeRow(entry: OpenAICompatibleModelRecord, usdCost: ModelSpec<Api>["cost"] | undefined): boolean {
+	if (usdCost === undefined) return false;
+	if (!isRecord(entry.pricing_usd)) return false;
+	return usdCost.input === 0 && usdCost.output === 0 && usdCost.cacheRead === 0 && usdCost.cacheWrite === 0;
+}
+
 /** True when a rupiah card quotes any non-zero leg, i.e. the route is not free. */
 function ngodeaiIdrIsPriced(pricing: unknown): boolean {
 	if (!isRecord(pricing)) return false;
@@ -1431,7 +1444,15 @@ function mapNgodeaiModel(
 			contextWindow: toPositiveNumber(entry.context_length, null),
 			maxTokens: toPositiveNumber(entry.max_output_tokens, null),
 			cost: usdCost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-			...(usdCost === undefined && idrPriced ? { pricingStatus: "unknown" as const } : {}),
+			// A decision row with no priced leg at all is the gateway's free tier,
+			// not a row whose price is unknown: the card is present and every leg
+			// is zero. Saying so lets a picker label it Free and lets the judge
+			// role prefer it without pricing it at a guess.
+			...(isNgodeaiFreeRow(entry, usdCost)
+				? { pricingStatus: "free" as const }
+				: usdCost === undefined && idrPriced
+					? { pricingStatus: "unknown" as const }
+					: {}),
 		};
 		return decision;
 	}

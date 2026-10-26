@@ -84,6 +84,7 @@ import type {
 import { type Effort, type JudgmentResult, type JudgmentState, serviceTierFamily, streamSimple } from "@ngodeai/ai";
 import * as AIError from "@ngodeai/ai/error";
 import { prewarmModelConnection } from "@ngodeai/ai/providers/connection-prewarm";
+import { getEffectiveTokenCost, getModelPricingStatus } from "@ngodeai/catalog/models";
 import { resetOpenAICodexHistoryAfterCompaction } from "@ngodeai/ai/providers/openai-codex-responses";
 import { withCredentialRedaction } from "@ngodeai/ai/providers/transform-messages";
 import { toolWireSchema } from "@ngodeai/ai/utils/schema";
@@ -183,6 +184,7 @@ import {
 	sharedDecisionLedger,
 	sharedJudgmentCache,
 	type UserDecisionPoint,
+	kindOf,
 } from "../judgment";
 import type { IrcMessage } from "@ngodeai/tui/tools/irc";
 import type { JobWidgetEntry } from "@ngodeai/tui/tools/job-widget";
@@ -3400,6 +3402,51 @@ export class AgentSession implements SettingsScope {
 			telemetry: this.agent.telemetry,
 			cache: sharedJudgmentCache(),
 		});
+	}
+
+	/**
+	 * One line naming the model that will answer a judgment, and its price.
+	 *
+	 * `/decisions status` needs this because the backend is not a detail: a free
+	 * shared-tier model and a per-token VIP model produce the same ledger rows,
+	 * and the only visible difference is the price. Format is
+	 * `provider/id · native|prompted · free|$in/$out per M`.
+	 */
+	judgeBackendSummary(): string | undefined {
+		let judge: ChainJudge;
+		try {
+			judge = resolveJudge({
+				settings: this.settings,
+				registry: this.#modelRegistry,
+				sessionModel: this.model,
+				sessionId: this.sessionId,
+				purpose: "decisions-status",
+			});
+		} catch {
+			return undefined;
+		}
+		const model = judge.primaryModel();
+		if (!model) return undefined;
+		const kind = kindOf(model);
+		const transport = kind === "native" ? "native" : kind === "local" ? "local" : "prompted";
+		const status = getModelPricingStatus(model);
+		const price =
+			status === "free"
+				? theme.fg("success", "free")
+				: status === "unknown"
+					? theme.fg("muted", "price unknown")
+					: status === "included"
+						? theme.fg("muted", "included")
+						: status === "variable"
+							? theme.fg("muted", "variable price")
+							: (() => {
+									const { input, output } = getEffectiveTokenCost(model.cost);
+									return theme.fg("dim", `$${input.toFixed(4)}/$${output.toFixed(4)} per M`);
+								})();
+		// Gateway ids already carry the provider (`ngodeai/jev-1.14`); prefixing
+		// again would print `ngodeai/ngodeai/jev-1.14`.
+		const name = model.id.startsWith(`${model.provider}/`) ? model.id : `${model.provider}/${model.id}`;
+		return `${theme.fg("text", name)} ${theme.fg("dim", `· ${transport}`)} · ${price}`;
 	}
 
 	/**

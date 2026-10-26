@@ -241,4 +241,67 @@ describe("NgodeAI provider", () => {
 		// A base without the /v1 segment is already a root.
 		expect(ngodeaiDecisionsBaseUrl("https://gateway.internal")).toBe("https://gateway.internal");
 	});
+
+	/**
+	 * The gateway serves a free decision model beside the paid one. The price
+	 * distinction has to survive into the catalog: a picker that shows both as
+	 * "$0" cannot tell a free tier from an unpriced one, and the judge role
+	 * prefers the free tier by name.
+	 */
+	test("marks a zero-rate decision row as free", async () => {
+		const { fetch } = fetchOnce([
+			decisionRow({
+				id: "ngodeai/mercury-decide",
+				display_name: "Mercury Decide",
+				// The free row publishes a zero card on both currencies; leaving the
+				// fixture's IDR card in place would describe a paid route.
+				pricing: { input: 0, output: 0, cache_read: 0, cache_write: 0, currency: "IDR" },
+				pricing_usd: {
+					input: 0,
+					output: 0,
+					cache_read: 0,
+					cache_write: 0,
+					unit: "per_1m_tokens",
+					currency: "USD",
+				},
+			}),
+		]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
+		expect(model.pricingStatus).toBe("free");
+		expect(model.cost).toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+	});
+
+	test("keeps a paid decision row priced, with its output leg", async () => {
+		const { fetch } = fetchOnce([
+			decisionRow({
+				id: "ngodeai/jev-1.14",
+				pricing_usd: {
+					input: 0.016583,
+					output: 0.033167,
+					cache_read: 0.002764,
+					cache_write: 0.016583,
+					unit: "per_1m_tokens",
+					currency: "USD",
+				},
+			}),
+		]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
+		expect(model.pricingStatus).toBeUndefined();
+		expect(model.cost?.input).toBeCloseTo(0.016583, 6);
+		expect(model.cost?.output).toBeCloseTo(0.033167, 6);
+	});
+
+	test("does not call an unpriced decision row free", async () => {
+		// No `pricing_usd` at all: the gateway published no card, which is not the
+		// same fact as charging nothing.
+		const { fetch } = fetchOnce([decisionRow({ pricing_usd: undefined, pricing: undefined })]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
+		expect(model.pricingStatus).not.toBe("free");
+	});
 });
