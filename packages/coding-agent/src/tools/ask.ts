@@ -38,6 +38,7 @@ import { sessionLocalProtocolOptions } from "../internal-urls/context";
 import { cfgAskNotify, askTimeoutMs } from "../modes/settings";
 import { renderAttachmentSourceNotice } from "../session/attachment-source-notice";
 import { cfgSpeechEnabled } from "../tts/settings";
+import type { DecisionEvent } from "@ngodeai/ai";
 import { describeAttachedImagesForTextModel, shouldDescribeImagesForTextModel } from "../utils/image-vision-fallback";
 
 // =============================================================================
@@ -532,6 +533,66 @@ function formatSingleQuestionResponse(result: {
 type AskParams = AskToolInput;
 
 /**
+ * Record a question the agent asked a human, and what the human answered.
+ *
+ * `ask` is the one decision surface that is neither a judge call nor a tool
+ * approval: the model is unsure and a person settles it. Without this row the
+ * ledger only holds decisions the *machine* made, and `/decisions` on a session
+ * that mostly asked questions reads as empty even though a human answered
+ * several. The event is built here rather than derived from a judgment because
+ * there was no judgment — the answer is the whole record.
+ */
+function recordAskDecision(session: ToolSession, results: readonly QuestionResult[]): void {
+	const layer = session.getDecisions?.();
+	if (!layer || !layer.enabled) return;
+	const answered = results.filter(result => !result.timedOut);
+	if (answered.length === 0) return;
+	const event: DecisionEvent = {
+		at: Date.now(),
+		point: "user_question",
+		// A human answered, so there is no model to name. `local`/`ask` is the
+		// same vocabulary the approval gate uses for its deterministic rows.
+		model: "human",
+		api: "ask",
+		provider: "local",
+		questions: answered.map(result => ({
+			id: result.id,
+			type: "choice" as const,
+			instructions: result.question,
+			criteria: Object.fromEntries(result.options.map(option => [option, null])),
+		})),
+		answers: answered.map(result => ({
+			question: result.id,
+			type: "choice" as const,
+			value: result.selectedOptions[0] ?? result.customInput ?? "(no answer)",
+			probabilities: Object.fromEntries([
+				...(result.selectedOptions.length > 0
+					? result.selectedOptions.map(option => [option, 1 / result.selectedOptions.length])
+					: []),
+				...(result.customInput === undefined ? [] : [[result.customInput, 1]]),
+			]),
+			confidence: 1,
+		})),
+		// A person answered, so this is `gated`: it reached a human and that is
+		// the part of the session's decisions someone actually had to act on.
+		action: "gated",
+		tier: "line",
+		risk: "read",
+		decisionKeys: answered.map(result => result.id),
+		reason:
+			answered.length === 1 ? `answered: ${formatAskAnswer(answered[0]!)}` : `${answered.length} questions answered`,
+	};
+	layer.record(event);
+}
+
+/** One answer in the row's words: the chosen labels, else the typed text. */
+function formatAskAnswer(result: QuestionResult): string {
+	if (result.selectedOptions.length > 0) return result.selectedOptions.join(", ");
+	if (result.customInput !== undefined) return result.customInput;
+	return "(no answer)";
+}
+
+/**
  * Ask tool for interactive user prompting during execution.
  *
  * Allows gathering user preferences, clarifying instructions, and getting decisions
@@ -852,11 +913,13 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 					};
 					const responseText = formatSingleQuestionResponse(result);
 					const imageBlocks = await this.#answerImageBlocks(answerImages, signal);
+					recordAskDecision(this.session, [result]);
 					return { content: [{ type: "text" as const, text: responseText }, ...imageBlocks], details };
 				}
 				const details: AskToolDetails = { results };
 				const responseText = `User answers:\n${results.map(formatQuestionResult).join("\n")}`;
 				const imageBlocks = await this.#answerImageBlocks(answerImages, signal);
+				recordAskDecision(this.session, results);
 				return { content: [{ type: "text" as const, text: responseText }, ...imageBlocks], details };
 			} catch (error) {
 				if (error instanceof Error && error.name === "AbortError") {
@@ -924,6 +987,18 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 				multi: q.multi ?? false,
 			});
 
+			recordAskDecision(this.session, [
+				{
+					id: q.id,
+					question: q.question,
+					options: optionLabels,
+					multi: q.multi ?? false,
+					selectedOptions,
+					customInput,
+					note,
+					timedOut: timedOut || undefined,
+				},
+			]);
 			return { content: [{ type: "text" as const, text: responseText }], details };
 		}
 
@@ -988,6 +1063,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 		const responseLines = results.map(formatQuestionResult);
 		const responseText = `User answers:\n${responseLines.join("\n")}`;
 
+		recordAskDecision(this.session, results);
 		return { content: [{ type: "text" as const, text: responseText }], details };
 	}
 }

@@ -2428,6 +2428,10 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 			trackEvalExecution: (execution, abortController) =>
 				session ? session.trackEvalExecution(execution, abortController) : execution,
 			getSessionId: () => sessionManager.getSessionId?.() ?? null,
+			// Artificial Decisions, for the tools that open a scope themselves
+			// (`find`, `ask`). Resolved lazily because the layer is built with the
+			// session, which does not exist yet while this object is assembled.
+			getDecisions: () => session?.decisions,
 			isDisposed: () => session?.isDisposed ?? false,
 			getHindsightSessionState: () => session?.getHindsightSessionState(),
 			getMnemopiSessionState: () => session?.getMnemopiSessionState(),

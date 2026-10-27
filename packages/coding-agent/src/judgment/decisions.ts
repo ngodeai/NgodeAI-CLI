@@ -47,6 +47,7 @@ import {
 /** The decision points this build ships, in the order `/decisions` lists them. */
 export const DECISION_POINTS = [
 	"tool_approval",
+	"user_question",
 	"route_task",
 	"thinking_level",
 	"unexpected_stop",
@@ -65,6 +66,7 @@ export type DecisionPointId = (typeof DECISION_POINTS)[number];
 /** Risk class per point: what the answer authorizes, not what it is about. */
 const POINT_RISK: Readonly<Record<string, DecisionRisk>> = {
 	tool_approval: "write",
+	user_question: "read",
 	route_task: "read",
 	thinking_level: "read",
 	unexpected_stop: "read",
@@ -168,11 +170,20 @@ export class DecisionLayer {
 	 * Record an already-built event.
 	 *
 	 * Some call sites cannot open a scope before acting — the approval gate
-	 * knows its risk only once it has resolved the call — so they build the
-	 * event themselves and hand it here. Same sink, same ledger, same counters.
+	 * knows its risk only once it has resolved the call, and `ask` has no
+	 * judgment to complete — so they build the event themselves and hand it
+	 * here. Same sink, same ledger, same counters.
+	 *
+	 * The layer's session id is stamped on the event when the caller did not
+	 * supply one. Without it the row lands under `NULL` and every read path,
+	 * which filters by session, reports an empty ledger.
 	 */
 	record(event: DecisionEvent): void {
-		this.#onDecision(event);
+		this.#onDecision(
+			event.sessionId === undefined && this.#sessionId !== undefined
+				? { ...event, sessionId: this.#sessionId }
+				: event,
+		);
 	}
 
 	/** Open a decision scope for `point`. */

@@ -91,6 +91,7 @@ describe("shipped decision points", () => {
 		// `chart` in the interactive renderer, both still real opens.
 		const wired = new Set<string>([
 			"tool_approval",
+			"user_question",
 			"route_task",
 			"thinking_level",
 			"unexpected_stop",
