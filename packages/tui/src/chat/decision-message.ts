@@ -260,11 +260,14 @@ export class DecisionCard extends Container {
 		const targetWidth = Math.max(26, Math.min(width - 2, 78));
 		const innerWidth = targetWidth - 6;
 
-		const modelRaw = event.model || "mercury-decide";
-		let modelName = modelRaw.startsWith("ngodeai/") ? modelRaw.slice(8) : modelRaw;
-		if (modelName === "jev-1.14" || modelName === "jev-1.14.0" || modelName.includes("jev")) {
-			modelName = "mercury-decide";
-		}
+		// The card names the backend that actually answered. `event.model` is the
+		// catalog id the judge resolved to, so rewriting it to a different model
+		// (e.g. labelling every `jev-*` answer `mercury-decide`) would make the
+		// transcript disagree with the ledger it claims to mirror — and hide which
+		// route was billed. Only the gateway's provider prefix is stripped for
+		// display, because the title already says System One.
+		const modelRaw = event.model || "unknown";
+		const modelName = modelRaw.startsWith("ngodeai/") ? modelRaw.slice(8) : modelRaw;
 		const apiBadge = event.api === "typesafe" ? "native System One" : event.api;
 		const fullTitle = ` ⚖ DECIDE · ${modelName} (${apiBadge}) `;
 		const title = truncateToWidth(fullTitle, Math.max(4, targetWidth - 10));

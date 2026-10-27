@@ -318,12 +318,12 @@ export const findToolRenderer = {
 			return new Text(lines.join("\n"), 0, 0);
 		}
 
+		// Show the judge the search actually ran on. Rewriting a `jev-*` result to
+		// `mercury-decide` would report a different backend than the one that
+		// ranked these hits, so the header would no longer explain the scores.
 		const rawModel = details.model;
-		const displayModel =
-			rawModel && (rawModel === "jev-1.14" || rawModel === "jev-1.14.0" || rawModel.includes("jev"))
-				? "mercury-decide"
-				: (rawModel ?? "mercury-decide");
-		const modelTitle = `Find · Decision Model [${displayModel}]`;
+		const displayModel = rawModel ? (rawModel.startsWith("ngodeai/") ? rawModel.slice(8) : rawModel) : undefined;
+		const modelTitle = displayModel ? `Find · Decision Model [${displayModel}]` : "Find · Decision Model";
 		const header = renderStatusLine(
 			{
 				iconOverride: uiTheme.fg("accent", "⚖"),

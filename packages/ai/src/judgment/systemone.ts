@@ -131,7 +131,11 @@ function toWireState(state: unknown, model: string): unknown {
 function systemOneWire(path: string): JudgmentWire {
 	return {
 		target: (baseUrl, _model, key) => ({ url: `${baseUrl}${path}`, token: key }),
-		encode: (request, model) => ({ state: toWireState(request.state, model), model, questions: wireQuestions(request.questions) }),
+		encode: (request, model) => ({
+			state: toWireState(request.state, model),
+			model,
+			questions: wireQuestions(request.questions),
+		}),
 		decode: decodeSystemOne,
 	};
 }

@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@ngodeai/wire",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Shared wire protocol types for ngodeai packages",
   "homepage": "https://ngodeai.net",
   "author": {

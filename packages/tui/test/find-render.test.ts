@@ -145,15 +145,49 @@ describe("findToolRenderer", () => {
 				.render(200)
 				.join("\n"),
 		);
+		// The header is documented to soft-wrap (`fitHeaderedRows`), so the trailing
+		// meta can land on the next row with the frame's `│` rules around it.
+		// Assert on the unwrapped words, not on one physical line.
+		const collapsedFlat = collapsed
+			.replace(/[│▪]/g, " ")
+			.replace(/\s+/g, " ")
+			.trim();
 		expect(collapsed).toContain(":10-20");
 		expect(collapsed).not.toContain(":30-40");
 		expect(collapsed).not.toContain("verification: boom");
-		expect(collapsed).toContain("1/3 requests failed");
+		expect(collapsedFlat).toContain("1/3 requests failed");
 		expect(expanded).toContain(":30-40");
 		expect(expanded).toContain("const attempts = 3;");
 		expect(expanded).not.toContain("\t");
 		expect(expanded).toContain("verification: boom");
 		expect(expanded).toContain("keywords: retry, budget");
+	});
+
+	// The header must name the judge that ranked these hits. An earlier revision
+	// rewrote every `jev-*` result to `mercury-decide`, which misreported the
+	// backend whose scores the rows below are.
+	it("names the judge that ranked the hits", async () => {
+		const uiTheme = (await getThemeByName("dark"))!;
+		const header = (model?: string) =>
+			sanitizeText(
+				findToolRenderer
+					.renderResult(
+						{ content: [{ type: "text", text: "" }], details: { ...details, model } },
+						{ expanded: false, isPartial: false },
+						uiTheme,
+						args,
+					)
+					.render(200)
+					.join("\n"),
+			);
+
+		const jev = header("jev-1.14");
+		expect(jev).toContain("Find · Decision Model [jev-1.14]");
+		expect(jev).not.toContain("mercury-decide");
+
+		expect(header("ngodeai/jev-1.14")).toContain("Find · Decision Model [jev-1.14]");
+		expect(header("mercury-decide")).toContain("Find · Decision Model [mercury-decide]");
+		expect(header(undefined)).not.toContain("mercury-decide");
 	});
 
 	it("renders the streamed phase while the call is still running", async () => {

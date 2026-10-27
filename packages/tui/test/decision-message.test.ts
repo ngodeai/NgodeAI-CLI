@@ -127,6 +127,27 @@ describe("DecisionCard", () => {
 		expect(text).toContain("cache");
 	});
 
+	// The card must name the backend the ledger recorded. An earlier revision
+	// rewrote every `jev-*` answer to `mercury-decide`, which made the transcript
+	// disagree with `/decisions` and hid which route was billed.
+	it("names the decision model that actually answered", () => {
+		const jev = plainText(
+			new DecisionCard(event({ tier: "card", model: "ngodeai/jev-1.14" })).render(120).join("\n"),
+		);
+		expect(jev).toContain("jev-1.14");
+		expect(jev).not.toContain("mercury-decide");
+
+		const mercury = plainText(
+			new DecisionCard(event({ tier: "card", model: "ngodeai/mercury-decide" })).render(120).join("\n"),
+		);
+		expect(mercury).toContain("mercury-decide");
+	});
+
+	it("omits a model it was not told about instead of inventing one", () => {
+		const text = plainText(new DecisionCard(event({ tier: "card", model: "" })).render(120).join("\n"));
+		expect(text).not.toContain("mercury-decide");
+	});
+
 	it("elides answers past the collapsed limit and says how many", () => {
 		const many = event({
 			tier: "card",
