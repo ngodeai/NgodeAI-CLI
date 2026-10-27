@@ -79,4 +79,3 @@ export * from "./ttyid";
 export * from "./tui";
 // Utilities
 export * from "./utils";
-export * from "./selection";

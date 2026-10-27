@@ -1992,22 +1992,10 @@ export class InteractiveMode implements InteractiveModeContext {
 				this.ui.requestRender();
 			}),
 		);
-		// A fullscreen session always captures *clicks and the wheel*: the wheel is
-		// the transcript's own scroller there, and without reporting the terminal
-		// would have nothing to scroll (there is no scrollback) and the wheel would
-		// do nothing at all.
-		//
-		// Hover is a separate question. Every-motion reporting is what makes a
-		// terminal stop selecting text on drag, and not every terminal offers
-		// Shift as an escape, so it stays tied to the opt-in `tui.mouse` setting
-		// rather than to fullscreen. Without it a user can drag to copy anywhere
-		// in the session; with it they trade that for hover highlights.
-		// Mouse tracking is passive (off by default): in the normal inline buffer,
-		// conhost/terminal retain native mouse wheel scrollback and native
-		// drag-to-select without Shift. Tracking is enabled only when opted in via
-		// `tui.mouse: true` or when a fullscreen session is active.
+		// A fullscreen session always captures: the wheel is the transcript's own
+		// scroller there, and without reporting the terminal would have nothing to
+		// scroll (there is no scrollback) and the wheel would do nothing at all.
 		this.ui.setInlineMouseTrackingProvider(() => this.#mouseCapture || this.composer.fullscreen);
-		this.ui.setHoverTrackingProvider(() => this.#mouseCapture);
 		this.chatContainer = new TranscriptContainer();
 		this.pendingMessagesContainer = new AnchoredLiveContainer();
 		this.progressHudContainer = new AnchoredLiveContainer();
@@ -2140,9 +2128,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#selectorController = new SelectorController(this);
 		this.#focusController = new SessionFocusController(this);
 		this.#inputController = new InputController(this);
-		// Drag-to-copy paints over the frame the TUI is about to write; installing
-		// it here keeps the painter and the selector that feeds it in one owner.
-		this.#inputController.installSelectionPainter();
 		this.collabController = new CollabController(this);
 		this.session.setPromptDropped?.(prompt => this.#restoreDroppedPrompt(prompt));
 		this.#observerRegistry = new SessionObserverRegistry();
