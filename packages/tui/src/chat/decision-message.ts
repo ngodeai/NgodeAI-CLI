@@ -194,8 +194,9 @@ export class DecisionLine extends Container {
 
 		const prefix = `  ${borderPaint("▪───")} ⚖ ${theme.fg(color, theme.bold("DECISION"))} ${borderPaint("─")} `;
 		const suffix = ` ${borderPaint("───▪")}`;
-		const innerCap = Math.max(10, width - visibleWidth(prefix) - visibleWidth(suffix));
-		return `${prefix}${truncateToWidth(core, innerCap)}${suffix}`;
+		const maxLineWidth = Math.max(10, width - 2);
+		const innerCap = Math.max(10, maxLineWidth - visibleWidth(prefix) - visibleWidth(suffix));
+		return truncateToWidth(`${prefix}${truncateToWidth(core, innerCap)}${suffix}`, maxLineWidth);
 	}
 
 	override describe(): NativeNode {
@@ -254,14 +255,18 @@ export class DecisionCard extends Container {
 		const lines: string[] = [];
 		const color = SEVERITY[event.action];
 		const borderPaint = (t: string) => theme.fg(color, t);
-		const innerWidth = Math.max(34, Math.min(width - 6, 88));
+
+		// Clamp card width to at most width - 2 and max 78 cols so it never touches or penetrates sidebar
+		const targetWidth = Math.max(26, Math.min(width - 2, 78));
+		const innerWidth = targetWidth - 6;
 
 		const modelRaw = event.model || "mercury-decide";
 		const modelName = modelRaw.startsWith("ngodeai/") ? modelRaw.slice(8) : modelRaw;
 		const apiBadge = event.api === "typesafe" ? "native System One" : event.api;
-		const title = ` ⚖ DECIDE · ${modelName} (${apiBadge}) `;
+		const fullTitle = ` ⚖ DECIDE · ${modelName} (${apiBadge}) `;
+		const title = truncateToWidth(fullTitle, Math.max(4, targetWidth - 10));
 		const topCap = "───";
-		const topRuleLen = Math.max(0, innerWidth - visibleWidth(title) - visibleWidth(topCap));
+		const topRuleLen = Math.max(0, targetWidth - 7 - visibleWidth(title));
 		const top = `  ${borderPaint("▪" + topCap)}${theme.fg(color, theme.bold(title))}${borderPaint("─".repeat(topRuleLen) + "▪")}`;
 
 		const row = (content: string) => {
@@ -269,7 +274,7 @@ export class DecisionCard extends Container {
 			const pad = Math.max(0, innerWidth - visibleWidth(truncated));
 			return `  ${borderPaint("│")} ${truncated}${" ".repeat(pad)} ${borderPaint("│")}`;
 		};
-		const divider = `  ${borderPaint("▪" + "─".repeat(innerWidth + 2) + "▪")}`;
+		const divider = `  ${borderPaint("▪" + "─".repeat(targetWidth - 4) + "▪")}`;
 		lines.push(top);
 
 		// Subheader: Point & Verdict Badge
@@ -334,9 +339,10 @@ export class DecisionCard extends Container {
 			}
 		}
 
-		const footer = ` ⏎ expand · /decisions #${event.id ?? ""} `;
+		const rawFooter = ` ⏎ expand · /decisions #${event.id ?? ""} `;
+		const footer = truncateToWidth(rawFooter, Math.max(4, targetWidth - 10));
 		const botCap = "───";
-		const botRuleLen = Math.max(0, innerWidth - visibleWidth(footer) - visibleWidth(botCap));
+		const botRuleLen = Math.max(0, targetWidth - 7 - visibleWidth(footer));
 		lines.push(
 			`  ${borderPaint("▪" + botCap)}${theme.fg("dim", footer)}${borderPaint("─".repeat(botRuleLen) + "▪")}`,
 		);

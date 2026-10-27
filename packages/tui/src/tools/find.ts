@@ -356,10 +356,13 @@ export const findToolRenderer = {
 					extra.push(uiTheme.fg("dim", `keywords: ${details.keywords.join(", ")}`));
 					for (const failure of stats.failures) extra.push(uiTheme.fg("warning", failure));
 				}
-				const innerWidth = Math.max(34, Math.min(width - 4, 110));
+				const targetWidth = Math.max(26, Math.min(width - 2, 78));
+				const innerWidth = targetWidth - 6;
+
 				const topCap = "───";
-				const topTitle = ` ⚖ ${modelTitle} `;
-				const topRuleLen = Math.max(0, innerWidth - visibleWidth(topTitle) - visibleWidth(topCap));
+				const rawTitle = ` ⚖ ${modelTitle} `;
+				const topTitle = truncateToWidth(rawTitle, Math.max(4, targetWidth - 10));
+				const topRuleLen = Math.max(0, targetWidth - 7 - visibleWidth(topTitle));
 				const top = `  ${uiTheme.fg("accent", "▪" + topCap)}${uiTheme.fg("accent", uiTheme.bold(topTitle))}${uiTheme.fg("border", "─".repeat(topRuleLen) + "▪")}`;
 
 				const row = (content: string) => {
@@ -367,8 +370,8 @@ export const findToolRenderer = {
 					const pad = Math.max(0, innerWidth - visibleWidth(truncated));
 					return `  ${uiTheme.fg("border", "│")} ${truncated}${" ".repeat(pad)} ${uiTheme.fg("border", "│")}`;
 				};
-				const divider = `  ${uiTheme.fg("accent", "▪")}${uiTheme.fg("border", "─".repeat(innerWidth + 2))}${uiTheme.fg("accent", "▪")}`;
-				const bottom = `  ${uiTheme.fg("accent", "▪")}${uiTheme.fg("border", "─".repeat(innerWidth + 2))}${uiTheme.fg("accent", "▪")}`;
+				const divider = `  ${uiTheme.fg("accent", "▪")}${uiTheme.fg("border", "─".repeat(targetWidth - 4))}${uiTheme.fg("accent", "▪")}`;
+				const bottom = `  ${uiTheme.fg("accent", "▪")}${uiTheme.fg("border", "─".repeat(targetWidth - 4))}${uiTheme.fg("accent", "▪")}`;
 
 				const rows: string[] = [top];
 				for (const hLine of wrapTextWithAnsi(header, innerWidth)) {

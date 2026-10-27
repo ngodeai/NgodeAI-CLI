@@ -17,7 +17,7 @@ import {
 	type TUIOptions,
 	type ViewportSize,
 } from "../tui";
-import { visibleWidth, wrapLiteralLine } from "../utils";
+import { Ellipsis, truncateToWidth, visibleWidth, wrapLiteralLine } from "../utils";
 import type { NativeChild, NativeSurface, NativeSurfaceProvider } from "../native/node";
 import { sameItems } from "../native/memo";
 import { postmortem } from "@ngodeai/utils";
@@ -561,7 +561,9 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		// its frame slid left on every short row. Pad to `leftWidth` first.
 		const padToPane = (row: string): string => {
 			const gap = leftWidth - visibleWidth(row);
-			return gap > 0 ? row + " ".repeat(gap) : row;
+			if (gap > 0) return row + " ".repeat(gap);
+			if (gap < 0) return truncateToWidth(row, leftWidth, Ellipsis.Omit);
+			return row;
 		};
 		// The sidebar already fills the height and closes its own frame, so this
 		// loop only pads the transcript side and joins the two panes.
