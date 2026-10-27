@@ -21,12 +21,20 @@
 import { formatDuration, formatNumber } from "@ngodeai/utils";
 import type { DecisionEvent, JudgmentState } from "@ngodeai/ai";
 import { reportTask } from "../judgment/benchmark";
+import { hasNativeJudge } from "../judgment";
 import type { DecisionTotals } from "../judgment/ledger";
 import { pointLabel, probabilityBar } from "@ngodeai/tui/chat/decision-message";
 import { theme } from "@ngodeai/tui/theme";
+import { AUTO_THINKING } from "@ngodeai/tui/thinking";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { AgentSession } from "../session/agent-session";
+import { cfgFeaturesUnexpectedStopDetection, cfgPrewalkAuto } from "../session/settings";
+import { cfgAutolearnEnabled } from "../autolearn/settings";
+import { cfgDefaultThinkingLevel } from "../session/settings";
+import { cfgTtsrJudge } from "../export/ttsr-settings";
+import { cfgFindEnabled, cfgToolsApprovalMode } from "../tools/settings";
+import { cfgTuiAutoGraph } from "../modes/settings";
 import { commandConsumed, parseSubcommand } from "./helpers/parse";
 import type { SlashCommandResult, SlashCommandRuntime, SlashCommandSpec, TuiSlashCommandRuntime } from "./types";
 import { DecisionPointWizard, decisionPointJson } from "@ngodeai/tui/overlays/decision-point-wizard";
@@ -77,7 +85,8 @@ function renderList(events: readonly DecisionEvent[], totals: DecisionTotals): s
 	if (events.length === 0) {
 		return [
 			theme.fg("muted", "  No decisions recorded yet."),
-			theme.fg("dim", "  Decisions appear here as the agent routes, verifies, and gates its work."),
+			theme.fg("dim", "  Decisions are recorded automatically when a point fires — they are not a tool"),
+			theme.fg("dim", "  the model calls. Run /decisions points to see what triggers each one."),
 		].join("\n");
 	}
 	const lines: string[] = [];
@@ -200,16 +209,106 @@ function renderStatus(session: AgentSession): string {
 	return lines.join("\n");
 }
 
+/**
+ * Why each shipped point is or is not firing, in the user's current settings.
+ *
+ * An empty ledger is the common first experience, and the old message told the
+ * user to declare a point — which is the *last* reason nothing shows up, not
+ * the first. Every point is gated on something: a setting, a native judge, or a
+ * tool the model has to actually call. Naming the gate is the only way a user
+ * can tell "nothing happened" from "nothing was asked for".
+ */
+function renderActivation(session: AgentSession): string[] {
+	// A host or stub that exposes no settings cannot be described; the table is
+	// a diagnostic, never a reason to fail the command.
+	const settings = session.settings;
+	if (!settings) return [];
+	const registry = session.modelRegistry;
+	const nativeJudge = (() => {
+		try {
+			return hasNativeJudge(settings, registry);
+		} catch {
+			return false;
+		}
+	})();
+	const count = (point: string) => session.decisions.points().find(entry => entry.point === point)?.count ?? 0;
+	const row = (point: string, active: boolean, how: string) => {
+		const seen = count(point);
+		const mark = seen > 0 ? theme.fg("success", "✓") : active ? theme.fg("text", "·") : theme.fg("dim", "✗");
+		return `  ${mark} ${cell(pointLabel(point), 18)} ${theme.fg(seen > 0 ? "text" : "dim", how)}`;
+	};
+	const lines: string[] = [];
+	lines.push(theme.fg("dim", "  what triggers each point"));
+	lines.push(theme.fg("dim", `  ${"─".repeat(66)}`));
+	// The one point a prompt alone can reach: the model calls `ask`, a human answers.
+	lines.push(row("user_question", true, "the model calls `ask` — any question it needs answered"));
+	lines.push(
+		row(
+			"tool_approval",
+			cfgToolsApprovalMode.get(settings) !== "yolo",
+			cfgToolsApprovalMode.get(settings) === "yolo"
+				? "off: tools.approvalMode is yolo, so no prompt is ever raised"
+				: "an approval dialog is raised",
+		),
+	);
+	lines.push(
+		row(
+			"thinking_level",
+			cfgDefaultThinkingLevel.get(settings) === AUTO_THINKING,
+			cfgDefaultThinkingLevel.get(settings) === AUTO_THINKING
+				? "every user turn is classified"
+				: 'off: thinking level is "' + cfgDefaultThinkingLevel.get(settings) + '", set it to "auto"',
+		),
+	);
+	lines.push(
+		row(
+			"route_task",
+			cfgPrewalkAuto.get(settings) !== "off" && nativeJudge,
+			cfgPrewalkAuto.get(settings) === "off"
+				? "off: prewalk.auto is off"
+				: nativeJudge
+					? "each new top-level task is classified"
+					: "off: needs a native judge",
+		),
+	);
+	lines.push(
+		row(
+			"unexpected_stop",
+			cfgFeaturesUnexpectedStopDetection.get(settings) === "smart",
+			cfgFeaturesUnexpectedStopDetection.get(settings) === "smart"
+				? "a text-only stop is classified"
+				: 'off: features.unexpectedStopDetection is not "smart"',
+		),
+	);
+	lines.push(
+		row(
+			"find",
+			cfgFindEnabled.get(settings) !== "off" && (cfgFindEnabled.get(settings) === "on" || nativeJudge),
+			cfgFindEnabled.get(settings) === "off" ? "off: find.enabled is off" : "the model calls `find`",
+		),
+	);
+	lines.push(
+		row(
+			"ttsr",
+			cfgTtsrJudge.get(settings) !== "off" && (cfgTtsrJudge.get(settings) === "on" || nativeJudge),
+			"a `question` rule is checked against a completed reply",
+		),
+	);
+	lines.push(row("compress", true, "`/compress` asks for a second opinion on a draft"));
+	lines.push(row("chart", cfgTuiAutoGraph.get(settings) === "smart", 'off: tui.autoGraph is not "smart"'));
+	lines.push(row("completion", true, "a subagent's task is probed for progress"));
+	lines.push(row("autolearn", cfgAutolearnEnabled.get(settings), "off: autolearn.enabled is off"));
+	lines.push(row("git_stage", true, "the git TUI's AI staging runs"));
+	return lines;
+}
+
 function renderPoints(session: AgentSession): string {
 	const points = session.decisions.points();
 	// Optional on the session: hosts that predate user points (and test stubs)
 	// simply declare none.
 	const declared = session.userDecisionPoints ?? [];
 	if (points.length === 0 && declared.length === 0) {
-		return [
-			theme.fg("muted", "  No decisions recorded yet."),
-			theme.fg("dim", "  Declare a point in .ngodeai/decisions/<name>.json to add your own."),
-		].join("\n");
+		return [theme.fg("muted", "  No decisions recorded yet."), "", ...renderActivation(session)].join("\n");
 	}
 	const lines: string[] = [];
 	lines.push(
@@ -235,6 +334,8 @@ function renderPoints(session: AgentSession): string {
 			);
 		}
 	}
+	lines.push("");
+	lines.push(...renderActivation(session));
 	return lines.join("\n");
 }
 
