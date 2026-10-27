@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@ngodeai/ngodetype",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "ArkType-compatible runtime schema validation with lazy JIT compilation",
   "homepage": "https://ngodeai.net",
   "author": {

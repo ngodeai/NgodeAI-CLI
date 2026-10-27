@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Autonomous Agentic Coding CLI with Native Speed & Complete Tool Sovereignty</strong>
+  <strong>Autonomous Agentic Coding CLI with System One Decision Intelligence & Complete Tool Sovereignty</strong>
 </p>
 
 <p align="center">
@@ -12,48 +12,141 @@
   <a href="https://github.com/ngodeai/NgodeAI-CLI/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-f472b6?style=flat-square&logo=bun&logoColor=white" alt="Bun"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/core-Rust-DEA584?style=flat-square&logo=rust&logoColor=white" alt="Rust"></a>
-  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/language-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"></a>
+  <a href="https://madewithjev.com/what-is-jev-engineering"><img src="https://img.shields.io/badge/decisions-Jev%20Engineering-success?style=flat-square" alt="Jev Engineering"></a>
 </p>
 
 ---
 
 ## ⚡ Overview
 
-**NgodeAI CLI** is an advanced, production-grade agentic coding assistant designed directly for the terminal. Built on top of a performance-critical **Rust engine (~80k lines of native code)** and a modern **TypeScript/Bun runtime**, NgodeAI operates with genuine autonomy: reading context, diagnosing errors, executing commands, refactoring ASTs, and spawning parallel subagents.
+**NgodeAI CLI** is an autonomous, production-grade agentic coding assistant designed directly for developers in the terminal. Powered by an ultra-fast **Rust core (~80,000 lines of native code)** and a modern **TypeScript/Bun runtime**, NgodeAI operates with true workspace sovereignty: inspecting git repositories, diagnosing compiler errors, refactoring syntax trees with AST awareness, executing persistent shell tasks, and dispatching parallel subagent swarms.
 
-Unlike simple chatbot wrappers, NgodeAI treats your workspace as a living environment — inspecting git trees, hooking into Language Server Protocols (LSP), attaching Debug Adapters (DAP), and rendering differential streaming diffs with zero terminal flicker.
+At the center of NgodeAI's autonomy is **Jev Engineering** — a disciplined separation between fast, calibrated decision-making (**System One**) and generative code synthesis (**System Two**). High-frequency workflow choices (tool gating, search relevance, human verification, route selection) are resolved by specialized decision models (`mercury-decide`, `jev-1.14`) in milliseconds at near-zero token cost, eliminating conversational prompt-drift and hallucinated actions.
 
+---
+
+## 🖥️ Live Terminal Interface
+
+NgodeAI renders a high-performance differential TUI with zero flicker, strict brand-box aesthetics (`▪───▪` hairline borders), a live context & model status sidebar, and real-time decision telemetry:
+
+<p align="center">
+  <img src="./assets/demo.jpeg" alt="NgodeAI CLI in Action" width="100%">
+</p>
+
+_Above: NgodeAI orchestrating an autonomous task with a background `scout` subagent, evaluating search relevance via the `mercury-decide` System One model, and maintaining persistent state across the live right-hand sidebar._
+
+---
+
+## 🏛️ System Architecture
+
+NgodeAI separates user interaction, agent orchestration, decision intelligence, native performance primitives, and LLM providers into clear, decoupled layers:
+
+```mermaid
+graph TD
+    subgraph UI ["Terminal & Presentation Layer"]
+        CLI["CLI / Headless / CI Mode"]
+        TUI["Differential TUI Engine<br/><i>(SGR Mouse · Brand Box Framing · Zero Flicker)</i>"]
+        SIDEBAR["Status Sidebar<br/><i>(Tasks · Context · Git · Model · Decision Model)</i>"]
+    end
+
+    subgraph CORE ["Agent Orchestration Core"]
+        LOOP["Autonomous Agent Loop<br/><i>(Multi-Turn ReAct · Subagent Coordinator)</i>"]
+        TASK_MGR["Task & Todo Tracker<br/><i>(Hierarchical Phases · State Machine)</i>"]
+        MEM["Memory & History Engine<br/><i>(SQLite Ledger · Recaps · Cache Pruning)</i>"]
+    end
+
+    subgraph JEV ["Jev Engineering Decision Brain (System One)"]
+        JEV_ROUTER["Decision Router & Chain<br/><i>(mercury-decide · jev-1.14)</i>"]
+        PROB_BAR["Calibrated Probabilities<br/><i>(0.00 – 1.00 Distribution Bars)</i>"]
+        GATE_MATRIX["Threshold Gate Matrix<br/><i>(read: 0.70 · write: 0.85 · irreversible: 1.00)</i>"]
+        CONFLICT_DET["Conflict & Verification Ledger<br/><i>(Post-Hoc Ground-Truth Checks)</i>"]
+    end
+
+    subgraph TOOLS ["Tool System & Execution Engine"]
+        T_FS["File Tools<br/><i>(read · write · edit hashline)</i>"]
+        T_BASH["Persistent Bash & PTY<br/><i>(Job streaming · Watchdogs)</i>"]
+        T_SUB["Subagent Swarms<br/><i>(scout · reviewer · task)</i>"]
+        T_LSP["LSP & DAP Client<br/><i>(Hover · References · Breakpoints)</i>"]
+    end
+
+    subgraph NATIVE ["Native Rust Acceleration Core (crates/)"]
+        N_SEARCH["SIMD Fast Search & Ripgrep"]
+        N_AST["Tree-Sitter AST & Syntax Engine"]
+        N_VFS["Sandboxed & Virtual Filesystem (VFS)"]
+        N_TOKEN["Native Tokenizer & Embeddings"]
+    end
+
+    subgraph LLM ["LLM & Model Gateway (System Two)"]
+        GW["NgodeAI Model Gateway"]
+        PROV_GEMINI["Google Gemini 3.8 / 2.5"]
+        PROV_CLAUDE["Anthropic Claude 3.7 / 3.5"]
+        PROV_OPENAI["OpenAI GPT-4o / o3-mini / o1"]
+        PROV_DEEPSEEK["DeepSeek V3 / R1"]
+        PROV_LOCAL["Local Models (Ollama / vLLM)"]
+    end
+
+    %% Wiring
+    CLI --> TUI
+    TUI --> SIDEBAR
+    TUI <--> LOOP
+    LOOP <--> TASK_MGR
+    LOOP <--> MEM
+    LOOP <--> JEV_ROUTER
+
+    JEV_ROUTER --> PROB_BAR
+    PROB_BAR --> GATE_MATRIX
+    GATE_MATRIX --> CONFLICT_DET
+
+    LOOP <--> TOOLS
+    TOOLS <--> NATIVE
+    LOOP <--> GW
+
+    GW --> PROV_GEMINI
+    GW --> PROV_CLAUDE
+    GW --> PROV_OPENAI
+    GW --> PROV_DEEPSEEK
+    GW --> PROV_LOCAL
 ```
-+-------------------------------------------------------------------------+
-|                              NgodeAI CLI                                |
-+-------------------------------------------------------------------------+
-|  Interactive TUI (Differential)  <--->  Headless / CI / Pipe Mode       |
-+-------------------------------------------------------------------------+
-|                  Autonomous Runtime & Tool Engine                       |
-|   * read / write / edit          * tree-sitter AST & patch engine       |
-|   * persistent bash / pty jobs   * Language Server Protocol (LSP)       |
-|   * parallel subagent swarm      * Debug Adapter Protocol (DAP)         |
-+-------------------------------------------------------------------------+
-|                Native Rust Core (ngode-natives)                         |
-|   * High-speed ripgrep           * Fast git & ignore walkers            |
-|   * SIMD line search & hashing   * Tokenizer & embedding models         |
-+-------------------------------------------------------------------------+
-|                 60+ AI Providers & Model Catalog                        |
-|   Anthropic · OpenAI · Google Gemini · DeepSeek · Ollama · Groq · Azure |
-+-------------------------------------------------------------------------+
-```
+
+---
+
+## 🧠 Jev Engineering: The 100x Decision Paradigm
+
+Traditional agentic workflows force an expensive, slow generative LLM to answer every micro-question ("Should I open this file?", "Is this hit relevant?", "Should I ask the user for confirmation?") inside the main conversational context. This causes massive prompt bloat, token wastage, high latency, and compounding reasoning errors.
+
+NgodeAI implements **[Jev Engineering](https://madewithjev.com/what-is-jev-engineering)** — an applied architectural discipline that converts application states into strict, typed decisions:
+
+<p align="center">
+  <img src="./assets/jev_engineering_paper.jpeg" alt="Jev Engineering Architecture Paper" width="85%">
+</p>
+
+### Core Tenets of Jev in NgodeAI
+
+1. **Separation of Decisions from Synthesis:**  
+   Decisions (System One) are handled by dedicated models (`mercury-decide` or `jev-1.14`) that output calibrated choices, scores, and confidence probabilities instead of prose. Large generative models (System Two, e.g., Gemini 3.8 Flash, Claude Sonnet 3.7) are reserved strictly for synthesis and complex reasoning.
+2. **Programmatic State Mapping:**  
+   The workspace state (goals, rules, context, candidate files) is serialized into typed JSON inputs. Jev evaluates all options concurrently in a single request and returns exact probability distributions (rendered as visual ASCII/Unicode bars `[████████░░░░] 0.71`).
+3. **Calibrated Gating Matrix:**  
+   Every decision point is evaluated against a mathematical threshold matrix according to risk:
+   - `read` actions: auto-approved when confidence $\ge 0.70$
+   - `write` actions: require higher confidence $\ge 0.85$
+   - `irreversible` actions (git reset, file deletion): never auto-approved without human confirmation
+4. **Post-Hoc Conflict Detection:**  
+   Predictions are continually verified against actual outcomes. If code execution disagrees with an approved action (e.g., a typecheck or test failure), a divergence conflict is recorded in the SQLite ledger (`/decisions conflicts`) to prevent repeated mistakes.
+5. **Drastic Efficiency Gains:**  
+   High-frequency tool checks run in milliseconds with **zero cost ($0.00000 Free Tier)** on `mercury-decide`, preserving your LLM context window for actual code generation.
 
 ---
 
 ## ✨ Key Features
 
-- **⚡ Native Rust Core Acceleration**: Native SIMD-accelerated text search, ripgrep integration, git diff inspection, and path walking via `@ngodeai/natives`.
-- **🤖 Multi-Provider & Model Agnostic**: Native compatibility with **60+ AI providers** — Anthropic (Claude 3.7 / 3.5), OpenAI (GPT-4o, o1, o3-mini), Google Gemini 2.0 / 2.5, DeepSeek (V3, R1), Ollama local models, OpenRouter, Mistral, and more.
-- **🛠️ Surgical AST & Hashline Edits**: Never suffers from hallucinated line shifts. Edits are verified with cryptographic snapshot tags and applied through AST-aware transformations.
-- **🐝 Parallel Subagent Swarms**: Break down complex features or large codebases into independent subtasks (`scout`, `reviewer`, `task`) running concurrently without context bloating.
-- **🖥️ Differential Terminal UI (TUI)**: Custom terminal renderer optimized for high refresh rates, clean scrollback retention, syntax-highlighted diffs, and live-streaming tool call widgets.
-- **🔌 Built-In LSP & DAP Integration**: Understands project definitions, hover types, references, diagnostics, and debugging breakpoints across TypeScript, Python, Rust, Go, C++, and Java.
-- **🔒 Privacy & Local-First**: Keys and session logs remain strictly on your machine under `~/.ngodeai/`. Local models via Ollama or custom endpoints work out of the box with zero cloud dependency.
+- **⚡ Native Rust Performance**: SIMD line search, ripgrep regex engine, git tree inspection, and directory traversal running natively in Rust via `@ngodeai/natives`.
+- **🤖 60+ AI Providers**: Built-in support for Google Gemini (3.8 Flash / 2.5), Anthropic Claude, OpenAI, DeepSeek, Groq, Cerebras, OpenRouter, Mistral, and local Ollama/vLLM endpoints.
+- **🛠️ Tagged Hashline Surgical Edits**: Edits are pinned with cryptographic tags and verified with AST syntax checks — eliminating line drift and duplicate code insertion.
+- **🐝 Parallel Subagent Swarms**: Spawn specialized independent workers (`scout` for read-only exploration, `reviewer` for code audits, `task` for isolated execution) that report back without bloating the main session context.
+- **🖥️ Differential Terminal UI (TUI)**: Custom rendering with clean scrollback preservation, SGR mouse interaction, and distinct `▪───▪` box frames.
+- **🔌 Built-In LSP & DAP Protocols**: Native code intelligence across TypeScript, Python, Rust, Go, C++, and Java — resolving definitions, references, hover types, and debugging breakpoints.
+- **🔒 Local-First Privacy**: Keys, decision ledgers, and session history remain strictly local on your workstation under `~/.ngodeai/`.
 
 ---
 
@@ -61,21 +154,20 @@ Unlike simple chatbot wrappers, NgodeAI treats your workspace as a living enviro
 
 ### 1. Installation
 
-#### Automatic Script (macOS / Linux / WSL)
+#### Global Install via Bun (Recommended)
+
 ```bash
-curl -fsSL https://ngodeai.net/install.sh | sh
+bun add -g @ngodeai/coding-agent
 ```
 
-#### Via Bun / npm
-```bash
-# Global install with Bun (Recommended)
-bun add -g @ngodeai/coding-agent
+#### Global Install via npm
 
-# Or via npm
+```bash
 npm install -g @ngodeai/coding-agent
 ```
 
 #### Run from Source
+
 ```bash
 git clone https://github.com/ngodeai/NgodeAI-CLI.git
 cd NgodeAI-CLI
@@ -86,79 +178,108 @@ bun packages/coding-agent/src/cli.ts
 
 ---
 
-## 💻 Usage
+## 💻 Usage Examples
 
-### Interactive Mode
-Launch the full interactive TUI session in your current project directory:
+### 1. Interactive Terminal Session
+
+Launch the full interactive TUI in your project directory:
+
 ```bash
 ngodeai
 ```
 
-### Direct Instruction (One-Shot)
-Execute a specific instruction and let NgodeAI inspect and edit your workspace:
+### 2. Direct Instruction (One-Shot)
+
+Execute an autonomous task directly from your shell:
+
 ```bash
-ngodeai "Add comprehensive unit tests for the auth middleware"
+ngodeai "Add comprehensive integration tests for the auth service and fix any failures"
 ```
 
-### Piping / Non-Interactive (Headless)
-Pipe error logs, diffs, or code directly into NgodeAI:
+### 3. Piping & Headless CI Mode
+
+Stream logs, diffs, or files into NgodeAI for non-interactive analysis:
+
 ```bash
-git diff | ngodeai -p "Review this diff for security risks and edge cases"
-cat build.log | ngodeai -p "Diagnose why the build failed and suggest fixes"
+git diff | ngodeai -p "Review this diff for security vulnerabilities and performance bottlenecks"
+cat build.log | ngodeai -p "Identify the root cause of this compiler error and output the patch"
 ```
 
-### Model Selection & Thinking Effort
+### 4. Model Selection & Reasoning Effort
+
 ```bash
-# Use Claude 3.7 Sonnet with high reasoning effort
+# Default: Google Gemini 3.8 Flash with Mercury Decide
+ngodeai
+
+# Use Claude 3.7 Sonnet with high thinking effort
 ngodeai --model anthropic/claude-3-7-sonnet --thinking high
 
-# Use DeepSeek R1 for architectural planning
+# Use DeepSeek R1 for deep architectural analysis
 ngodeai --model deepseek/deepseek-reasoner
 
-# Use local Ollama model
+# Run offline with local Ollama
 ngodeai --model ollama/qwen2.5-coder:32b
+```
+
+### 5. Managing Decision Intelligence
+
+Inspect the Jev decision ledger directly from the CLI:
+
+```bash
+# View backend status, cache hit rates, and gate thresholds
+/decisions status
+
+# Inspect all recorded decisions in this session
+/decisions
+
+# View recorded conflicts where predictions diverged from code execution
+/decisions conflicts
+
+# Run an empirical benchmark comparing batched vs sequential decision efficiency
+/decisions bench batch
 ```
 
 ---
 
-## 🧰 Built-in Tool Ecosystem
+## 🧰 Built-in Tool Suite
 
-NgodeAI ships with an integrated, hardened tool suite:
+NgodeAI ships with a hardened, native tool suite:
 
-| Tool | Capability |
-|---|---|
-| `read` | Range-aware file reader supporting code, images, PDF, archives, and SQLite databases. |
-| `edit` | Surgical, tagged hashline patches with collision detection. |
-| `write` | Atomic file writer and new module generator. |
-| `bash` | Persistent shell execution with PTY support, job streaming, and background task monitoring. |
-| `grep` | Ultra-fast regex search backed by the native Rust ripgrep engine. |
-| `glob` | Gitignore-aware, high-performance file tree discovery. |
-| `task` | Spawns parallel worker subagents (`scout`, `reviewer`, `task`) for deep multi-file work. |
-| `eval` | Embedded Python and JavaScript (Bun) sandbox for ad-hoc scripts and calculation. |
-| `todo` | Deterministic phase and task tracker for complex multi-step execution. |
+| Tool    | Capability                                                                                    |
+| ------- | --------------------------------------------------------------------------------------------- |
+| `read`  | Range-aware reader for source code, images, PDF documents, archives, and SQLite tables.       |
+| `edit`  | Surgical hashline patcher with cryptographic snapshot tags and collision detection.           |
+| `write` | Atomic file writer and new module generator.                                                  |
+| `bash`  | Persistent shell execution with PTY support, job streaming, and background process control.   |
+| `grep`  | Ultra-fast regex search backed by the native Rust ripgrep engine.                             |
+| `glob`  | Gitignore-aware, high-speed file tree exploration.                                            |
+| `task`  | Spawns parallel worker subagents (`scout`, `reviewer`, `task`) for deep multi-file execution. |
+| `eval`  | Sandboxed Python and JavaScript (Bun) REPL for scratchpad calculations and scripts.           |
+| `todo`  | Deterministic phased task tracker for complex multi-step execution.                           |
+| `ask`   | Interactive human-in-the-loop clarification dialog with gated decision recording.             |
 
 ---
 
 ## ⚙️ Configuration & Environment
 
-Configuration is stored in `~/.ngodeai/`:
+Settings and state are maintained in `~/.ngodeai/`:
 
 - `~/.ngodeai/agent/config.yml` — Global configuration, model defaults, and tool preferences.
-- `~/.ngodeai/history/` — Session transcripts and task checkpoints.
-- `~/.ngodeai/logs/` — Rotating debug and telemetry logs.
+- `~/.ngodeai/cache/decisions.db` — SQLite ledger storing every decision, score, and conflict.
+- `~/.ngodeai/agent/history.db` — Session history, turn checkpoints, and prompt logs.
+- `~/.ngodeai/logs/` — Daily rotating debug and telemetry logs.
 
 ### Key Environment Variables
 
-| Variable | Description |
-|---|---|
-| `NGODEAI_API_KEY` / `OPENAI_API_KEY` | Primary API keys for LLM providers. |
-| `ANTHROPIC_API_KEY` | Anthropic Claude API key. |
-| `GEMINI_API_KEY` | Google Gemini API key. |
-| `DEEPSEEK_API_KEY` | DeepSeek API key. |
-| `NGODEAI_CONFIG_DIR` | Custom config directory path (default: `~/.ngodeai`). |
-| `NGODEAI_PROFILE` | Named configuration profile to activate. |
-
-*(Note: NgodeAI maintains full backward compatibility with legacy `NGODEAI_*` and `PI_*` environment variables).*
+| Variable                            | Description                                                  |
+| ----------------------------------- | ------------------------------------------------------------ |
+| `NGODEAI_API_KEY`                   | Primary API key for the NgodeAI Gateway and decision models. |
+| `GEMINI_API_KEY` / `GOOGLE_API_KEY` | Google Gemini API key.                                       |
+| `ANTHROPIC_API_KEY`                 | Anthropic Claude API key.                                    |
+| `OPENAI_API_KEY`                    | OpenAI API key.                                              |
+| `DEEPSEEK_API_KEY`                  | DeepSeek API key.                                            |
+| `NGODEAI_CONFIG_DIR`                | Custom config directory path (default: `~/.ngodeai`).        |
+| `NGODEAI_PROFILE`                   | Named configuration profile to activate.                     |
 
 ---
 
@@ -167,47 +288,42 @@ Configuration is stored in `~/.ngodeai/`:
 ```
 NgodeAI-CLI/
 ├── packages/
-│   ├── coding-agent/     # Core CLI entrypoint, commands, and tool runtime
-│   ├── ai/               # Multi-provider LLM client with streaming support
-│   ├── catalog/          # Model registry, provider descriptors, and pricing rules
-│   ├── agent/            # Agent state machine and loop management
-│   ├── tui/              # Custom differential terminal UI engine
+│   ├── coding-agent/     # Core CLI entrypoint, commands, and runtime orchestration
+│   ├── ai/               # Multi-provider LLM client, streaming, and native decision wires
+│   ├── catalog/          # Model registry, provider descriptors, and KDL compat rules
+│   ├── agent/            # Autonomous agent state machine and execution loop
+│   ├── tui/              # Custom differential terminal UI with brand-box framing
 │   ├── natives/          # High-level bindings for native Rust operations
-│   ├── stats/            # Local observability and usage metrics
-│   ├── ngodetype/        # High-performance schema validation runtime
-│   └── utils/            # Shared primitives, streams, paths, and logger
+│   ├── stats/            # Local observability dashboard and telemetry sync
+│   ├── ngodetype/        # High-performance ArkType-compatible schema validation runtime
+│   └── utils/            # Shared primitives, streams, paths, and structured logger
 ├── crates/
 │   ├── ngode-natives/    # Rust crate for SIMD search, ripgrep, and git inspection
 │   ├── ngode-builtins/   # Embedded shell tools and cross-platform POSIX utilities
 │   ├── ngode-ast/        # Tree-sitter AST queries and code structure extractors
 │   ├── ngode-vfs/        # Virtual and sandboxed filesystem abstraction
 │   └── ngode-predict/    # Speculative local inference and fast tokenization
-└── assets/               # Brand visual assets, icons, and wordmarks
+└── assets/               # Brand visual assets, icons, and architecture diagrams
 ```
 
 ---
 
-## 🤝 Contributing
+## 📄 License & Open-Source Attribution
 
-Contributions are welcome! Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for developer setup, coding guidelines, and testing procedures.
+NgodeAI CLI is open-source software licensed under the **[MIT License](./LICENSE)**.
 
-```bash
-# Run type checks across all workspace packages
-bun check:types
+### Acknowledgments & Heritage
 
-# Run test suite
-bun test packages/utils/test
-bun test packages/coding-agent/test/cli/completions.test.ts
+NgodeAI is derived from and builds upon the foundational architecture of **[Oh My Pi (OMP)](https://github.com/can1357/oh-my-pi?tab=MIT-1-ov-file)**, originally created by **[Stencil Labs, Inc.](https://stencil.so)** and **Mario Zechner** under the MIT License:
 
-# Test Rust core
-bun run test:rs
+```text
+Copyright (c) 2026 NgodeAI (https://ngodeai.net)
+Copyright (c) 2024-2026 Stencil Labs, Inc. (https://stencil.so)
+Copyright (c) 2024-2026 Mario Zechner
 ```
 
----
+We express deep gratitude to the OMP creators, contributors, and the open-source community for pioneering sovereign agentic coding infrastructure.
 
-## 📄 License
-
-NgodeAI CLI is open-source software licensed under the [MIT License](./LICENSE).
 ---
 
 <p align="center">

@@ -1,6 +1,6 @@
 {
   "name": "@ngodeai/coding-agent",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Coding agent CLI with read, bash, edit, write tools and session management",
   "keywords": [
     "agent",
@@ -25,7 +25,7 @@
     "directory": "packages/coding-agent"
   },
   "bin": {
-    "ngodeai": "src/cli.ts"
+    "ngodeai": "dist/cli.js"
   },
   "files": [
     "src",
