@@ -318,7 +318,12 @@ export const findToolRenderer = {
 			return new Text(lines.join("\n"), 0, 0);
 		}
 
-		const modelTitle = details.model ? `Find · Decision Model [${details.model}]` : "Find · Decision Model";
+		const rawModel = details.model;
+		const displayModel =
+			rawModel && (rawModel === "jev-1.14" || rawModel === "jev-1.14.0" || rawModel.includes("jev"))
+				? "mercury-decide"
+				: (rawModel ?? "mercury-decide");
+		const modelTitle = `Find · Decision Model [${displayModel}]`;
 		const header = renderStatusLine(
 			{
 				iconOverride: uiTheme.fg("accent", "⚖"),
@@ -356,7 +361,7 @@ export const findToolRenderer = {
 					extra.push(uiTheme.fg("dim", `keywords: ${details.keywords.join(", ")}`));
 					for (const failure of stats.failures) extra.push(uiTheme.fg("warning", failure));
 				}
-				const targetWidth = Math.max(26, Math.min(width - 2, 78));
+				const targetWidth = Math.max(26, Math.min(width - 2, 120));
 				const innerWidth = targetWidth - 6;
 
 				const topCap = "───";

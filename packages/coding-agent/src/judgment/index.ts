@@ -401,7 +401,7 @@ export class ChainJudge implements Judge {
 					if (kind === "local" || requestImages.length === 0) {
 						const answered = await candidateJudge.judge(request, options);
 						if (kind === "native") timing = this.#timingOf(request, answered);
-						return answered;
+						return { ...answered, model: model.id };
 					}
 					const fitted = kind === "native" ? await fitNativeImages(model, requestImages) : undefined;
 					const images = fitted
@@ -415,7 +415,7 @@ export class ChainJudge implements Judge {
 					const answered = await candidateJudge.judge({ ...request, images }, options);
 					const final = fitted ? sourceBoxes(request.questions, answered, fitted) : answered;
 					if (kind === "native") timing = this.#timingOf(request, final);
-					return final;
+					return { ...final, model: model.id };
 				},
 				options,
 				request,
@@ -476,18 +476,22 @@ export class ChainJudge implements Judge {
 		const timingOf = (request: JudgmentRequest, result: JudgmentResult) => this.#timingOf(request, result);
 		try {
 			const result = await this.#withCandidate(
-				(judge, kind) =>
+				(judge, kind, model) =>
 					run(
 						{
 							label: judge.label,
 							...(judge.supportsImages === undefined ? {} : { supportsImages: judge.supportsImages }),
 							async judge(request, innerOptions) {
 								const answered = await judge.judge(request, innerOptions);
-								scope.complete(request, answered, {
-									startedAt,
-									finishedAt: Date.now(),
-									...(kind === "native" ? timingOf(request, answered) : {}),
-								});
+								scope.complete(
+									request,
+									{ ...answered, model: model.id },
+									{
+										startedAt,
+										finishedAt: Date.now(),
+										...(kind === "native" ? timingOf(request, answered) : {}),
+									},
+								);
 								return answered;
 							},
 						} as Judge,

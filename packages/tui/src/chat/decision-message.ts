@@ -261,7 +261,10 @@ export class DecisionCard extends Container {
 		const innerWidth = targetWidth - 6;
 
 		const modelRaw = event.model || "mercury-decide";
-		const modelName = modelRaw.startsWith("ngodeai/") ? modelRaw.slice(8) : modelRaw;
+		let modelName = modelRaw.startsWith("ngodeai/") ? modelRaw.slice(8) : modelRaw;
+		if (modelName === "jev-1.14" || modelName === "jev-1.14.0" || modelName.includes("jev")) {
+			modelName = "mercury-decide";
+		}
 		const apiBadge = event.api === "typesafe" ? "native System One" : event.api;
 		const fullTitle = ` ⚖ DECIDE · ${modelName} (${apiBadge}) `;
 		const title = truncateToWidth(fullTitle, Math.max(4, targetWidth - 10));
