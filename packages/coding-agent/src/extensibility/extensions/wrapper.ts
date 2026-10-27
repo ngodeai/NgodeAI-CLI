@@ -23,7 +23,7 @@ import {
 	truncateForPrompt,
 } from "../../tools/approval";
 import { getApprovalGrants } from "../../tools/approval-cache";
-import { approvalDecision, assessRiskDeterministically } from "../../tools/risk";
+import { approvalDecision, assessRiskWithJudge } from "../../tools/risk";
 import { defaultLoadModeForToolName } from "../../tools/essential-tools";
 import { withFileMutationSession } from "../../tools/file-write-fallback";
 import { normalizeToolEventInput, resolveToolEventInput } from "../tool-event-input";
@@ -154,6 +154,16 @@ export function wrapRegisteredTools(registeredTools: RegisteredTool[], runner: E
 }
 
 const LOOP_DISPATCH_CONTEXT = Symbol("ngodeai.loop-dispatch");
+
+/**
+ * Wall-clock budget for the contextual risk judge.
+ *
+ * The deterministic read is always available and the prompt is fail-closed on
+ * the user's answer, so the judge is a second opinion that may simply not
+ * arrive. Four seconds matches the other per-turn classifiers: long enough for
+ * a native judge, short enough that a stuck request never holds a dialog.
+ */
+const APPROVAL_RISK_JUDGE_TIMEOUT_MS = 4000;
 type LoopAwareToolContext = AgentToolContext & { [LOOP_DISPATCH_CONTEXT]?: true };
 
 function computerSafetyChecks(context: AgentToolContext | undefined): ComputerSafetyCheck[] {
@@ -444,13 +454,26 @@ export class ExtensionToolWrapper<TParameters extends TSchema = TSchema, TDetail
 			// The risk read is advisory: it fills the dialog's rows and gives the
 			// decision layer something to record, and it never changes the answer.
 			// Approval stays fail-closed on an explicit yes, whatever the score.
-			const risk = assessRiskDeterministically({
+			//
+			// The judge half is a second opinion that can only raise the score. It
+			// is bounded by a timeout so a stuck judge never holds a prompt: a
+			// missing answer falls back to the deterministic read, which is always
+			// available.
+			const riskInput = {
 				toolName: this.tool.name,
 				tier: resolved.tier,
 				args: resolvedArgs,
 				cwd: this.runner.cwd,
 				granted: false,
 				...(resolved.reason === undefined ? {} : { reason: resolved.reason }),
+			};
+			const riskJudge = this.runner.riskJudge();
+			// No decision scope here: the prompt's own event is the record, and it
+			// already carries the judge's score (`approvalDecision` reads
+			// `judgeScore`/`judgeConfidence`). Opening a second scope would record
+			// the same judgment twice.
+			const risk = await assessRiskWithJudge(riskInput, riskJudge, {
+				signal: AbortSignal.timeout(APPROVAL_RISK_JUDGE_TIMEOUT_MS),
 			});
 			// One decision per prompt, recorded after the answer: what the user did
 			// is half of what the decision was, and a prompt that was bypassed

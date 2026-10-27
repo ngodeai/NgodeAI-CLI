@@ -4,6 +4,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { DecisionEvent } from "@ngodeai/ai";
 import type { DecisionSink } from "@ngodeai/ai";
+import type { ChainJudge } from "../../judgment";
 import {
 	type AgentMessage,
 	type AgentTool,
@@ -517,6 +518,7 @@ export class ExtensionRunner {
 	/** Grant keys (see `sessionApprovalScope`) approved "for this session", each prefixed by the session it covers. */
 	#sessionApprovals = new Set<string>();
 	#decisionSink: DecisionSink | undefined;
+	#getRiskJudge: (() => ChainJudge | undefined) | undefined;
 	#trackUserWait?: UserWaitTracker;
 	#errorListeners: Set<ExtensionErrorListener> = new Set();
 	#getModel: () => Model | undefined = () => undefined;
@@ -1017,6 +1019,27 @@ export class ExtensionRunner {
 	/** Record one approval decision, if a sink is wired. */
 	recordDecision(event: DecisionEvent): void {
 		this.#decisionSink?.(event);
+	}
+
+	/**
+	 * Contextual risk judge for the approval dialog, when the host can resolve one.
+	 *
+	 * The deterministic read always runs and is enough on its own; this only adds
+	 * a second opinion that may raise the score. A host that cannot resolve a
+	 * judge leaves the getter unset, and the dialog keeps the deterministic rows
+	 * it always had.
+	 */
+	setRiskJudge(getter: (() => ChainJudge | undefined) | undefined): void {
+		this.#getRiskJudge = getter;
+	}
+
+	/** The host's risk judge, if one was wired. */
+	riskJudge(): ChainJudge | undefined {
+		try {
+			return this.#getRiskJudge?.();
+		} catch {
+			return undefined;
+		}
 	}
 
 	setUserWaitTracker(track: UserWaitTracker): void {

@@ -110,7 +110,8 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 		const timeout = AbortSignal.timeout(FIND_TIMEOUT_MS);
 		// One scope for the whole cascade: its three waves are one decision about
 		// where the query's evidence lives, and the row reports the hit count.
-		const decision = this.session.getDecisions?.()?.open("find", { risk: "read" });
+		const decisions = this.session.getDecisions?.();
+		const decision = decisions?.open("find", { risk: "read" });
 		let result: CascadeResult;
 		try {
 			result = await runCascade({
@@ -132,13 +133,22 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 		}
 		const elapsedMs = performance.now() - started;
 		const { stats, threshold, keywords, coverage } = result;
+		// The strongest hit's score is the confidence the caller acts on. The
+		// matrix's `read` row decides whether that is enough to trust without a
+		// second look; a `block` verdict means the answer was too unsure to
+		// report as a hit set, which reads as no hits rather than as a finding.
+		const topScore = result.hits[0]?.contentScore;
+		const gate = topScore === undefined ? undefined : decisions?.gate("find", topScore, "read");
+		const trusted = gate?.verdict !== "block";
 		decision?.settle({
-			action: result.hits.length > 0 ? "auto" : "silent",
-			tier: result.hits.length > 0 ? "line" : "silent",
+			action: result.hits.length > 0 && trusted ? "auto" : "silent",
+			tier: result.hits.length > 0 && trusted ? "line" : "silent",
 			reason:
-				result.hits.length > 0
-					? `${result.hits.length} hits · ${stats.requests} judge requests`
-					: `no hits · ${stats.requests} judge requests · ${coverage}`,
+				gate?.verdict === "block"
+					? `top hit too unsure · ${gate.reason}`
+					: result.hits.length > 0
+						? `${result.hits.length} hits · ${stats.requests} judge requests`
+						: `no hits · ${stats.requests} judge requests · ${coverage}`,
 		});
 		// Cascade paths are root-relative; the model and renderer want paths
 		// `read` resolves (cwd-relative files, URLs under URL scopes, including

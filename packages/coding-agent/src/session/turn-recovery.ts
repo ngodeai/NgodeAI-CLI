@@ -1166,6 +1166,7 @@ export class TurnRecovery {
 			const onSessionAbort = (): void => controller.abort();
 			sessionSignal?.addEventListener("abort", onSessionAbort, { once: true });
 			const stop = { message: text, request: this.#latestOperatorRequest() };
+			const decisions = this.#host.decisions?.();
 			let classification: boolean | undefined;
 			try {
 				classification = await classifyUnexpectedStop(stop, {
@@ -1177,7 +1178,8 @@ export class TurnRecovery {
 					onUsage: journalJudgmentUsage(this.#host.sessionManager),
 					telemetry: this.#host.agent.telemetry,
 					signal: controller.signal,
-					decision: this.#host.decisions?.().open("unexpected_stop", { risk: "read" }),
+					decision: decisions?.open("unexpected_stop", { risk: "read" }),
+					gate: decisions === undefined ? undefined : confidence => decisions.gate("unexpected_stop", confidence),
 				});
 			} finally {
 				clearTimeout(timeout);

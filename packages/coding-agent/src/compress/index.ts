@@ -299,15 +299,24 @@ async function reviewDraft(
 			{ ...(signal === undefined ? {} : { signal }), decision },
 		);
 		const shippable = (answers.shippable as NoulAnswer).noul;
+		// Two thresholds answer two questions. The local one decides whether the
+		// draft is flagged for the agent to see; the layer's `write` matrix decides
+		// whether the *answer* was sure enough to accept the draft without a human
+		// ever seeing the doubt. `irreversible` never auto-approves, and this point
+		// is a write, so a confident answer is the only way a draft ships quietly.
 		const flagged = shippable < COMPRESS_REVIEW_FLAG_BELOW;
+		const gate = session.decisions.gate("compress", shippable, "write");
+		const blocked = !flagged && gate.verdict !== "auto";
 		decision.settle({
-			action: flagged ? "gated" : "silent",
-			tier: flagged ? "line" : "silent",
-			reason: flagged
-				? `second opinion doubts draft ${draft.round} (${shippable.toFixed(2)})`
-				: `draft ${draft.round} reads as faithful (${shippable.toFixed(2)})`,
+			action: flagged || blocked ? "gated" : "silent",
+			tier: flagged || blocked ? "line" : "silent",
+			reason: blocked
+				? `second opinion not confident enough to ship quietly · ${gate.reason}`
+				: flagged
+					? `second opinion doubts draft ${draft.round} (${shippable.toFixed(2)})`
+					: `draft ${draft.round} reads as faithful (${shippable.toFixed(2)})`,
 		});
-		return { shippable, flagged };
+		return { shippable, flagged: flagged || blocked };
 	} catch (error) {
 		if (!signal?.aborted) {
 			logger.debug("compress second opinion failed", {

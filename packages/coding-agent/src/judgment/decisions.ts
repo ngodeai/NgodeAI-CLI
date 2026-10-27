@@ -47,7 +47,6 @@ import {
 /** The decision points this build ships, in the order `/decisions` lists them. */
 export const DECISION_POINTS = [
 	"tool_approval",
-	"verify_edit",
 	"route_task",
 	"thinking_level",
 	"unexpected_stop",
@@ -66,7 +65,6 @@ export type DecisionPointId = (typeof DECISION_POINTS)[number];
 /** Risk class per point: what the answer authorizes, not what it is about. */
 const POINT_RISK: Readonly<Record<string, DecisionRisk>> = {
 	tool_approval: "write",
-	verify_edit: "write",
 	route_task: "read",
 	thinking_level: "read",
 	unexpected_stop: "read",

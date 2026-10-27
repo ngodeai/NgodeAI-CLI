@@ -27,7 +27,7 @@
  * irreversible call is never auto-approved, whatever number comes back — that
  * rule lives in `DecisionLayer.gate` and is structural, not a threshold.
  */
-import type { DecisionEvent, DecisionScope, JsonValue } from "@ngodeai/ai";
+import type { DecisionEvent, DecisionScope, JsonValue, Judge } from "@ngodeai/ai";
 import type { ToolTier } from "@ngodeai/agent-core";
 
 /** How dangerous acting on a call is, in the vocabulary the gate matrix uses. */
@@ -335,6 +335,44 @@ export function mergeJudgeRisk(
 }
 
 /**
+ * The deterministic read, raised by a contextual judge when one answers.
+ *
+ * Advisory in both directions: a failed or missing judge leaves the
+ * deterministic assessment untouched, and a judge that answers lower than the
+ * signals still cannot make the call look safer ({@link mergeJudgeRisk}). The
+ * approval decision stays fail-closed on the user's answer either way.
+ */
+export async function assessRiskWithJudge(
+	input: RiskInput,
+	judge: Judge | undefined,
+	options: { signal?: AbortSignal; decision?: DecisionScope } = {},
+): Promise<RiskAssessment> {
+	const deterministic = assessRiskDeterministically(input);
+	if (!judge) return deterministic;
+	try {
+		const { answers } = await judge.judge(
+			{
+				state: riskState(input, deterministic),
+				questions: { risk: { type: "score", ...RISK_QUESTION } },
+			},
+			{
+				...(options.signal === undefined ? {} : { signal: options.signal }),
+				...(options.decision === undefined ? {} : { decision: options.decision }),
+			},
+		);
+		const answer = answers.risk;
+		if (typeof answer?.score !== "number" || !Number.isFinite(answer.score)) return deterministic;
+		return mergeJudgeRisk(deterministic, {
+			score: answer.score,
+			...(typeof answer.confidence === "number" ? { confidence: answer.confidence } : {}),
+		});
+	} catch {
+		// A judge that cannot answer must not delay or soften an approval prompt.
+		return deterministic;
+	}
+}
+
+/**
  * A one-line `why` for the approval dialog.
  *
  * Built from the signals rather than from generated prose: the dialog must not
@@ -349,15 +387,6 @@ export function riskReason(assessment: RiskAssessment): string {
 			? `; model review ${assessment.judgeScore.toFixed(2)}`
 			: "";
 	return `${top.join("; ")}${judged}`;
-}
-
-/** Open a decision scope for an approval risk assessment, when a layer is available. */
-export function openRiskDecision(
-	layer:
-		| { open(point: string, options?: { risk?: RiskClass; decisionKeys?: readonly string[] }): DecisionScope }
-		| undefined,
-): DecisionScope | undefined {
-	return layer?.open("tool_approval", { risk: "write", decisionKeys: ["risk"] });
 }
 
 /**

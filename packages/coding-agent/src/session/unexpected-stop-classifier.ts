@@ -8,7 +8,7 @@ import { type AssistantMessage, type DecisionScope, type JudgmentState, judgeQue
 import { logger } from "@ngodeai/utils";
 import type { ModelRegistry } from "../config/model-registry";
 import type { Settings } from "../config/settings";
-import { type JudgmentUsage, resolveJudge, sharedJudgmentCache } from "../judgment";
+import { type JudgmentUsage, resolveJudge, sharedJudgmentCache, type GateResult } from "../judgment";
 import questionFile from "../prompts/judge/unexpected-stop.json" with { type: "json" };
 
 /**
@@ -55,6 +55,14 @@ export interface ClassifyUnexpectedStopDeps {
 	signal?: AbortSignal;
 	/** Decision the check feeds; settled here with the threshold verdict. */
 	decision?: DecisionScope;
+	/**
+	 * Apply the decision layer's confidence matrix to the `stopped` probability.
+	 *
+	 * The point's own `read` matrix decides whether the answer is confident
+	 * enough to act on. Without it the classifier keeps its fixed threshold, so a
+	 * host that never wired the layer behaves exactly as before.
+	 */
+	gate?: (confidence: number) => GateResult;
 }
 
 /** Detects terminal turns eligible for mechanical recovery or smart classification. */
@@ -105,15 +113,25 @@ export async function classifyUnexpectedStop(
 			{ signal: deps.signal, ...(deps.decision === undefined ? {} : { decision: deps.decision }) },
 		);
 		const stopped = answers.stopped.noul >= UNEXPECTED_STOP_THRESHOLD;
+		// The matrix only widens or narrows *acting* on a confident answer; the
+		// classifier's own threshold still has to agree, so a gate can never turn
+		// a "no" into a retry. `block` means the answer was too unsure to act on,
+		// which is the same outcome as a "no": leave the turn alone.
+		const gate = deps.gate?.(stopped ? answers.stopped.noul : 1 - answers.stopped.noul);
+		const acting = stopped && gate?.verdict !== "block";
 		// A "no" is the common case and changes nothing, so it stays out of the
 		// transcript; the ledger keeps both, which is what makes the threshold
 		// tunable from real data later.
 		deps.decision?.settle({
-			action: stopped ? "auto" : "silent",
-			tier: stopped ? "line" : "silent",
-			reason: stopped ? "promised work then stopped" : "turn ended normally",
+			action: acting ? "auto" : "silent",
+			tier: acting ? "line" : "silent",
+			reason: acting
+				? `promised work then stopped${gate === undefined ? "" : ` · ${gate.reason}`}`
+				: gate?.verdict === "block"
+					? `too unsure to retry · ${gate.reason}`
+					: "turn ended normally",
 		});
-		return stopped;
+		return acting;
 	} catch (error) {
 		logger.debug("unexpected-stop: classification failed", {
 			error: error instanceof Error ? error.message : String(error),

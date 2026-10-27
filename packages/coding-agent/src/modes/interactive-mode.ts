@@ -3667,7 +3667,14 @@ export class InteractiveMode implements InteractiveModeContext {
 		const mode = cfgTuiAutoGraph.get(this.settings);
 		setTableCharts(
 			mode,
-			mode === "smart" ? request => pickTableChart(request, this.session.tableChartJudge()) : undefined,
+			mode === "smart"
+				? request =>
+						pickTableChart(
+							request,
+							this.session.tableChartJudge(),
+							this.session.decisions.open("chart", { risk: "read" }),
+						)
+				: undefined,
 		);
 	}
 

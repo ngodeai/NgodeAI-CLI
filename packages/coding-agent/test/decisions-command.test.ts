@@ -179,7 +179,7 @@ describe("/decisions", () => {
 			ledger.append(decisionFromResult("find", REQUEST, RESULT, { action: "auto" }, { sessionId: "s" }));
 			ledger.append(
 				decisionFromResult(
-					"verify_edit",
+					"chart",
 					REQUEST,
 					RESULT,
 					{ action: "auto", conflict: "typecheck failed" },
@@ -187,7 +187,7 @@ describe("/decisions", () => {
 				),
 			);
 			const text = await run("conflicts", ledger);
-			expect(text).toContain("verify edit");
+			expect(text).toContain("chart");
 			expect(text).not.toContain("find");
 		} finally {
 			ledger.close();

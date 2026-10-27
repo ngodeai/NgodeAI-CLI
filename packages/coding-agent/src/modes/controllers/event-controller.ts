@@ -85,6 +85,7 @@ import {
 } from "../settings";
 import { getCacheWarmingDelayMs } from "../../session/cache-warmer";
 import { cfgCompaction } from "../../session/context-settings";
+import { cfgDecisionsShowCards, cfgDecisionsShowLines } from "../../judgment/settings";
 import { cfgReadToolResultPreview, cfgToolsApproval, cfgToolsApprovalMode } from "../../tools/settings";
 import { cfgSpeechEnabled, cfgSpeechMode } from "../../tts/settings";
 
@@ -2750,6 +2751,11 @@ export class EventController {
 	async #handleDecision(event: Extract<AgentSessionEvent, { type: "decision" }>): Promise<void> {
 		const decision = event.decision;
 		if (decision.tier === "silent") return;
+		// The layer decides what earned transcript space; these two settings let a
+		// user take it back without turning recording off. A line and a card are
+		// separate choices because a card carries the distribution and costs rows.
+		if (decision.tier === "line" && !cfgDecisionsShowLines.get(this.ctx.settings)) return;
+		if (decision.tier === "card" && !cfgDecisionsShowCards.get(this.ctx.settings)) return;
 		const component = createDecisionComponent(decision, this.ctx.toolOutputExpanded);
 		this.ctx.present(component);
 	}

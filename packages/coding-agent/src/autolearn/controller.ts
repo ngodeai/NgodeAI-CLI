@@ -208,13 +208,20 @@ export class AutoLearnController {
 			);
 			const nothing = answers.worth.probabilities.nothing ?? 0;
 			const keep = 1 - nothing;
-			const worth = nothing < AUTOLEARN_SKIP_AT;
+			// The point's `read` matrix decides whether a confident "keep" is
+			// enough to spend a whole capture turn. Its own skip threshold still
+			// applies, so a gate can only ever make the capture *less* likely:
+			// spending a turn on a doubtful answer is the expensive mistake.
+			const gate = this.#session.decisions.gate("autolearn", keep, "read");
+			const worth = nothing < AUTOLEARN_SKIP_AT && gate.verdict !== "block";
 			decision.settle({
 				action: worth ? "auto" : "skipped",
 				tier: worth ? "line" : "silent",
 				reason: worth
 					? `worth keeping (${answers.worth.choice}) · ${keep.toFixed(2)}`
-					: `nothing to keep · ${nothing.toFixed(2)}`,
+					: gate.verdict === "block"
+						? `too unsure to spend a capture turn · ${gate.reason}`
+						: `nothing to keep · ${nothing.toFixed(2)}`,
 			});
 			return worth;
 		} catch (error) {

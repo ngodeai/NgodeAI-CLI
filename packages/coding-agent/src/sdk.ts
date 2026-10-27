@@ -3516,6 +3516,10 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 					}
 				: undefined,
 		);
+		// The approval dialog's contextual risk read. Resolved lazily so a model
+		// or credential switch between prompts applies, and optional so a host
+		// without a session keeps the deterministic read alone.
+		extensionRunner.setRiskJudge(hasSession ? () => session.decisionJudge("tool_approval") : undefined);
 
 		credentialDisabledTarget = extensionRunner;
 		for (const event of startupCredentialDisabledEvents.splice(0)) {

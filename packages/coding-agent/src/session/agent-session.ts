@@ -176,6 +176,7 @@ import { InternalUrlRouter, type LocalProtocolOptions } from "../internal-urls";
 import {
 	type ChainJudge,
 	DecisionLayer,
+	cfgDecisionsStatusSegment,
 	hasNativeJudge,
 	journalJudgmentUsage,
 	resolveJudge,
@@ -3376,10 +3377,13 @@ export class AgentSession implements SettingsScope {
 	 *
 	 * Reads the layer's in-memory counters rather than the ledger: this runs on
 	 * every status repaint, and an aggregate query per frame would cost more
-	 * than the feature it reports.
+	 * than the feature it reports. `null` hides the segment: the layer is off, or
+	 * the user turned the counter off in settings.
 	 */
 	getDecisionCounts(): { count: number; gated: number } | null {
-		return this.decisions.enabled ? this.decisions.counts : null;
+		if (!this.decisions.enabled) return null;
+		if (!cfgDecisionsStatusSegment.get(this.settings)) return null;
+		return this.decisions.counts;
 	}
 
 	/**

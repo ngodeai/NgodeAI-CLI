@@ -12,6 +12,7 @@
 import {
 	type Answer,
 	type ChoiceQuestion,
+	type DecisionScope,
 	type JudgmentState,
 	judgeQuestions,
 	type Questions,
@@ -61,20 +62,40 @@ const PICK_TIMEOUT_MS = 15_000;
  * The judge's chart for `request`, or `null` when it sees none.
  * @throws when no judge candidate answers (the caller falls back to the guess).
  */
-export async function pickTableChart(request: TableChartRequest, judge: ChainJudge): Promise<ChartPlan | null> {
-	const options = { signal: AbortSignal.timeout(PICK_TIMEOUT_MS) };
-	return judge.withCandidate(async (candidate, kind) => {
-		const { state, questions } = judgeRequest(request);
-		if (kind === "local") {
-			// Keyword answers only carry the kind; the rest of the guess stands.
-			const { answers } = await candidate.judge({ state, questions: { kind: kindQuestion(request) } }, options);
-			const choice = answers.kind.choice;
-			if (!isOption(QUESTIONS.kind.criteria, choice)) return request.guess;
-			return choice === "none" ? null : { ...request.guess, kind: choice };
-		}
-		const { answers } = await candidate.judge({ state, questions }, options);
-		return planFromAnswers(request, answers);
-	}, options);
+export async function pickTableChart(
+	request: TableChartRequest,
+	judge: ChainJudge,
+	decision?: DecisionScope,
+): Promise<ChartPlan | null> {
+	const options = {
+		signal: AbortSignal.timeout(PICK_TIMEOUT_MS),
+		...(decision === undefined ? {} : { decision }),
+	};
+	try {
+		const plan = await judge.withCandidate(async (candidate, kind) => {
+			const { state, questions } = judgeRequest(request);
+			if (kind === "local") {
+				// Keyword answers only carry the kind; the rest of the guess stands.
+				const { answers } = await candidate.judge({ state, questions: { kind: kindQuestion(request) } }, options);
+				const choice = answers.kind.choice;
+				if (!isOption(QUESTIONS.kind.criteria, choice)) return request.guess;
+				return choice === "none" ? null : { ...request.guess, kind: choice };
+			}
+			const { answers } = await candidate.judge({ state, questions }, options);
+			return planFromAnswers(request, answers);
+		}, options);
+		// A chart is a presentation choice, not a change of path: the row belongs in
+		// the ledger for per-point accounting, never in the transcript.
+		decision?.settle({
+			action: plan ? "auto" : "skipped",
+			tier: "silent",
+			reason: plan ? `drew a ${plan.kind} chart` : "judge saw no chart worth drawing",
+		});
+		return plan;
+	} catch (error) {
+		decision?.settle({ action: "skipped", tier: "silent", reason: "chart pick failed; drew the local guess" });
+		throw error;
+	}
 }
 
 /** The kind question for `request`: every kind its data can draw ({@link kindCriteria}), and `none`. */

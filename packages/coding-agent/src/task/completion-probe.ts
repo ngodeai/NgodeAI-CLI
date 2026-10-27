@@ -265,17 +265,31 @@ function inflightToolCalls(session: AgentSession): InflightToolCall[] {
  * is exactly what a judge does not produce.
  */
 async function estimateProgress(session: AgentSession, signal: AbortSignal): Promise<number | undefined> {
+	const decision = session.decisions?.open("completion", { risk: "read" });
 	try {
 		const judge: Judge | undefined = session.decisionJudge?.("completion");
-		if (!judge) return undefined;
+		if (!judge) {
+			decision?.settle({ action: "skipped", tier: "silent", reason: "no judge resolved" });
+			return undefined;
+		}
 		const request = latestOperatorRequest(session);
 		const { answers } = await judge.judge(
 			{ state: progressState(session, request), questions: { progress: PROGRESS_QUESTIONS.progress } },
-			{ signal },
+			{ signal, ...(decision === undefined ? {} : { decision }) },
 		);
 		const answer = answers.progress;
-		return percentFromScore(answer.probabilities, answer.score);
+		const percent = percentFromScore(answer.probabilities, answer.score);
+		// The probe's whole output is this number, so the ledger row says what it
+		// came to; the transcript stays silent because a percentage every few
+		// minutes is not a change of path.
+		decision?.settle({
+			action: "auto",
+			tier: "silent",
+			reason: `estimated ${percent}% complete`,
+		});
+		return percent;
 	} catch (error) {
+		decision?.settle({ action: "skipped", tier: "silent", reason: "judge request failed" });
 		if (!signal.aborted) {
 			logger.debug("Completion judge failed", { error: error instanceof Error ? error.message : String(error) });
 		}

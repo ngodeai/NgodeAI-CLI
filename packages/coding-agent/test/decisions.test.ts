@@ -223,7 +223,7 @@ describe("DecisionLedger", () => {
 			ledger.append(decisionFromResult("ttsr", REQUEST, RESULT, { action: "blocked" }, { sessionId: "a" }));
 			ledger.append(
 				decisionFromResult(
-					"verify_edit",
+					"chart",
 					REQUEST,
 					RESULT,
 					{

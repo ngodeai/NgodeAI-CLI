@@ -15,6 +15,8 @@ import type { VcsHunkSelection } from "@ngodeai/natives";
 import * as vcs from "@ngodeai/natives/vcs";
 import { isEnoent, logger } from "@ngodeai/utils";
 import { parseFileDiffs, parseFileHunks } from "../../commit/git/diff";
+import { DecisionLayer } from "../../judgment/decisions";
+import { sharedDecisionLedger } from "../../judgment/ledger";
 import { openStandaloneJudge } from "../../judgment/standalone";
 import questionFile from "../../prompts/judge/git-stage.json" with { type: "json" };
 import { mapWithConcurrencyLimitAllSettled } from "../../task/parallel";
@@ -98,6 +100,12 @@ export async function aiStage(options: AiStageOptions): Promise<AiStageOutcome> 
 
 	onProgress?.("Resolving model…");
 	const { judge, close } = await openStandaloneJudge(cwd, "git_stage");
+	// One decision for the whole staging run: the wave of per-unit judgments and
+	// the verification pick are one answer to "what belongs in this commit".
+	// There is no session here, so the layer runs standalone: no emitter, the
+	// shared ledger, and no settings to gate it.
+	const decisions = DecisionLayer.open({ ledger: sharedDecisionLedger() });
+	const decision = decisions.open("git_stage", { risk: "write", decisionKeys: ["belongs"] });
 	try {
 		onProgress?.("Reading changes…");
 		const rawDiff = tracked.length > 0 ? await repo.diffText({ files: tracked.map(file => file.path) }, signal) : "";
@@ -157,7 +165,7 @@ export async function aiStage(options: AiStageOptions): Promise<AiStageOutcome> 
 						},
 						questions: { belongs: QUESTIONS.belongs },
 					},
-					{ signal: workerSignal },
+					{ signal: workerSignal, decision },
 				);
 				onProgress?.(`Judging ${++settled}/${units.length} changes…`);
 				return answers.belongs.probabilities[PART_OF_IT];
@@ -236,6 +244,11 @@ export async function aiStage(options: AiStageOptions): Promise<AiStageOutcome> 
 		if (selections.length > 0) await repo.stageHunks(selections, rawDiff || null, signal);
 		if (untrackedAccepted.length > 0) await repo.stageFiles(untrackedAccepted, signal);
 
+		decision.settle({
+			action: matchedPaths.size > 0 ? "auto" : "silent",
+			tier: matchedPaths.size > 0 ? "line" : "silent",
+			reason: `${matchedPaths.size} of ${filePaths.size} files staged · ${stagedHunks} of ${totalHunks} hunks`,
+		});
 		return {
 			matchedFiles: matchedPaths.size,
 			totalFiles: filePaths.size,
