@@ -23,7 +23,7 @@
  * experiment runs, the report states what happened and nothing about what
  * might have.
  */
-import type { DecisionEvent } from "@ngodeai/ai";
+import type { DecisionEvent, Judge, JudgmentState, NoulQuestion } from "@ngodeai/ai";
 import type { DecisionLedger } from "./ledger";
 
 /** How a task ended. */
@@ -188,4 +188,75 @@ export function summarise(label: string, reports: readonly TaskDecisionReport[])
 /** Read the decisions a session recorded, for a whole-session benchmark. */
 export function sessionDecisions(ledger: DecisionLedger, sessionId: string, limit = 10_000): DecisionEvent[] {
 	return ledger.list({ session: sessionId, limit });
+}
+
+/** Empirical benchmark result comparing sequential vs batched decisions (Jev Step 5). */
+export interface BatchBenchmarkResult {
+	questions: number;
+	sequentialMs: number;
+	batchMs: number;
+	speedup: number;
+	sequentialInputTokens: number;
+	batchInputTokens: number;
+	tokenSavingsRatio: number;
+}
+
+/**
+ * Run an empirical benchmark comparing 13 batched questions vs 13 sequential questions.
+ *
+ * Demonstrates Jev Step 5: batching N questions over 1 state payload sends the state once,
+ * saving round-trips and repeated prompt tokens.
+ */
+export async function runBatchBenchmark(
+	judge: Judge,
+	options: { questionsCount?: number; signal?: AbortSignal } = {},
+): Promise<BatchBenchmarkResult> {
+	const count = options.questionsCount ?? 13;
+	const state: JudgmentState = {
+		module: "auth_gateway",
+		action: "token_refresh",
+		tier: "write",
+		target: "https://api.ngodeai.net/v1/auth",
+		payload_size: 4096,
+		context: "Session token expired; re-authenticating with refresh lease",
+	};
+
+	const questionsMap: Record<string, NoulQuestion> = {};
+	for (let i = 0; i < count; i++) {
+		questionsMap[`q_${i}`] = {
+			type: "noul",
+			instructions: `Does check #${i} allow proceeding with token refresh?`,
+		};
+	}
+
+	// 1. Batch execution: 1 request with all N questions
+	const startBatch = performance.now();
+	const batchResult = await judge.judge({ state, questions: questionsMap }, { signal: options.signal });
+	const batchMs = Math.max(1, performance.now() - startBatch);
+	const batchTokens = Math.max(1, batchResult.usage.input);
+
+	// 2. Sequential execution: N separate requests with 1 question each
+	let seqTokens = 0;
+	const startSeq = performance.now();
+	for (let i = 0; i < count; i++) {
+		const singleResult = await judge.judge(
+			{ state, questions: { [`q_${i}`]: questionsMap[`q_${i}`]! } },
+			{ signal: options.signal },
+		);
+		seqTokens += singleResult.usage.input;
+	}
+	const sequentialMs = Math.max(1, performance.now() - startSeq);
+
+	const speedup = Number((sequentialMs / batchMs).toFixed(1));
+	const tokenSavingsRatio = Number((seqTokens / batchTokens).toFixed(1));
+
+	return {
+		questions: count,
+		sequentialMs: Math.round(sequentialMs),
+		batchMs: Math.round(batchMs),
+		speedup,
+		sequentialInputTokens: seqTokens,
+		batchInputTokens: batchTokens,
+		tokenSavingsRatio,
+	};
 }

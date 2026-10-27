@@ -48,8 +48,8 @@ import {
 export const DECISION_POINTS = [
 	"tool_approval",
 	"user_question",
+	"browser_action",
 	"route_task",
-	"thinking_level",
 	"unexpected_stop",
 	"ttsr",
 	"find",
@@ -67,6 +67,7 @@ export type DecisionPointId = (typeof DECISION_POINTS)[number];
 const POINT_RISK: Readonly<Record<string, DecisionRisk>> = {
 	tool_approval: "write",
 	user_question: "read",
+	browser_action: "write",
 	route_task: "read",
 	thinking_level: "read",
 	unexpected_stop: "read",
@@ -278,6 +279,23 @@ export class DecisionLayer {
 		return this.#ledger?.get(id);
 	}
 
+	/** Record a post-hoc verification conflict on an existing decision. */
+	recordConflict(id: number, conflict: string): boolean {
+		return this.#ledger?.setConflict(id, conflict) ?? false;
+	}
+
+	/**
+	 * Step 9: State -> Questions -> Action -> Verify.
+	 *
+	 * Verify the outcome of a decision post-hoc. If `check.passed` is false,
+	 * the divergence is recorded as a conflict on the decision row so
+	 * `/decisions conflicts` surfaces where predictions failed reality.
+	 */
+	verify(id: number, check: { passed: boolean; observation: string }): boolean {
+		if (check.passed) return true;
+		this.recordConflict(id, check.observation);
+		return false;
+	}
 	/** The ledger behind this layer, for callers that need a raw query. */
 	get ledger(): DecisionLedger | undefined {
 		return this.#ledger;

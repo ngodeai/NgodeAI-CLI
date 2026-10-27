@@ -20,7 +20,7 @@
  */
 import { formatDuration, formatNumber } from "@ngodeai/utils";
 import type { DecisionEvent, JudgmentState } from "@ngodeai/ai";
-import { reportTask } from "../judgment/benchmark";
+import { reportTask, runBatchBenchmark } from "../judgment/benchmark";
 import { hasNativeJudge } from "../judgment";
 import type { DecisionTotals } from "../judgment/ledger";
 import { pointLabel, probabilityBar } from "@ngodeai/tui/chat/decision-message";
@@ -242,6 +242,7 @@ function renderActivation(session: AgentSession): string[] {
 	lines.push(theme.fg("dim", `  ${"─".repeat(66)}`));
 	// The one point a prompt alone can reach: the model calls `ask`, a human answers.
 	lines.push(row("user_question", true, "the model calls `ask` — any question it needs answered"));
+	lines.push(row("browser_action", true, "the model interacts with a browser tab or computer GUI"));
 	lines.push(
 		row(
 			"tool_approval",
@@ -552,6 +553,7 @@ async function handleReplay(id: string, runtime: SlashCommandRuntime): Promise<S
 			theme.fg("dim", `  original #${id} at ${clock(original.at)} · now ${replayed.result.model}`),
 			"",
 		];
+		const conflicts: string[] = [];
 		for (const [questionId, answer] of Object.entries(replayed.result.answers)) {
 			const before = original.answers.find(a => a.question === questionId);
 			const now =
@@ -566,10 +568,18 @@ async function handleReplay(id: string, runtime: SlashCommandRuntime): Promise<S
 							: "box";
 			const previous = before === undefined ? "—" : String(before.value);
 			const changed = before !== undefined && previous !== now;
+			if (changed) {
+				conflicts.push(`${questionId}: was ${previous}, now ${now}`);
+			}
 			const mark = changed ? theme.fg("warning", "≠") : theme.fg("dim", "=");
 			lines.push(
 				`  ${mark} ${cell(questionId, 18)} ${cell(previous, 14)} → ${theme.fg(changed ? "warning" : "text", now)}`,
 			);
+		}
+		if (conflicts.length > 0) {
+			session.decisions.recordConflict(Number(id), conflicts.join("; "));
+			lines.push("");
+			lines.push(theme.fg("warning", `  ⚠ recorded conflict on #${id} (${conflicts.length} divergence)`));
 		}
 		await runtime.output(lines.join("\n"));
 		return commandConsumed();
@@ -642,6 +652,37 @@ async function handleDecisions(command: { args: string }, runtime: SlashCommandR
 		return handleAsk(parsed.rest, runtime);
 	}
 	if (parsed.verb === "bench") {
+		if (parsed.rest.trim() === "batch") {
+			const judge = session.decisionJudge?.("benchmark");
+			if (!judge) {
+				await runtime.output(theme.fg("muted", "  No judge available to benchmark."));
+				return commandConsumed({ failed: true });
+			}
+			await runtime.output(theme.fg("dim", "  Running 13-question benchmark (sequential vs batch)…"));
+			try {
+				const bench = await runBatchBenchmark(judge);
+				const lines: string[] = [
+					theme.fg("text", theme.bold("  Jev Step 5 · Empirical Batch Benchmark")),
+					theme.fg("dim", `  ${"─".repeat(58)}`),
+					`  questions         ${bench.questions}`,
+					`  sequential        ${formatDuration(bench.sequentialMs)} · ${bench.sequentialInputTokens} tokens`,
+					`  batched           ${formatDuration(bench.batchMs)} · ${bench.batchInputTokens} tokens`,
+					theme.fg("dim", `  ${"─".repeat(58)}`),
+					`  speedup           ${theme.fg("success", `${bench.speedup}x faster`)}`,
+					`  token efficiency  ${theme.fg("success", `${bench.tokenSavingsRatio}x cheaper`)} (shared state reused)`,
+					"",
+					theme.fg("dim", "  Batching dispatches N typed questions over 1 state payload instead"),
+					theme.fg("dim", "  of resending the full state N times sequentially."),
+				];
+				await runtime.output(lines.join("\n"));
+				return commandConsumed();
+			} catch (error) {
+				await runtime.output(
+					theme.fg("error", `  Benchmark failed: ${error instanceof Error ? error.message : String(error)}`),
+				);
+				return commandConsumed({ failed: true });
+			}
+		}
 		await runtime.output(renderBench(runtime.session));
 		return commandConsumed();
 	}
@@ -703,7 +744,11 @@ export const decisionSlashCommands: SlashCommandSpec[] = [
 			{ name: "new", description: "Create a decision point file", usage: "<name>" },
 			{ name: "ask", description: "Run a declared point over a state", usage: "<point> [state-file-or-json]" },
 			{ name: "replay", description: "Re-ask a recorded decision against its stored state", usage: "<id>" },
-			{ name: "bench", description: "Session cost and latency per decision point" },
+			{
+				name: "bench",
+				description: "Session metrics, or 'bench batch' for Jev empirical speedup",
+				usage: "[batch]",
+			},
 		],
 		subcommandOptional: true,
 		handle: handleDecisions,

@@ -92,8 +92,8 @@ describe("shipped decision points", () => {
 		const wired = new Set<string>([
 			"tool_approval",
 			"user_question",
+			"browser_action",
 			"route_task",
-			"thinking_level",
 			"unexpected_stop",
 			"ttsr",
 			"find",

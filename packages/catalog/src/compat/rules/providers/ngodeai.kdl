@@ -15,5 +15,6 @@
 provider "ngodeai" {
 	default-model "ngodeai/auto"
 	env "NGODEAI_API_KEY"
-	discovery label="NgodeAI"
+	allow-unauthenticated #true
+	discovery label="NgodeAI" allow-unauthenticated=#true
 }

@@ -1637,7 +1637,7 @@ export class ModelRegistry {
 		const disabledProviders = getDisabledProviderIdsFromSettings(this.#settings);
 		this.#implicitLocalProviders.clear();
 		this.#implicitProviderEndpointEnv.clear();
-		for (const provider of ["local", "web"]) {
+		for (const provider of ["local", "web", "ngodeai"]) {
 			if (!disabledProviders.has(provider)) this.#keylessProviders.add(provider);
 		}
 		const ollamaEndpointEnv = Bun.env.OLLAMA_BASE_URL?.trim()

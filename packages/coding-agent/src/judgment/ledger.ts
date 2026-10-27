@@ -189,7 +189,7 @@ export class DecisionLedger {
 	readonly #insertQuestion: Statement<unknown, [number, number, string, string, string, string | null]>;
 	readonly #insertAnswer: Statement<unknown, [number, number, string, string, string, string | null, number | null]>;
 	readonly #insertState: Statement<unknown, [string, string, number]>;
-
+	readonly #updateConflict: Statement<unknown, [string, number]>;
 	private constructor(db: Database) {
 		this.#db = db;
 		db.run(SCHEMA);
@@ -206,6 +206,7 @@ RETURNING id`);
 			"INSERT INTO answers (decision, ordinal, question, type, value, probabilities, confidence) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		);
 		this.#insertState = db.prepare("INSERT OR IGNORE INTO states (digest, state, created_at) VALUES (?, ?, ?)");
+		this.#updateConflict = db.prepare("UPDATE decisions SET conflict = ? WHERE id = ?");
 	}
 
 	/**
@@ -277,6 +278,17 @@ RETURNING id`);
 		} catch (error) {
 			logger.warn("decision ledger write failed", { error: String(error), point: event.point });
 			return undefined;
+		}
+	}
+
+	/** Record a post-hoc verification conflict on an existing decision. */
+	setConflict(id: number, conflict: string): boolean {
+		try {
+			this.#updateConflict.run(conflict, id);
+			return true;
+		} catch (error) {
+			logger.warn("decision ledger conflict update failed", { error: String(error), id });
+			return false;
 		}
 	}
 

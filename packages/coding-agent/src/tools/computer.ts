@@ -276,8 +276,25 @@ async function runComputer(
 	const readOnly = params.action === "call" ? isReadOnlyComputerCall(params.chain) : (params.read_only ?? false);
 	const timeoutSeconds = clampTimeout("computer", params.timeout, cfgToolsMaxTimeout.get(session.settings));
 	const snapshot = buildComputerSnapshot(session, readOnly);
-	const run = await controller.run(code, timeoutSeconds * 1000, snapshot, signal, context.context);
-	throwIfAborted(signal);
+	const decisions = session.getDecisions?.();
+	const decision = decisions?.open("browser_action", { risk: readOnly ? "read" : "write", decisionKeys: ["action"] });
+	let run: Awaited<ReturnType<ComputerController["run"]>>;
+	try {
+		run = await controller.run(code, timeoutSeconds * 1000, snapshot, signal, context.context);
+		throwIfAborted(signal);
+		decision?.settle({
+			action: "auto",
+			tier: "line",
+			reason: `desktop ${readOnly ? "inspection" : "interaction"}: ${params.action}`,
+		});
+	} catch (error) {
+		decision?.settle({
+			action: "blocked",
+			tier: "line",
+			reason: `desktop ${params.action} failed: ${error instanceof Error ? error.message : String(error)}`,
+		});
+		throw error;
+	}
 
 	const details: ComputerPreludeDetails = {
 		code,

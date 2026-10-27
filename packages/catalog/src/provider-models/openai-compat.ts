@@ -1345,7 +1345,6 @@ export function ngodeaiModelManagerOptions(config?: SimpleProviderConfig): Model
 		defaultBaseUrl: NGODEAI_GATEWAY_BASE_URL,
 		config,
 		headers: config?.headers,
-		requireApiKey: true,
 		mapModel: mapNgodeaiModel,
 	});
 }

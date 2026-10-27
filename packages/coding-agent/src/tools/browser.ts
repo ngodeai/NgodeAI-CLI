@@ -649,14 +649,34 @@ async function runBrowser(
 		details.browser = tab.browser.kind.kind;
 		details.url = tab.info.url;
 	}
-
-	const { displays, returnValue, screenshots } = await runInTab(name, {
-		code,
-		timeoutMs,
-		signal,
-		session,
-	});
-
+	const decisions = session.getDecisions?.();
+	const decision = decisions?.open("browser_action", { risk: "write", decisionKeys: ["action"] });
+	let displays: AgentToolResult<unknown>["content"] = [];
+	let returnValue: unknown;
+	let screenshots: ScreenshotResult[] = [];
+	try {
+		const res = await runInTab(name, {
+			code,
+			timeoutMs,
+			signal,
+			session,
+		});
+		displays = res.displays;
+		returnValue = res.returnValue;
+		screenshots = res.screenshots;
+		decision?.settle({
+			action: "auto",
+			tier: "line",
+			reason: `ran browser action in tab "${name}"${tab?.info?.url ? ` (${tab.info.url})` : ""}`,
+		});
+	} catch (error) {
+		decision?.settle({
+			action: "blocked",
+			tier: "line",
+			reason: `browser action in tab "${name}" failed: ${error instanceof Error ? error.message : String(error)}`,
+		});
+		throw error;
+	}
 	if (screenshots.length) details.screenshots = screenshots;
 
 	if (returnValue !== undefined) details.value = returnValue;

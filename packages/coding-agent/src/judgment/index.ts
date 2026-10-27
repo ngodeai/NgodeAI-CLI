@@ -68,6 +68,7 @@ export * from "./cache";
 export * from "./decisions";
 export * from "./ledger";
 export * from "./points";
+export * from "./queue";
 export * from "./settings";
 
 /** Usage of one billed judgment attempt, recorded on the session ledger by callers. */
