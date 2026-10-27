@@ -109,12 +109,29 @@ function wireQuestions(questions: Questions): Record<string, WireQuestion> {
 	}
 	return wire;
 }
+/**
+ * Ensure state matches the wire expectations.
+ * Direct TypeSafe and OpenRouter allow structured JSON (object/array/string), while
+ * the NgodeAI gateway strictly enforces `state` as a non-empty string.
+ */
+function toWireState(state: unknown, model: string): unknown {
+	if (typeof state === "string") return state.length > 0 ? state : "{}";
+	if (model.startsWith("ngodeai/")) {
+		try {
+			const json = JSON.stringify(state);
+			return json && json.length > 0 ? json : "{}";
+		} catch {
+			return String(state ?? "{}");
+		}
+	}
+	return state;
+}
 
 /** A System One dialect posting the verbatim request to `path` under the base URL with the key as bearer. */
 function systemOneWire(path: string): JudgmentWire {
 	return {
 		target: (baseUrl, _model, key) => ({ url: `${baseUrl}${path}`, token: key }),
-		encode: (request, model) => ({ state: request.state, model, questions: wireQuestions(request.questions) }),
+		encode: (request, model) => ({ state: toWireState(request.state, model), model, questions: wireQuestions(request.questions) }),
 		decode: decodeSystemOne,
 	};
 }
@@ -132,7 +149,7 @@ export const typesafeWire: JudgmentWire = {
 		const suppliedAssets = Object.entries(imageAssets ?? {});
 		const images = request.images ?? [];
 		if (suppliedAssets.length === 0 && images.length === 0) {
-			return { state: request.state, model, questions: wireQuestions(request.questions) };
+			return { state: toWireState(request.state, model), model, questions: wireQuestions(request.questions) };
 		}
 
 		const assets: Record<string, SystemOneImageAsset> = Object.fromEntries(
@@ -146,8 +163,9 @@ export const typesafeWire: JudgmentWire = {
 			references.push(reference);
 		}
 
+		const mergedState = references.length ? stateWithImages(request.state, references) : request.state;
 		return {
-			state: references.length ? stateWithImages(request.state, references) : request.state,
+			state: toWireState(mergedState, model),
 			model,
 			questions: wireQuestions(request.questions),
 			assets,

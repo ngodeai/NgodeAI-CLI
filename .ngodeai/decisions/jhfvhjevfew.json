@@ -1,0 +1,11 @@
+{
+  "label": "My decision",
+  "description": "What this decision changes, in one sentence.",
+  "risk": "read",
+  "autoThreshold": 0.85,
+  "questions": {
+    "example": {
+      "instructions": "Ask one narrow question about the state, naming the fields it should read."
+    }
+  }
+}
