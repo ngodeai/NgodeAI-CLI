@@ -13,14 +13,9 @@ import { describe, expect, it } from "bun:test";
 import { parseSgrMouse } from "@ngodeai/tui/mouse";
 
 /** The predicate the controller uses, mirrored so the contract is testable. */
-function shouldHandle(
-	data: string,
-	options: { mouseEnabled: boolean; isFullscreen: boolean; selecting: boolean },
-): boolean {
+function shouldHandle(data: string, options: { mouseEnabled: boolean; isFullscreen: boolean }): boolean {
 	if (!data.startsWith("\x1b[<")) return false;
-	if (options.isFullscreen || options.mouseEnabled || options.selecting) return true;
-	const press = parseSgrMouse(data);
-	return press?.leftClick === true;
+	return options.isFullscreen || options.mouseEnabled;
 }
 
 const PRESS = "\x1b[<0;10;5M";
@@ -29,31 +24,21 @@ const RELEASE = "\x1b[<0;12;6m";
 const WHEEL = "\x1b[<64;10;5M";
 
 describe("selection mouse gate", () => {
-	it("lets a press through with tui.mouse off", () => {
-		expect(shouldHandle(PRESS, { mouseEnabled: false, isFullscreen: false, selecting: false })).toBe(true);
+	it("ignores all mouse reports when tui.mouse is off and not fullscreen", () => {
+		expect(shouldHandle(PRESS, { mouseEnabled: false, isFullscreen: false })).toBe(false);
+		expect(shouldHandle(MOTION, { mouseEnabled: false, isFullscreen: false })).toBe(false);
+		expect(shouldHandle(RELEASE, { mouseEnabled: false, isFullscreen: false })).toBe(false);
+		expect(shouldHandle(WHEEL, { mouseEnabled: false, isFullscreen: false })).toBe(false);
 	});
 
-	it("ignores motion and release with tui.mouse off and no drag in flight", () => {
-		expect(shouldHandle(MOTION, { mouseEnabled: false, isFullscreen: false, selecting: false })).toBe(false);
-		expect(shouldHandle(RELEASE, { mouseEnabled: false, isFullscreen: false, selecting: false })).toBe(false);
-		expect(shouldHandle(WHEEL, { mouseEnabled: false, isFullscreen: false, selecting: false })).toBe(false);
+	it("handles mouse events when tui.mouse is explicitly on", () => {
+		expect(shouldHandle(PRESS, { mouseEnabled: true, isFullscreen: false })).toBe(true);
+		expect(shouldHandle(MOTION, { mouseEnabled: true, isFullscreen: false })).toBe(true);
+		expect(shouldHandle(WHEEL, { mouseEnabled: true, isFullscreen: false })).toBe(true);
 	});
 
-	it("handles everything while a drag is in flight", () => {
-		// The drag started from a press, so motion and release must reach the
-		// selector even though the setting is still off.
-		expect(shouldHandle(MOTION, { mouseEnabled: false, isFullscreen: false, selecting: true })).toBe(true);
-		expect(shouldHandle(RELEASE, { mouseEnabled: false, isFullscreen: false, selecting: true })).toBe(true);
-	});
-
-	it("handles everything when tui.mouse is on", () => {
-		expect(shouldHandle(PRESS, { mouseEnabled: true, isFullscreen: false, selecting: false })).toBe(true);
-		expect(shouldHandle(MOTION, { mouseEnabled: true, isFullscreen: false, selecting: false })).toBe(true);
-		expect(shouldHandle(WHEEL, { mouseEnabled: true, isFullscreen: false, selecting: false })).toBe(true);
-	});
-
-	it("handles everything in a fullscreen session", () => {
-		expect(shouldHandle(WHEEL, { mouseEnabled: false, isFullscreen: true, selecting: false })).toBe(true);
+	it("handles mouse events in a fullscreen session", () => {
+		expect(shouldHandle(WHEEL, { mouseEnabled: false, isFullscreen: true })).toBe(true);
 	});
 });
 

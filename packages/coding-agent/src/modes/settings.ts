@@ -608,7 +608,7 @@ export const cfgTuiTight = register({
 export const cfgTuiFullscreen = register({
 	id: "tui.fullscreen",
 	type: "boolean",
-	default: true,
+	default: false,
 	ui: {
 		tab: "appearance",
 		group: "Display",

@@ -851,16 +851,7 @@ export class InputController {
 		if (!isMouseReport(data)) return undefined;
 		const isFullscreen = this.ctx.composer.fullscreen;
 		const mouseEnabled = cfgTuiMouse.get(this.ctx.settings);
-		// Drag-to-copy is not the click-to-focus feature: copying is a basic
-		// expectation, so it runs whether or not `tui.mouse` is on. Only the
-		// hover and click-to-focus paths below are gated on that setting.
-		const selecting = this.#selection.active;
-		if (!isFullscreen && !mouseEnabled && !selecting) {
-			// Not a drag in progress. A press still has to be seen to start one,
-			// so presses are handled below; everything else is ignored.
-			const press = parseAnyMouse(data);
-			if (!press?.leftClick) return undefined;
-		}
+		if (!isFullscreen && !mouseEnabled) return undefined;
 		if (this.ctx.ui.hasOverlay()) return undefined;
 		const event = parseAnyMouse(data);
 		if (!event) return undefined;

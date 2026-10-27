@@ -2002,17 +2002,12 @@ export class InteractiveMode implements InteractiveModeContext {
 		// Shift as an escape, so it stays tied to the opt-in `tui.mouse` setting
 		// rather than to fullscreen. Without it a user can drag to copy anywhere
 		// in the session; with it they trade that for hover highlights.
-		// Click capture must be on for a press to arrive at all, and drag-to-copy
-		// needs that press. It is therefore always on: the cost is that a click is
-		// reported to the application, which the handler ignores unless the user
-		// asked for click-to-focus. Native drag-select is unaffected, because
-		// click reporting alone does not claim pointer motion.
-		this.ui.setInlineMouseTrackingProvider(() => true);
-		// Motion reporting is needed for two things: hover bands, and extending a
-		// drag-selection. The latter only matters while a drag is in flight, so
-		// the setting alone is not the whole answer — the selector asks for it
-		// for the duration of a drag and releases it on release.
-		this.ui.setHoverTrackingProvider(() => this.#mouseCapture || this.#inputController?.isSelecting === true);
+		// Mouse tracking is passive (off by default): in the normal inline buffer,
+		// conhost/terminal retain native mouse wheel scrollback and native
+		// drag-to-select without Shift. Tracking is enabled only when opted in via
+		// `tui.mouse: true` or when a fullscreen session is active.
+		this.ui.setInlineMouseTrackingProvider(() => this.#mouseCapture || this.composer.fullscreen);
+		this.ui.setHoverTrackingProvider(() => this.#mouseCapture);
 		this.chatContainer = new TranscriptContainer();
 		this.pendingMessagesContainer = new AnchoredLiveContainer();
 		this.progressHudContainer = new AnchoredLiveContainer();
