@@ -5,6 +5,7 @@
  */
 import * as path from "node:path";
 import { formatDuration, formatNumber } from "@ngodeai/utils";
+import { Ellipsis, visibleWidth, wrapTextWithAnsi } from "../utils";
 import { renderProgressBar } from "../components/progress-bar";
 import { Text } from "../components/text";
 import { fileHyperlink, getTreeBranch, renderStatusLine, renderTreeList, uriHyperlink } from "../render";
@@ -16,6 +17,7 @@ import {
 	formatErrorMessage,
 	PREVIEW_LIMITS,
 	replaceTabs,
+	truncateToWidth,
 } from "../render/render-utils";
 import type { Theme, ThemeColor } from "../theme/theme";
 import type { Component } from "../tui";
@@ -102,6 +104,8 @@ export interface FindToolDetails {
 	cwd: string;
 	/** Display form of the searched directory or file when narrower than cwd. */
 	scopePath?: string;
+	/** Decision model identifier used to evaluate passages. */
+	model?: string;
 	meta?: OutputMeta;
 }
 
@@ -314,10 +318,11 @@ export const findToolRenderer = {
 			return new Text(lines.join("\n"), 0, 0);
 		}
 
+		const modelTitle = details.model ? `Find · Decision Model [${details.model}]` : "Find · Decision Model";
 		const header = renderStatusLine(
 			{
 				iconOverride: uiTheme.fg("accent", "⚖"),
-				title: "Find · Decision Model",
+				title: modelTitle,
 				titleColor: "toolTitle",
 				description,
 				meta,
@@ -351,7 +356,33 @@ export const findToolRenderer = {
 					extra.push(uiTheme.fg("dim", `keywords: ${details.keywords.join(", ")}`));
 					for (const failure of stats.failures) extra.push(uiTheme.fg("warning", failure));
 				}
-				return fitHeaderedRows(header, [...hitLines, ...extra], width);
+				const innerWidth = Math.max(34, Math.min(width - 4, 110));
+				const topCap = "───";
+				const topTitle = ` ⚖ ${modelTitle} `;
+				const topRuleLen = Math.max(0, innerWidth - visibleWidth(topTitle) - visibleWidth(topCap));
+				const top = `  ${uiTheme.fg("accent", "▪" + topCap)}${uiTheme.fg("accent", uiTheme.bold(topTitle))}${uiTheme.fg("border", "─".repeat(topRuleLen) + "▪")}`;
+
+				const row = (content: string) => {
+					const truncated = truncateToWidth(content, innerWidth);
+					const pad = Math.max(0, innerWidth - visibleWidth(truncated));
+					return `  ${uiTheme.fg("border", "│")} ${truncated}${" ".repeat(pad)} ${uiTheme.fg("border", "│")}`;
+				};
+				const divider = `  ${uiTheme.fg("accent", "▪")}${uiTheme.fg("border", "─".repeat(innerWidth + 2))}${uiTheme.fg("accent", "▪")}`;
+				const bottom = `  ${uiTheme.fg("accent", "▪")}${uiTheme.fg("border", "─".repeat(innerWidth + 2))}${uiTheme.fg("accent", "▪")}`;
+
+				const rows: string[] = [top];
+				for (const hLine of wrapTextWithAnsi(header, innerWidth)) {
+					rows.push(row(hLine));
+				}
+				rows.push(divider);
+				for (const hitLine of hitLines) {
+					rows.push(row(truncateToWidth(hitLine, innerWidth, Ellipsis.Omit)));
+				}
+				for (const ex of extra) {
+					rows.push(row(truncateToWidth(ex, innerWidth, Ellipsis.Omit)));
+				}
+				rows.push(bottom);
+				return rows;
 			},
 		);
 	},

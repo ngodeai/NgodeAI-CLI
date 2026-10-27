@@ -110,6 +110,7 @@ export interface SidebarState {
 	readonly usage?: SidebarUsage;
 	readonly git?: SidebarGit;
 	readonly model?: SidebarModel;
+	readonly decisionModel?: SidebarModel;
 	readonly agents?: SidebarAgents;
 }
 
@@ -495,8 +496,7 @@ export class StatusSidebar implements Component {
 		const innerWidth = Math.max(1, this.#width - 2);
 		const contentWidth = Math.max(1, innerWidth - PAD_X * 2);
 		const rows: string[] = [];
-		const { tasks, context, usage, git, model, agents } = this.#state;
-
+		const { tasks, context, usage, git, model, decisionModel, agents } = this.#state;
 		// The plan is unbounded — a five-phase run produces thirty rows — while
 		// everything below it is a fixed handful. Left alone, a long plan pushed
 		// CONTEXT/SESSION/GIT/MODEL/AGENTS off the bottom of the pane and the user
@@ -507,6 +507,7 @@ export class StatusSidebar implements Component {
 			(usage ? heading("Session", false).length + 3 : 0) +
 			(git ? heading("Git", false).length + 2 : 0) +
 			(model ? heading("Model", false).length + 2 : 0) +
+			(decisionModel ? heading("Decision Model", false).length + 2 : 0) +
 			(agents ? heading("Agents", false).length + agentRows(agents, contentWidth).length : 0);
 		const interior = this.#height === undefined ? undefined : Math.max(0, this.#height - 2);
 		// The plan yields first: every lower section is a fixed handful of rows and
@@ -547,6 +548,10 @@ export class StatusSidebar implements Component {
 			rows.push(...heading("Model", rows.length === 0));
 			rows.push(...modelRows(model, contentWidth));
 		}
+		if (decisionModel) {
+			rows.push(...heading("Decision Model", rows.length === 0));
+			rows.push(...modelRows(decisionModel, contentWidth));
+		}
 		if (agents) {
 			rows.push(...heading("Agents", rows.length === 0));
 			rows.push(...agentRows(agents, contentWidth));
@@ -560,7 +565,7 @@ export class StatusSidebar implements Component {
 
 	/** Native mirror of {@link render}: the same sections as TSP nodes. */
 	describe(): NativeNode {
-		const { tasks, context, usage, git, model, agents } = this.#state;
+		const { tasks, context, usage, git, model, decisionModel, agents } = this.#state;
 		const sections: NativeNode[] = [];
 
 		if (tasks && tasks.length > 0) {
@@ -612,6 +617,11 @@ export class StatusSidebar implements Component {
 		if (model) {
 			sections.push(text([span("MODEL", "dim strong")]));
 			sections.push(text([span(model.displayName ?? model.selector, "accent")], { wrap: "none" }));
+		}
+
+		if (decisionModel) {
+			sections.push(text([span("DECISION MODEL", "dim strong")]));
+			sections.push(text([span(decisionModel.displayName ?? decisionModel.selector, "accent")], { wrap: "none" }));
 		}
 
 		if (agents) {

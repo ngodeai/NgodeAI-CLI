@@ -1364,7 +1364,7 @@ export class InteractiveMode implements InteractiveModeContext {
 	 * spend and the context gauge belong to one session and would read as
 	 * current numbers if cached, so they stay out.
 	 */
-	#lastSidebarHeader: Pick<SidebarState, "git" | "model"> = {};
+	#lastSidebarHeader: Pick<SidebarState, "git" | "model" | "decisionModel"> = {};
 	readonly #initialComposerModel: Model | undefined;
 	readonly #judgmentBatchProgressHud = new JudgmentBatchProgressHud();
 	readonly #downloadActivityHud = new DownloadActivityHud(() => this.ui.requestRender());
@@ -4562,6 +4562,26 @@ export class InteractiveMode implements InteractiveModeContext {
 						},
 					}
 				: {}),
+			...(() => {
+				try {
+					const judge = this.session.decisionJudge?.("sidebar");
+					const primary = judge?.primaryModel();
+					if (!primary) return {};
+					const selector = primary.id.startsWith(`${primary.provider}/`)
+						? primary.id
+						: `${primary.provider}/${primary.id}`;
+					return {
+						decisionModel: {
+							selector,
+							displayName: primary.name ?? primary.id,
+							effort: primary.api === "typesafe" ? "native System One" : primary.api,
+							subscription: this.session.modelRegistry?.isUsingOAuth(primary) ?? false,
+						},
+					};
+				} catch {
+					return {};
+				}
+			})(),
 			// Always present: the sidebar keeps its AGENTS section visible with a
 			// "No agents running" line, so the pane's height does not jump every
 			// time the last agent finishes.
@@ -4570,8 +4590,8 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#lastSidebarHeader = {
 			...(sidebarState.git ? { git: sidebarState.git } : {}),
 			...(sidebarState.model ? { model: sidebarState.model } : {}),
+			...(sidebarState.decisionModel ? { decisionModel: sidebarState.decisionModel } : {}),
 		};
-		this.composer.setSidebar(sidebarState);
 	}
 
 	/**

@@ -735,6 +735,17 @@ export const decisionSlashCommands: SlashCommandSpec[] = [
 		name: "decisions",
 		icon: "plan",
 		description: "Inspect the Artificial Decisions ledger",
+		getTuiAutocompleteDescription: runtime => {
+			try {
+				const judge = runtime.ctx.session.decisionJudge?.("status");
+				const primary = judge?.primaryModel();
+				if (primary) {
+					const name = primary.id.startsWith("ngodeai/") ? primary.id.slice(8) : primary.id;
+					return `Decision Model: ${name} (native) · Inspect ledger`;
+				}
+			} catch {}
+			return "Inspect the Artificial Decisions ledger";
+		},
 		allowArgs: true,
 		inlineHint: "[status|points|conflicts|new|ask|replay|bench|<id>]",
 		subcommands: [

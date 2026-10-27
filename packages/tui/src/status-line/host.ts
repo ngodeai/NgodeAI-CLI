@@ -34,6 +34,9 @@ export interface StatusLineSession {
 	compactionSpeculation?: "idle" | "running" | "armed";
 	/** Session decision counts for the `decisions` segment; absent hosts hide it. */
 	getDecisionCounts?(): { count: number; gated: number } | null;
+	decisionJudge?(
+		point: string,
+	): { primaryModel?(): { id: string; provider: string; api?: string } | undefined } | undefined;
 	sessionManager: {
 		getSessionName(): string | undefined;
 		getSessionId(): string;

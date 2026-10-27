@@ -1128,18 +1128,44 @@ const decisionsSegment: StatusLineSegment = {
 	id: "decisions",
 	render(ctx) {
 		const decisions = ctx.decisions;
-		if (!decisions || decisions.count === 0) return { content: "", visible: false };
-		const label = decisions.gated > 0 ? `⚖ ${decisions.count}·${decisions.gated}` : `⚖ ${decisions.count}`;
-		return { content: theme.fg(decisions.gated > 0 ? "warning" : "muted", label), visible: true };
+		let modelName: string | undefined;
+		try {
+			const model = ctx.session.decisionJudge?.("status")?.primaryModel?.();
+			if (model) {
+				modelName = model.id.startsWith("ngodeai/") ? model.id.slice(8) : model.id;
+			}
+		} catch {}
+
+		if (!decisions || (decisions.count === 0 && !modelName)) return { content: "", visible: false };
+		const countPart =
+			decisions && decisions.count > 0
+				? decisions.gated > 0
+					? ` ${decisions.count}·${decisions.gated}`
+					: ` ${decisions.count}`
+				: "";
+		const modelPart = modelName ? ` ${modelName}` : "";
+		const label = `⚖${modelPart}${countPart}`;
+		return { content: theme.fg(decisions && decisions.gated > 0 ? "warning" : "muted", label), visible: true };
 	},
 	describe(ctx) {
 		const decisions = ctx.decisions;
-		if (!decisions || decisions.count === 0) return null;
-		const label =
-			decisions.gated > 0
-				? `${decisions.count} decisions, ${decisions.gated} gated`
-				: `${decisions.count} decisions`;
-		return segView([span(label, decisions.gated > 0 ? "warning" : "muted")], "decisions");
+		let modelName: string | undefined;
+		try {
+			const model = ctx.session.decisionJudge?.("status")?.primaryModel?.();
+			if (model) {
+				modelName = model.id.startsWith("ngodeai/") ? model.id.slice(8) : model.id;
+			}
+		} catch {}
+		if (!decisions || (decisions.count === 0 && !modelName)) return null;
+		const countPart =
+			decisions && decisions.count > 0
+				? decisions.gated > 0
+					? ` ${decisions.count} decisions, ${decisions.gated} gated`
+					: ` ${decisions.count} decisions`
+				: "";
+		const modelPart = modelName ? ` [${modelName}]` : "";
+		const label = `Decisions${modelPart}${countPart}`;
+		return segView([span(label, decisions && decisions.gated > 0 ? "warning" : "muted")], "decisions");
 	},
 };
 

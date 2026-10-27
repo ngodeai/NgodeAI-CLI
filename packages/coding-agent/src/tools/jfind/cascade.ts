@@ -143,7 +143,7 @@ class Cascade {
 		const { judge, signal } = this.#options;
 		const started = performance.now();
 		try {
-			const result = await judge.judge(request, { signal });
+			const result = await judge.judge(request, { signal, decision: this.#options.decision });
 			this.stats.requests++;
 			this.stats.apiMs += performance.now() - started;
 			this.stats.inputTokens += result.usage.input;

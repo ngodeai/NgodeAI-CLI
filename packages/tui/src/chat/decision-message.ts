@@ -192,8 +192,8 @@ export class DecisionLine extends Container {
 			.filter(Boolean)
 			.join(theme.fg("dim", " · "));
 
-		const prefix = `  ${borderPaint("╭─")} ⚖ ${theme.fg(color, theme.bold("DECISION"))} ${borderPaint("─")} `;
-		const suffix = ` ${borderPaint("─╮")}`;
+		const prefix = `  ${borderPaint("▪───")} ⚖ ${theme.fg(color, theme.bold("DECISION"))} ${borderPaint("─")} `;
+		const suffix = ` ${borderPaint("───▪")}`;
 		const innerCap = Math.max(10, width - visibleWidth(prefix) - visibleWidth(suffix));
 		return `${prefix}${truncateToWidth(core, innerCap)}${suffix}`;
 	}
@@ -260,16 +260,16 @@ export class DecisionCard extends Container {
 		const modelName = modelRaw.startsWith("ngodeai/") ? modelRaw.slice(8) : modelRaw;
 		const apiBadge = event.api === "typesafe" ? "native System One" : event.api;
 		const title = ` ⚖ DECIDE · ${modelName} (${apiBadge}) `;
-		const topRuleLen = Math.max(0, innerWidth - visibleWidth(title) - 1);
-		const top = `  ${borderPaint("╭─")}${theme.fg(color, theme.bold(title))}${borderPaint("─".repeat(topRuleLen) + "╮")}`;
+		const topCap = "───";
+		const topRuleLen = Math.max(0, innerWidth - visibleWidth(title) - visibleWidth(topCap));
+		const top = `  ${borderPaint("▪" + topCap)}${theme.fg(color, theme.bold(title))}${borderPaint("─".repeat(topRuleLen) + "▪")}`;
 
 		const row = (content: string) => {
 			const truncated = truncateToWidth(content, innerWidth);
 			const pad = Math.max(0, innerWidth - visibleWidth(truncated));
 			return `  ${borderPaint("│")} ${truncated}${" ".repeat(pad)} ${borderPaint("│")}`;
 		};
-		const divider = `  ${borderPaint("├─" + "─".repeat(innerWidth) + "┤")}`;
-
+		const divider = `  ${borderPaint("▪" + "─".repeat(innerWidth + 2) + "▪")}`;
 		lines.push(top);
 
 		// Subheader: Point & Verdict Badge
@@ -335,9 +335,11 @@ export class DecisionCard extends Container {
 		}
 
 		const footer = ` ⏎ expand · /decisions #${event.id ?? ""} `;
-		const botRuleLen = Math.max(0, innerWidth - visibleWidth(footer) - 1);
-		lines.push(`  ${borderPaint("╰─")}${theme.fg("dim", footer)}${borderPaint("─".repeat(botRuleLen) + "╯")}`);
-
+		const botCap = "───";
+		const botRuleLen = Math.max(0, innerWidth - visibleWidth(footer) - visibleWidth(botCap));
+		lines.push(
+			`  ${borderPaint("▪" + botCap)}${theme.fg("dim", footer)}${borderPaint("─".repeat(botRuleLen) + "▪")}`,
+		);
 		return lines;
 	}
 

@@ -48,6 +48,18 @@ describe("StatusSidebar", () => {
 		expect(text).toContain("Claude Sonnet 4.5");
 	});
 
+	it("renders decision model section when present", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState({
+			...fullState,
+			decisionModel: { selector: "ngodeai/mercury-decide", displayName: "mercury-decide", effort: "native" },
+		});
+		const text = plain(sidebar.render(32)).join("\n");
+		expect(text).toContain("DECISION MODEL");
+		expect(text).toContain("mercury-decide");
+		expect(text).toContain("native");
+	});
+
 	/**
 	 * The sidebar shares the screen with the transcript, so a row one cell too
 	 * wide wraps in the terminal and shears the whole frame.

@@ -157,6 +157,12 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 			...hit,
 			rel: formatPathRelativeToCwd(resolveSearchResultPath(root.path, hit.rel), cwd),
 		}));
+		const primaryJudgeModel = judge.primaryModel();
+		const modelName = primaryJudgeModel
+			? primaryJudgeModel.id.startsWith("ngodeai/")
+				? primaryJudgeModel.id.slice(8)
+				: primaryJudgeModel.id
+			: undefined;
 		const details: FindToolDetails = {
 			query,
 			keywords,
@@ -167,6 +173,7 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 			elapsedMs,
 			cwd,
 			scopePath,
+			model: modelName,
 		};
 		const where = scopePath === undefined ? "" : ` in ${scopePath}`;
 		const out: string[] = [];
