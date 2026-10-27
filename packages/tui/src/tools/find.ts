@@ -285,14 +285,15 @@ export const findToolRenderer = {
 		const linkTargets = findLinkTargets(details, options.renderContext?.rawDetails);
 		const description = quoteQuery(details.query);
 		const scope = details.scopePath === undefined ? [] : [`in ${details.scopePath}`];
+		const costBadge = stats.cost === 0 ? uiTheme.fg("success", "free") : `$${stats.cost.toFixed(4)}`;
 		const meta = [
 			formatCount("hit", hits.length),
 			...scope,
-			`${stats.filesRead} files read`,
+			uiTheme.fg("accent", `⚡ ${formatDuration(details.elapsedMs)}`),
+			`${stats.filesRead} files evaluated`,
 			`τ ${threshold.toFixed(2)}`,
 			`${formatNumber(stats.inputTokens)} tokens`,
-			`$${stats.cost.toFixed(4)}`,
-			formatDuration(details.elapsedMs),
+			costBadge,
 		];
 		const failed = stats.failed > 0 ? `${stats.failed}/${stats.requests} requests failed` : undefined;
 		if (failed) meta.push(uiTheme.fg("warning", failed));
@@ -315,8 +316,8 @@ export const findToolRenderer = {
 
 		const header = renderStatusLine(
 			{
-				iconOverride: uiTheme.fg("toolTitle", uiTheme.symbol("icon.search")),
-				title: "Find",
+				iconOverride: uiTheme.fg("accent", "⚖"),
+				title: "Find · Decision Model",
 				titleColor: "toolTitle",
 				description,
 				meta,

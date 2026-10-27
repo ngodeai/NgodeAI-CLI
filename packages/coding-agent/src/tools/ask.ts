@@ -576,7 +576,7 @@ function recordAskDecision(session: ToolSession, results: readonly QuestionResul
 		// A person answered, so this is `gated`: it reached a human and that is
 		// the part of the session's decisions someone actually had to act on.
 		action: "gated",
-		tier: "line",
+		tier: "card",
 		risk: "read",
 		decisionKeys: answered.map(result => result.id),
 		reason:

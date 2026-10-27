@@ -39,7 +39,7 @@ function askEvent(): DecisionEvent {
 			},
 		],
 		action: "gated",
-		tier: "line",
+		tier: "card",
 		risk: "read",
 		decisionKeys: ["format"],
 		reason: "answered: Tabel",

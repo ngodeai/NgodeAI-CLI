@@ -31,7 +31,8 @@ import type { ThemeColor } from "../theme";
 import type { TspTone } from "@ngodeai/wire";
 import { node, text } from "../native/describe";
 import type { NativeChild, NativeNode } from "../native/node";
-import { replaceTabs, truncateToWidth } from "../render/render-utils";
+import { formatNumber, replaceTabs, truncateToWidth } from "../render/render-utils";
+import { visibleWidth } from "../utils";
 
 /** Characters a probability bar is drawn across. */
 const BAR_CELLS = 20;
@@ -44,6 +45,16 @@ const SEVERITY: Readonly<Record<DecisionEvent["action"], ThemeColor>> = {
 	blocked: "error",
 	skipped: "muted",
 	silent: "muted",
+};
+
+/** Prominent bracketed verdict badge per action for framed decision cards. */
+const ACTION_BADGE: Readonly<Record<DecisionEvent["action"], string>> = {
+	auto: "[✓ ALLOWED]",
+	gated: "[⚠ GATED]",
+	asked: "[? ASKED]",
+	blocked: "[✕ BLOCKED]",
+	skipped: "[− SKIPPED]",
+	silent: "[· CHECKED]",
 };
 
 /** The same mapping for native terminals, whose tones are a smaller vocabulary. */
@@ -152,19 +163,39 @@ export class DecisionLine extends Container {
 	#render(width: number): string {
 		const event = this.#event;
 		const color = SEVERITY[event.action];
-		const glyph = theme.fg(color, "◆");
+		const borderPaint = (t: string) => theme.fg(color, t);
 		const verb = theme.fg(color, ACTION_LABEL[event.action]);
-		const where = theme.fg("dim", pointLabel(event.point));
+		const where = theme.fg("text", theme.bold(pointLabel(event.point)));
 		const answer = leadAnswer(event);
 		const label = answerLabel(answer);
 		const probability = answerProbability(answer);
-		const parts = [label, probability === undefined ? "" : probability.toFixed(2)].filter(Boolean).join(" ");
-		const meta = [theme.fg("dim", parts), theme.fg("dim", formatElapsed(event.elapsedMs))]
+		const probText = probability === undefined ? "" : probability.toFixed(2);
+		const probBar = probability === undefined ? "" : theme.fg(color, `[${probabilityBar(probability, 1, 8)}]`);
+		const badge = theme.fg(color, theme.bold(ACTION_BADGE[event.action]));
+		const elapsed = event.elapsedMs !== undefined ? theme.fg("accent", `⚡ ${formatElapsed(event.elapsedMs)}`) : "";
+		const cost = formatCost(event.cost) ? theme.fg("dim", formatCost(event.cost)) : "";
+		const reason = event.reason ? theme.fg("dim", event.reason) : "";
+		const conflict = event.conflict ? theme.fg("error", `⚠ ${event.conflict}`) : "";
+
+		const core = [
+			badge,
+			verb,
+			where,
+			label ? theme.fg("text", label) : null,
+			probText,
+			probBar,
+			elapsed,
+			cost,
+			reason,
+			conflict,
+		]
 			.filter(Boolean)
 			.join(theme.fg("dim", " · "));
-		const reason = event.reason ? theme.fg("dim", ` · ${event.reason}`) : "";
-		const conflict = event.conflict ? theme.fg("error", ` · ⚠ ${event.conflict}`) : "";
-		return truncateToWidth(`  ${glyph} ${verb}  ${where}${theme.fg("dim", " · ")}${meta}${reason}${conflict}`, width);
+
+		const prefix = `  ${borderPaint("╭─")} ⚖ ${theme.fg(color, theme.bold("DECISION"))} ${borderPaint("─")} `;
+		const suffix = ` ${borderPaint("─╮")}`;
+		const innerCap = Math.max(10, width - visibleWidth(prefix) - visibleWidth(suffix));
+		return `${prefix}${truncateToWidth(core, innerCap)}${suffix}`;
 	}
 
 	override describe(): NativeNode {
@@ -203,7 +234,7 @@ export class DecisionCard extends Container {
 		super();
 		this.#event = event;
 		this.#expanded = expanded;
-		this.addChild(new Text(this.#render(process.stdout.columns ?? 100), 0, 0));
+		this.addChild(new Text(this.#render(process.stdout.columns ?? 100).join("\n"), 0, 0));
 	}
 
 	/** Re-render with the new expansion state. */
@@ -211,40 +242,85 @@ export class DecisionCard extends Container {
 		if (this.#expanded === expanded) return;
 		this.#expanded = expanded;
 		this.clear();
-		this.addChild(new Text(this.#render(process.stdout.columns ?? 100), 0, 0));
+		this.addChild(new Text(this.#render(process.stdout.columns ?? 100).join("\n"), 0, 0));
 	}
 
-	#render(width: number): string {
+	override render(width: number): readonly string[] {
+		return this.#render(Math.max(20, width));
+	}
+
+	#render(width: number): readonly string[] {
 		const event = this.#event;
 		const lines: string[] = [];
 		const color = SEVERITY[event.action];
-		const answered = event.answers.length;
-		const header = [
-			theme.fg(color, theme.bold("◆ DECIDE")),
-			theme.fg("dim", pointLabel(event.point)),
-			theme.fg("dim", `· ${answered} ${answered === 1 ? "question" : "questions"}`),
-			event.batchId ? theme.fg("dim", `· batch ${event.batchId}`) : "",
-			theme.fg("dim", `· ${formatElapsed(event.elapsedMs)}`),
-			formatCost(event.cost) ? theme.fg("dim", `· ${formatCost(event.cost)}`) : "",
-			event.cached ? theme.fg("dim", "· cache") : "",
+		const borderPaint = (t: string) => theme.fg(color, t);
+		const innerWidth = Math.max(34, Math.min(width - 6, 88));
+
+		const modelRaw = event.model || "mercury-decide";
+		const modelName = modelRaw.startsWith("ngodeai/") ? modelRaw.slice(8) : modelRaw;
+		const apiBadge = event.api === "typesafe" ? "native System One" : event.api;
+		const title = ` ⚖ DECIDE · ${modelName} (${apiBadge}) `;
+		const topRuleLen = Math.max(0, innerWidth - visibleWidth(title) - 1);
+		const top = `  ${borderPaint("╭─")}${theme.fg(color, theme.bold(title))}${borderPaint("─".repeat(topRuleLen) + "╮")}`;
+
+		const row = (content: string) => {
+			const truncated = truncateToWidth(content, innerWidth);
+			const pad = Math.max(0, innerWidth - visibleWidth(truncated));
+			return `  ${borderPaint("│")} ${truncated}${" ".repeat(pad)} ${borderPaint("│")}`;
+		};
+		const divider = `  ${borderPaint("├─" + "─".repeat(innerWidth) + "┤")}`;
+
+		lines.push(top);
+
+		// Subheader: Point & Verdict Badge
+		const point = pointLabel(event.point).toUpperCase();
+		const badge = theme.fg(color, theme.bold(ACTION_BADGE[event.action]));
+		const risk = event.risk ? theme.fg("dim", `[risk: ${event.risk}]`) : "";
+		lines.push(row(`${theme.fg("accent", theme.bold(point))}  ${badge}  ${risk}`));
+
+		// Stats / Performance row
+		const stats = [
+			event.elapsedMs !== undefined ? theme.fg("accent", `⚡ ${formatElapsed(event.elapsedMs)}`) : null,
+			event.inputTokens ? theme.fg("dim", `${formatNumber(event.inputTokens)} tokens`) : null,
+			formatCost(event.cost) ? theme.fg("dim", formatCost(event.cost)) : theme.fg("success", "$0.00000 (Free Tier)"),
+			event.cached ? theme.fg("success", "⚡ 100% cache hit") : null,
+			event.batchId ? theme.fg("dim", `batch: ${event.batchId}`) : null,
 		]
 			.filter(Boolean)
-			.join(" ");
-		lines.push(truncateToWidth(`  ${header}`, width));
+			.join(theme.fg("dim", " · "));
+		if (stats) lines.push(row(`Performance: ${stats}`));
 
-		const shown = this.#expanded ? event.answers : event.answers.slice(0, 5);
-		for (const answer of shown) {
-			lines.push(truncateToWidth(`  ${this.#answerRow(answer, width - 2)}`, width));
-		}
-		if (!this.#expanded && event.answers.length > shown.length) {
-			lines.push(theme.fg("dim", `  … ${event.answers.length - shown.length} more · expand to see every answer`));
+		// Answers with probability distribution
+		if (event.answers.length > 0) {
+			lines.push(divider);
+			const shown = this.#expanded ? event.answers : event.answers.slice(0, 5);
+			for (const answer of shown) {
+				const key = theme.fg("muted", replaceTabs(answer.question).slice(0, 22).padEnd(22));
+				const label = String(answer.value);
+				const prob = answerProbability(answer);
+				const bar =
+					prob === undefined ? "" : theme.fg(color, `[${probabilityBar(prob, 1, 14)}] ${prob.toFixed(2)}`);
+				lines.push(row(`  ${key} ${bar} · ${theme.fg("text", label)}`));
+			}
+			if (!this.#expanded && event.answers.length > shown.length) {
+				lines.push(
+					row(theme.fg("dim", `  … ${event.answers.length - shown.length} more · expand to see every answer`)),
+				);
+			}
 		}
 
-		if (event.reason) lines.push(truncateToWidth(`  ${theme.fg("dim", event.reason)}`, width));
+		if (event.reason) {
+			lines.push(divider);
+			lines.push(row(`${theme.fg("muted", "Summary:")} ${theme.fg("dim", event.reason)}`));
+		}
+
 		if (event.conflict) {
-			lines.push(truncateToWidth(`  ${theme.fg("error", `⚠ ${event.conflict}`)}`, width));
+			lines.push(divider);
+			lines.push(row(theme.fg("error", `⚠ CONFLICT: ${event.conflict}`)));
 		}
+
 		if (this.#expanded) {
+			lines.push(divider);
 			const provenance = [
 				`${event.model} via ${event.api}`,
 				event.stateDigest ? `state ${event.stateDigest.slice(0, 12)}` : "",
@@ -252,13 +328,17 @@ export class DecisionCard extends Container {
 			]
 				.filter(Boolean)
 				.join(" · ");
-			lines.push(truncateToWidth(`  ${theme.fg("dim", provenance)}`, width));
+			lines.push(row(theme.fg("dim", `Engine: ${provenance}`)));
 			if (event.decisionKeys?.length) {
-				lines.push(truncateToWidth(`  ${theme.fg("dim", `decided on: ${event.decisionKeys.join(", ")}`)}`, width));
+				lines.push(row(theme.fg("dim", `Decided on: ${event.decisionKeys.join(", ")}`)));
 			}
 		}
-		lines.push(theme.fg("dim", `  └─ ⏎ expand · /decisions ${event.id ?? ""}`.trimEnd()));
-		return lines.join("\n");
+
+		const footer = ` ⏎ expand · /decisions #${event.id ?? ""} `;
+		const botRuleLen = Math.max(0, innerWidth - visibleWidth(footer) - 1);
+		lines.push(`  ${borderPaint("╰─")}${theme.fg("dim", footer)}${borderPaint("─".repeat(botRuleLen) + "╯")}`);
+
+		return lines;
 	}
 
 	#answerRow(answer: DecisionAnswerRecord, width: number): string {

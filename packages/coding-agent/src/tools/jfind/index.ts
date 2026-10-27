@@ -142,12 +142,12 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 		const trusted = gate?.verdict !== "block";
 		decision?.settle({
 			action: result.hits.length > 0 && trusted ? "auto" : "silent",
-			tier: result.hits.length > 0 && trusted ? "line" : "silent",
+			tier: result.hits.length > 0 && trusted ? "card" : "silent",
 			reason:
 				gate?.verdict === "block"
 					? `top hit too unsure · ${gate.reason}`
 					: result.hits.length > 0
-						? `${result.hits.length} hits · ${stats.requests} judge requests`
+						? `${result.hits.length} hits · evaluated ${stats.filesRead} files (${formatNumber(stats.inputTokens)} tokens) in ${formatDuration(elapsedMs)}`
 						: `no hits · ${stats.requests} judge requests · ${coverage}`,
 		});
 		// Cascade paths are root-relative; the model and renderer want paths
