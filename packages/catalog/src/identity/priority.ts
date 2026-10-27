@@ -1,12 +1,13 @@
 const DEFAULT_MODEL_PROVIDER_ORDER = [
 	// First-party / native account providers. Prefer these over relays when the
 	// same upstream model is available in more than one place.
-	"openai-codex",
-	"anthropic",
-	"openai",
+	"ngodeai",
 	"google-gemini-cli",
 	"google",
 	"google-vertex",
+	"openai-codex",
+	"anthropic",
+	"openai",
 	"kimi-code",
 	"moonshot",
 	"qwen-portal",

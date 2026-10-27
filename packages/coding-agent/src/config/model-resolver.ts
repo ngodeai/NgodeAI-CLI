@@ -111,12 +111,11 @@ export function pickDefaultAvailableModel(
 		accountDefaultProviders.has(model.provider)
 			? model.isProviderDefault === true
 			: isKnownProvider(model.provider) && DEFAULT_MODEL_PER_PROVIDER[model.provider] === model.id;
-	const firstDefault = models.find(isDefaultForProvider);
-	if (!firstDefault) return models[0];
+	const defaultModels = models.filter(isDefaultForProvider);
+	if (defaultModels.length === 0) return models[0];
 
 	const providerPriority = buildModelProviderPriorityRank();
-	const sharedDefaultMatches = models.filter(model => model.id === firstDefault.id && isDefaultForProvider(model));
-	return [...sharedDefaultMatches].sort((a, b) => {
+	return defaultModels.sort((a, b) => {
 		const aRank = providerPriority.get(a.provider.toLowerCase()) ?? Number.POSITIVE_INFINITY;
 		const bRank = providerPriority.get(b.provider.toLowerCase()) ?? Number.POSITIVE_INFINITY;
 		if (aRank !== bRank) return aRank - bRank;

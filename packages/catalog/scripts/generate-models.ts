@@ -75,7 +75,7 @@ const packageRoot = path.join(import.meta.dir, "..");
  * gateway's own `/v1/models` is the sole authority on what an account can
  * reach, and restoring a row here would make a removed model look current.
  */
-const DISCOVERY_ONLY_PROVIDERS = new Set(["ollama", "vllm", "lm-studio", "litellm", "ngodeai"]);
+const DISCOVERY_ONLY_PROVIDERS = new Set(["ollama", "vllm", "lm-studio", "litellm"]);
 /**
  * Credential-scoped catalogs (Devin's Cascade roster is gated per account/team
  * via `allowed_model_uids`). Fetching them during generation would bake one

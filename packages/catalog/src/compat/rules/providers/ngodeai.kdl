@@ -13,8 +13,17 @@
 // create a row — without a `seed` block nothing is bundled, and the id only
 // resolves once discovery has returned it.
 provider "ngodeai" {
-	default-model "ngodeai/auto"
+	default-model "gemini-3.8-flash"
 	env "NGODEAI_API_KEY"
 	allow-unauthenticated #true
 	discovery label="NgodeAI" allow-unauthenticated=#true
+
+	seed api="openai-completions" base-url="https://llm.ngodeai.net/v1" bundle="always" precedence="seed" {
+		model "gemini-3.8-flash" name="Gemini 3.8 Flash" {
+			reasoning #true
+			input "text" "image"
+			cost input=0 output=0 cache-read=0 cache-write=0
+			limits context=1048576 max-tokens=65536
+		}
+	}
 }

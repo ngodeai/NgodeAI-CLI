@@ -770,7 +770,7 @@ function nativeJudge(
 			return {
 				api: judge.api,
 				provider: judge.provider,
-				model: fresh?.model ?? model.id,
+				model: model.id,
 				// Every id was answered by the cache or by `fresh`, which NativeJudge validated per question type.
 				answers: answers as JudgmentResult<Q>["answers"],
 				usage,

@@ -163,6 +163,19 @@ function parseSidebar(value: unknown): SidebarState | undefined {
 					...(typeof value.model.subscription === "boolean" ? { subscription: value.model.subscription } : {}),
 				}
 			: undefined;
+	const decisionModel =
+		isRecord(value.decisionModel) && typeof value.decisionModel.selector === "string"
+			? {
+					selector: value.decisionModel.selector,
+					...(typeof value.decisionModel.displayName === "string"
+						? { displayName: value.decisionModel.displayName }
+						: {}),
+					...(typeof value.decisionModel.effort === "string" ? { effort: value.decisionModel.effort } : {}),
+					...(typeof value.decisionModel.subscription === "boolean"
+						? { subscription: value.decisionModel.subscription }
+						: {}),
+				}
+			: undefined;
 
 	const agents =
 		isRecord(value.agents) && typeof value.agents.running === "number"
@@ -172,13 +185,14 @@ function parseSidebar(value: unknown): SidebarState | undefined {
 				}
 			: undefined;
 
-	if (tasks.length === 0 && !context && !usage && !git && !model && !agents) return undefined;
+	if (tasks.length === 0 && !context && !usage && !git && !model && !decisionModel && !agents) return undefined;
 	return {
 		...(tasks.length > 0 ? { tasks } : {}),
 		...(context ? { context } : {}),
 		...(usage ? { usage } : {}),
 		...(git ? { git } : {}),
 		...(model ? { model } : {}),
+		...(decisionModel ? { decisionModel } : {}),
 		...(agents ? { agents } : {}),
 	};
 }
