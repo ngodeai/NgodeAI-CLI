@@ -4592,6 +4592,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			...(sidebarState.model ? { model: sidebarState.model } : {}),
 			...(sidebarState.decisionModel ? { decisionModel: sidebarState.decisionModel } : {}),
 		};
+		this.composer.setSidebar(sidebarState);
 	}
 
 	/**
