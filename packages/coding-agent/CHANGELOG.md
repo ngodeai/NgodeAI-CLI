@@ -2,6 +2,13 @@
 
 All notable changes to NgodeAI CLI will be documented in this file.
 
+## [1.0.5] - 2026-10-28
+
+### Fixed
+
+- A fresh session opened with the previous launch's model in the sidebar while the status line under the prompt already showed the resolved default. `init()` finished without calling `#syncSidebar()`, so the pane kept the snapshot the last session wrote until some unrelated event refreshed it. It now paints from live session state before the composer is handed back.
+- The `DECISION MODEL` row no longer presents an ordinary chat model as a decision model. The judge role chain ends in `@default`, so an account with no reachable System One model resolves to a chat row that answers with one-hot confidence; the pane now carries `native` from `kindOf` and prints `no native judge`.
+
 ## [1.0.4] - 2026-10-28
 
 ### Fixed
