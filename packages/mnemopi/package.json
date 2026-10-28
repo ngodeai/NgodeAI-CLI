@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@ngodeai/mnemopi",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Local SQLite memory engine for ngodeai agents",
   "homepage": "https://ngodeai.net",
   "author": {

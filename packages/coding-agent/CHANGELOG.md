@@ -2,6 +2,14 @@
 
 All notable changes to NgodeAI CLI will be documented in this file.
 
+## [1.0.6] - 2026-10-28
+
+### Fixed
+
+- **Sidebar dynamic model synchronization**: the sidebar now listens directly to `model_changed` events and refreshes immediately when the live model changes (via background discovery, `/model`, or setup wizard), rather than waiting on unrelated UI actions.
+- **Decision model synchronization**: when no dedicated native System One decision model is reachable on the gateway, the decision model row synchronizes directly with the active live model displayed under the input prompt.
+- **Sandbox review isolation**: `scripts/review.ts` now prevents host shell API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) from inadvertently leaking into the test review sandbox.
+
 ## [1.0.5] - 2026-10-28
 
 ### Fixed

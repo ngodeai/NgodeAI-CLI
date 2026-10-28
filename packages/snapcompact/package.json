@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@ngodeai/snapcompact",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Bitmap-frame context compression for vision-capable LLMs",
   "homepage": "https://ngodeai.net",
   "author": {

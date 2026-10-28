@@ -22,7 +22,7 @@
     },
     "packages/agent": {
       "name": "@ngodeai/agent-core",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "dependencies": {
         "@ngodeai/ai": "catalog:",
         "@ngodeai/catalog": "catalog:",
@@ -41,7 +41,7 @@
     },
     "packages/ai": {
       "name": "@ngodeai/ai",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "dependencies": {
         "@ngodeai/catalog": "catalog:",
         "@ngodeai/natives": "catalog:",
@@ -63,7 +63,7 @@
     },
     "packages/catalog": {
       "name": "@ngodeai/catalog",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "dependencies": {
         "@ngodeai/ngodetype": "catalog:",
         "@ngodeai/utils": "catalog:",
@@ -76,7 +76,7 @@
     },
     "packages/coding-agent": {
       "name": "@ngodeai/coding-agent",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "bin": {
         "ngodeai": "src/cli.ts",
       },
@@ -167,7 +167,7 @@
     },
     "packages/mnemopi": {
       "name": "@ngodeai/mnemopi",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "bin": {
         "mnemopi": "src/cli.ts",
       },
@@ -193,7 +193,7 @@
     },
     "packages/natives": {
       "name": "@ngodeai/natives",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "devDependencies": {
         "@napi-rs/cli": "catalog:",
         "@types/bun": "catalog:",
@@ -208,7 +208,7 @@
     },
     "packages/ngodetype": {
       "name": "@ngodeai/ngodetype",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "devDependencies": {
         "@ark/attest": "0.56.3",
         "@ark/schema": "0.56.2",
@@ -221,7 +221,7 @@
     },
     "packages/snapcompact": {
       "name": "@ngodeai/snapcompact",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "dependencies": {
         "@ngodeai/ai": "catalog:",
         "@ngodeai/catalog": "catalog:",
@@ -235,7 +235,7 @@
     },
     "packages/stats": {
       "name": "@ngodeai/stats",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "bin": {
         "ngodeai-stats": "./src/index.ts",
       },
@@ -255,7 +255,7 @@
     },
     "packages/tui": {
       "name": "@ngodeai/tui",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "dependencies": {
         "@ngodeai/agent-core": "catalog:",
         "@ngodeai/ai": "catalog:",
@@ -296,7 +296,7 @@
     },
     "packages/utils": {
       "name": "@ngodeai/utils",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "dependencies": {
         "@ngodeai/natives": "catalog:",
       },
@@ -306,7 +306,7 @@
     },
     "packages/wire": {
       "name": "@ngodeai/wire",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "devDependencies": {
         "@types/bun": "catalog:",
       },
@@ -341,18 +341,18 @@
     "@babel/types": "^7.29.7",
     "@huggingface/transformers": "^4.2.0",
     "@napi-rs/cli": "3.7.2",
-    "@ngodeai/agent-core": "1.0.5",
-    "@ngodeai/ai": "1.0.5",
-    "@ngodeai/catalog": "1.0.5",
-    "@ngodeai/coding-agent": "1.0.5",
-    "@ngodeai/mnemopi": "1.0.5",
-    "@ngodeai/natives": "1.0.5",
-    "@ngodeai/ngodetype": "1.0.5",
-    "@ngodeai/snapcompact": "1.0.5",
-    "@ngodeai/stats": "1.0.5",
-    "@ngodeai/tui": "1.0.5",
-    "@ngodeai/utils": "1.0.5",
-    "@ngodeai/wire": "1.0.5",
+    "@ngodeai/agent-core": "1.0.6",
+    "@ngodeai/ai": "1.0.6",
+    "@ngodeai/catalog": "1.0.6",
+    "@ngodeai/coding-agent": "1.0.6",
+    "@ngodeai/mnemopi": "1.0.6",
+    "@ngodeai/natives": "1.0.6",
+    "@ngodeai/ngodetype": "1.0.6",
+    "@ngodeai/snapcompact": "1.0.6",
+    "@ngodeai/stats": "1.0.6",
+    "@ngodeai/tui": "1.0.6",
+    "@ngodeai/utils": "1.0.6",
+    "@ngodeai/wire": "1.0.6",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.220.0",
     "@opentelemetry/context-async-hooks": "^2.9.0",
