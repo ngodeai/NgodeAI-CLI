@@ -157,12 +157,10 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 			...hit,
 			rel: formatPathRelativeToCwd(resolveSearchResultPath(root.path, hit.rel), cwd),
 		}));
+		// The judge is reported as the pair the catalog stores: a bare id plus its
+		// provider. Passing a pre-stripped id here would make the renderer guess a
+		// provider back, and the guess is wrong for every non-gateway judge.
 		const primaryJudgeModel = judge.primaryModel();
-		const modelName = primaryJudgeModel
-			? primaryJudgeModel.id.startsWith("ngodeai/")
-				? primaryJudgeModel.id.slice(8)
-				: primaryJudgeModel.id
-			: undefined;
 		const details: FindToolDetails = {
 			query,
 			keywords,
@@ -173,7 +171,7 @@ export class FindTool implements AgentTool<typeof findSchema, FindToolDetails> {
 			elapsedMs,
 			cwd,
 			scopePath,
-			model: modelName,
+			...(primaryJudgeModel ? { model: primaryJudgeModel.id, provider: primaryJudgeModel.provider } : {}),
 		};
 		const where = scopePath === undefined ? "" : ` in ${scopePath}`;
 		const out: string[] = [];

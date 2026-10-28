@@ -74,8 +74,14 @@ const packageRoot = path.join(import.meta.dir, "..");
  * previous-snapshot row is always a stale leftover rather than a fallback: the
  * gateway's own `/v1/models` is the sole authority on what an account can
  * reach, and restoring a row here would make a removed model look current.
+ *
+ * `ngodeai` belongs here for the same reason, and its absence was visible: the
+ * committed snapshot kept both a bare row (`jev-1.14`) and the gateway's
+ * prefixed spelling (`ngodeai/jev-1.14`) for every model, so one selector
+ * matched two rows with different `kind` values and the judge role could bind
+ * to the wrong one.
  */
-const DISCOVERY_ONLY_PROVIDERS = new Set(["ollama", "vllm", "lm-studio", "litellm"]);
+const DISCOVERY_ONLY_PROVIDERS = new Set(["ollama", "vllm", "lm-studio", "litellm", "ngodeai"]);
 /**
  * Credential-scoped catalogs (Devin's Cascade roster is gated per account/team
  * via `allowed_model_uids`). Fetching them during generation would bake one

@@ -100,7 +100,23 @@ describe("NgodeAI provider", () => {
 		const models = await options.fetchDynamicModels?.();
 
 		expect(calls).toEqual([`${NGODEAI_GATEWAY_BASE_URL}/models`]);
-		expect(models?.map(model => model.id)).toEqual(["ngodeai/deepseek-v4-flash"]);
+		// The gateway prefixes roster ids with its own provider. The catalog stores
+		// the bare id with the provider alongside it, so the selector built from
+		// this row is `ngodeai/deepseek-v4-flash`, not `ngodeai/ngodeai/...`.
+		expect(models?.map(model => model.id)).toEqual(["deepseek-v4-flash"]);
+		expect(models?.[0]?.requestModelId).toBe("ngodeai/deepseek-v4-flash");
+	});
+
+	/** A decision row keeps the wire id in `requestModelId` for the same reason. */
+	test("stores the gateway prefix as the wire id, not as the catalog id", async () => {
+		const { fetch } = fetchOnce([decisionRow({ id: "ngodeai/jev-1.14", display_name: "Jev 1.14" })]);
+		const options = ngodeaiModelManagerOptions({ apiKey: "ngodeai_live_test", fetch });
+		const [model] = (await options.fetchDynamicModels?.()) ?? [];
+
+		expect(model.id).toBe("jev-1.14");
+		expect(model.requestModelId).toBe("ngodeai/jev-1.14");
+		expect(model.kind).toBe("judge");
+		expect(model.api).toBe("typesafe");
 	});
 
 	/** The generic OpenAI mapper drops every gateway-specific field. */

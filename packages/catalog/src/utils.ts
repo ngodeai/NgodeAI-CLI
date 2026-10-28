@@ -67,3 +67,26 @@ export function cleanModelName(name: string): string {
 	const cleaned = name.replace(AUTHOR_PREFIX, "").replace(NOISE_TAGS, "").replace(/ {2,}/g, " ").trim();
 	return cleaned.length > 0 ? cleaned : name;
 }
+
+/**
+ * The id to print for a model whose provider is already implied by context.
+ *
+ * A discovered row may carry its provider inside the id (`ngodeai/jev-1.14`),
+ * while a seeded or bundled row carries a bare id (`jev-1.14`) with the
+ * provider stored separately. Callers that show `provider/id` should build it
+ * once — prefixing an already-qualified id yields `ngodeai/ngodeai/jev-1.14`,
+ * which is what appeared in the transcript and in judgment log lines.
+ *
+ * Distinct from `identity/id.bareModelId`, which splits on the last `/` for
+ * display of aggregator ids; this one removes exactly the row's own provider.
+ */
+export function qualifyModelId(provider: string, id: string): string {
+	const prefix = `${provider}/`;
+	return id.startsWith(prefix) ? id : `${provider}/${id}`;
+}
+
+/** The id with the row's own provider prefix removed, if it carried one. */
+export function stripModelProviderPrefix(provider: string, id: string): string {
+	const prefix = `${provider}/`;
+	return id.startsWith(prefix) && id.length > prefix.length ? id.slice(prefix.length) : id;
+}

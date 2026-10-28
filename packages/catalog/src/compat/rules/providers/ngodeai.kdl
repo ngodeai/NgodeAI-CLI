@@ -17,20 +17,4 @@ provider "ngodeai" {
 	env "NGODEAI_API_KEY"
 	allow-unauthenticated #true
 	discovery label="NgodeAI" allow-unauthenticated=#true
-
-	seed api="openai-completions" base-url="https://llm.ngodeai.net/v1" bundle="always" precedence="seed" {
-		model "gemini-3.8-flash" name="Gemini 3.8 Flash" {
-			reasoning #true
-			input "text" "image"
-			cost input=0 output=0 cache-read=0 cache-write=0
-			limits context=1048576 max-tokens=65536
-		}
-		model "mercury-decide" name="Mercury Decide" api="typesafe" base-url="https://llm.ngodeai.net" {
-			reasoning #false
-			input "text"
-			cost input=0 output=0 cache-read=0 cache-write=0
-			limits context=65536 max-tokens=2048
-			supports-tools #false
-		}
-	}
 }

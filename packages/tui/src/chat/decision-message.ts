@@ -23,6 +23,7 @@
  * the other options, so a three-way tie looks like a tie.
  */
 import type { DecisionAnswerRecord, DecisionEvent } from "@ngodeai/ai";
+import { stripModelProviderPrefix } from "@ngodeai/catalog/utils";
 import { Text } from "../components/text";
 import { Container } from "../tui";
 import type { Component } from "../tui";
@@ -267,7 +268,7 @@ export class DecisionCard extends Container {
 		// route was billed. Only the gateway's provider prefix is stripped for
 		// display, because the title already says System One.
 		const modelRaw = event.model || "unknown";
-		const modelName = modelRaw.startsWith("ngodeai/") ? modelRaw.slice(8) : modelRaw;
+		const modelName = stripModelProviderPrefix(event.provider, modelRaw);
 		const apiBadge = event.api === "typesafe" ? "native System One" : event.api;
 		const fullTitle = ` ⚖ DECIDE · ${modelName} (${apiBadge}) `;
 		const title = truncateToWidth(fullTitle, Math.max(4, targetWidth - 10));

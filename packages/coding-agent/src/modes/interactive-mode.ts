@@ -4576,6 +4576,10 @@ export class InteractiveMode implements InteractiveModeContext {
 							displayName: primary.name ?? primary.id,
 							effort: primary.api === "typesafe" ? "native System One" : primary.api,
 							subscription: this.session.modelRegistry?.isUsingOAuth(primary) ?? false,
+							// `primaryModel()` reports the planned first candidate until a
+							// judgment answers, then the model that answered. Say which one
+							// this is, so a fresh session never presents a plan as a fact.
+							confirmed: judge?.hasAnswered?.() === true,
 						},
 					};
 				} catch {

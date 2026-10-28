@@ -61,6 +61,39 @@ describe("StatusSidebar", () => {
 	});
 
 	/**
+	 * The decision model comes from a role chain, whose first entry is only the
+	 * model a judgment *would* route to. Until one answers, the pane must not
+	 * present that candidate as the model in use — that is how a sidebar kept
+	 * showing `mercury-decide` while every request was answered by `jev-1.14`.
+	 */
+	it("marks a decision model that has not answered yet as pending", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState({
+			...fullState,
+			decisionModel: {
+				selector: "ngodeai/mercury-decide",
+				displayName: "mercury-decide",
+				effort: "native",
+				confirmed: false,
+			},
+		});
+		expect(plain(sidebar.render(32)).join("\n")).toContain("pending");
+
+		sidebar.setState({
+			...fullState,
+			decisionModel: {
+				selector: "ngodeai/jev-1.14",
+				displayName: "jev-1.14",
+				effort: "native",
+				confirmed: true,
+			},
+		});
+		const confirmed = plain(sidebar.render(32)).join("\n");
+		expect(confirmed).toContain("jev-1.14");
+		expect(confirmed).not.toContain("pending");
+	});
+
+	/**
 	 * The sidebar shares the screen with the transcript, so a row one cell too
 	 * wide wraps in the terminal and shears the whole frame.
 	 */

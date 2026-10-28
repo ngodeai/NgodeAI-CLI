@@ -1412,7 +1412,20 @@ function ngodeaiIdrIsPriced(pricing: unknown): boolean {
  * the row arrives as an ordinary chat model, and every decision falls back to
  * prompted keywords with one-hot confidence — the whole decision layer would
  * run on a model that cannot express uncertainty.
+ *
+ * The gateway also prefixes every roster id with its own provider
+ * (`ngodeai/<id>`). The catalog's identity for a row is the bare id with the
+ * provider carried separately, so a row stored verbatim would be addressed as
+ * `ngodeai/ngodeai/<id>` — visible in the transcript, the sidebar, and every
+ * log line, and unreachable by a `ngodeai/<id>` selector. {@link splitGatewayId}
+ * strips it and keeps the wire form in `requestModelId`.
  */
+function splitGatewayId(id: string): { id: string; requestModelId?: string } {
+	const prefix = "ngodeai/";
+	if (!id.startsWith(prefix) || id.length === prefix.length) return { id };
+	return { id: id.slice(prefix.length), requestModelId: id };
+}
+
 function mapNgodeaiModel(
 	entry: OpenAICompatibleModelRecord,
 	defaults: ModelSpec<Api>,
@@ -1421,13 +1434,14 @@ function mapNgodeaiModel(
 	const displayName = typeof entry.display_name === "string" ? entry.display_name.trim() : "";
 	const usdCost = ngodeaiUsdCost(entry);
 	const idrPriced = ngodeaiIdrIsPriced(entry.pricing);
+	const { id, requestModelId } = splitGatewayId(defaults.id);
 
 	if (isNgodeaiDecisionRow(entry)) {
 		// Built from the shared fields rather than spread from `defaults`: the
 		// chat row's `compat` block describes an OpenAI transport, and carrying it
 		// onto a System One row would be a lie the compiler correctly refuses.
 		const decision: ModelSpec<"typesafe"> = {
-			id: defaults.id,
+			id,
 			provider: defaults.provider,
 			api: "typesafe",
 			kind: "judge",
@@ -1443,6 +1457,7 @@ function mapNgodeaiModel(
 			contextWindow: toPositiveNumber(entry.context_length, null),
 			maxTokens: toPositiveNumber(entry.max_output_tokens, null),
 			cost: usdCost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			...(requestModelId !== undefined && { requestModelId }),
 			// A decision row with no priced leg at all is the gateway's free tier,
 			// not a row whose price is unknown: the card is present and every leg
 			// is zero. Saying so lets a picker label it Free and lets the judge
@@ -1458,6 +1473,8 @@ function mapNgodeaiModel(
 
 	return {
 		...defaults,
+		id,
+		...(requestModelId !== undefined && { requestModelId }),
 		name: displayName || toModelName(entry.name, defaults.name),
 		input: entry.supports_vision === true ? ["text", "image"] : ["text"],
 		contextWindow: toPositiveNumber(entry.context_length, null),

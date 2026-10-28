@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@ngodeai/stats",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Local observability dashboard for ngodeai AI usage statistics",
   "homepage": "https://ngodeai.net",
   "author": {

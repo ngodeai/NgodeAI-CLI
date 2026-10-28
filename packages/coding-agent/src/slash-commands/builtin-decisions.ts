@@ -20,6 +20,7 @@
  */
 import { formatDuration, formatNumber } from "@ngodeai/utils";
 import type { DecisionEvent, JudgmentState } from "@ngodeai/ai";
+import { stripModelProviderPrefix } from "@ngodeai/catalog/utils";
 import { reportTask, runBatchBenchmark } from "../judgment/benchmark";
 import { hasNativeJudge } from "../judgment";
 import type { DecisionTotals } from "../judgment/ledger";
@@ -740,8 +741,12 @@ export const decisionSlashCommands: SlashCommandSpec[] = [
 				const judge = runtime.ctx.session.decisionJudge?.("status");
 				const primary = judge?.primaryModel();
 				if (primary) {
-					const name = primary.id.startsWith("ngodeai/") ? primary.id.slice(8) : primary.id;
-					return `Decision Model: ${name} (native) · Inspect ledger`;
+					const name = stripModelProviderPrefix(primary.provider, primary.id);
+					// `primaryModel()` is the planned first candidate until a judgment
+					// answers. Saying "native" unconditionally presented that plan as a
+					// fact; name the state instead.
+					const state = judge?.hasAnswered?.() === true ? "native" : "planned";
+					return `Decision Model: ${name} (${state}) · Inspect ledger`;
 				}
 			} catch {}
 			return "Inspect the Artificial Decisions ledger";

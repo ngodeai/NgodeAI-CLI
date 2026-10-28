@@ -168,11 +168,11 @@ describe("findToolRenderer", () => {
 	// backend whose scores the rows below are.
 	it("names the judge that ranked the hits", async () => {
 		const uiTheme = (await getThemeByName("dark"))!;
-		const header = (model?: string) =>
+		const header = (model?: string, provider?: string) =>
 			sanitizeText(
 				findToolRenderer
 					.renderResult(
-						{ content: [{ type: "text", text: "" }], details: { ...details, model } },
+						{ content: [{ type: "text", text: "" }], details: { ...details, model, provider } },
 						{ expanded: false, isPartial: false },
 						uiTheme,
 						args,
@@ -181,12 +181,16 @@ describe("findToolRenderer", () => {
 					.join("\n"),
 			);
 
-		const jev = header("jev-1.14");
+		const jev = header("jev-1.14", "ngodeai");
 		expect(jev).toContain("Find · Decision Model [jev-1.14]");
 		expect(jev).not.toContain("mercury-decide");
 
-		expect(header("ngodeai/jev-1.14")).toContain("Find · Decision Model [jev-1.14]");
-		expect(header("mercury-decide")).toContain("Find · Decision Model [mercury-decide]");
+		// A row whose id already carries the provider must not print it twice.
+		const prefixed = header("ngodeai/jev-1.14", "ngodeai");
+		expect(prefixed).toContain("Find · Decision Model [jev-1.14]");
+		expect(prefixed).not.toContain("ngodeai/ngodeai/jev-1.14");
+
+		expect(header("mercury-decide", "ngodeai")).toContain("Find · Decision Model [mercury-decide]");
 		expect(header(undefined)).not.toContain("mercury-decide");
 	});
 

@@ -4,6 +4,7 @@
  * its strongest verified line ranges with a verbatim snippet.
  */
 import * as path from "node:path";
+import { stripModelProviderPrefix } from "@ngodeai/catalog/utils";
 import { formatDuration, formatNumber } from "@ngodeai/utils";
 import { Ellipsis, visibleWidth, wrapTextWithAnsi } from "../utils";
 import { renderProgressBar } from "../components/progress-bar";
@@ -106,6 +107,8 @@ export interface FindToolDetails {
 	scopePath?: string;
 	/** Decision model identifier used to evaluate passages. */
 	model?: string;
+	/** Provider of {@link model}, so the renderer can show a bare id without guessing a prefix. */
+	provider?: string;
 	meta?: OutputMeta;
 }
 
@@ -322,7 +325,8 @@ export const findToolRenderer = {
 		// `mercury-decide` would report a different backend than the one that
 		// ranked these hits, so the header would no longer explain the scores.
 		const rawModel = details.model;
-		const displayModel = rawModel ? (rawModel.startsWith("ngodeai/") ? rawModel.slice(8) : rawModel) : undefined;
+		const displayModel =
+			rawModel && details.provider ? stripModelProviderPrefix(details.provider, rawModel) : (rawModel ?? undefined);
 		const modelTitle = displayModel ? `Find · Decision Model [${displayModel}]` : "Find · Decision Model";
 		const header = renderStatusLine(
 			{

@@ -2,6 +2,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { ThinkingLevel } from "@ngodeai/agent-core";
 import { getTimeBasedPricingPeriod } from "@ngodeai/catalog/models";
+import { stripModelProviderPrefix } from "@ngodeai/catalog/utils";
 import { SPINNER_ADVANCE_MS, TERMINAL } from "../index";
 import {
 	formatDuration,
@@ -1131,9 +1132,7 @@ const decisionsSegment: StatusLineSegment = {
 		let modelName: string | undefined;
 		try {
 			const model = ctx.session.decisionJudge?.("status")?.primaryModel?.();
-			if (model) {
-				modelName = model.id.startsWith("ngodeai/") ? model.id.slice(8) : model.id;
-			}
+			if (model) modelName = stripModelProviderPrefix(model.provider, model.id);
 		} catch {}
 
 		if (!decisions || (decisions.count === 0 && !modelName)) return { content: "", visible: false };
@@ -1152,9 +1151,7 @@ const decisionsSegment: StatusLineSegment = {
 		let modelName: string | undefined;
 		try {
 			const model = ctx.session.decisionJudge?.("status")?.primaryModel?.();
-			if (model) {
-				modelName = model.id.startsWith("ngodeai/") ? model.id.slice(8) : model.id;
-			}
+			if (model) modelName = stripModelProviderPrefix(model.provider, model.id);
 		} catch {}
 		if (!decisions || (decisions.count === 0 && !modelName)) return null;
 		const countPart =

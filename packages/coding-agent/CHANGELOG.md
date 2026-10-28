@@ -2,6 +2,16 @@
 
 All notable changes to NgodeAI CLI will be documented in this file.
 
+## [1.0.4] - 2026-10-28
+
+### Fixed
+
+- The sidebar, `/decisions` autocomplete, and the status line now report the decision model that **actually answered**, not the first entry of the judge role chain. `primaryModel()` is an observed fact once a judgment runs, and the planned candidate is labelled `pending` until then.
+- The gateway's `ngodeai/` id prefix is no longer stored in the catalog id, which had produced `ngodeai/ngodeai/jev-1.14` in the transcript, the sidebar, and every judgment log line. The wire form is preserved in `requestModelId`.
+- One helper (`stripModelProviderPrefix`) replaces five separate `startsWith("ngodeai/")` / `slice(8)` copies, so no surface can drift from another.
+- `ngodeai` is discovery-only again: the committed snapshot no longer resurrects bare-and-prefixed duplicate rows, which let one selector match two rows with different `kind` values.
+- Removed the bundled `gemini-3.8-flash` / `mercury-decide` seed rows, which duplicated what discovery returns and made a failed fetch look like a working one.
+
 ## [1.0.3] - 2026-10-27
 
 ### Fixed

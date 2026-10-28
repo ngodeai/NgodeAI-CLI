@@ -216,7 +216,11 @@ describe("ChainJudge", () => {
 		});
 
 		expect(result.answers.level.choice).toBe("high");
-		expect(result.model).toBe("jev-1.13.0");
+		// The result reports the catalog id the judge resolved to, not the wire id
+		// the provider echoed back. That is what the ledger stores and what every
+		// surface renders, so a provider that renames its model mid-release cannot
+		// make the transcript disagree with `/decisions`.
+		expect(result.model).toBe("jev-preview");
 		expect(onUsage).toHaveBeenCalledWith(
 			expect.objectContaining({ role: "typesafe", provider: "typesafe", model: "jev-preview" }),
 		);
@@ -848,6 +852,50 @@ describe("ChainJudge", () => {
 		// A gated feature (find, tab.goal) passes on a native judge, so its judge must route there too.
 		expect(hasNativeJudge(settings, registry)).toBe(true);
 		expect(new ChainJudge({ settings, registry, purpose: "test" }).primaryModel()?.id).toBe(JEV_PREVIEW.id);
+	});
+
+	/**
+	 * `primaryModel()` is the model a judgment *would* route to until one
+	 * answers, then the model that did. The sidebar and `/decisions` label live
+	 * state with it, so reporting candidate 0 forever is what made them keep
+	 * advertising a judge that had been failing every request.
+	 */
+	it("reports the candidate that answered, not the first candidate", async () => {
+		// Two native candidates: the free tier first, the paid one as fallback.
+		const paid = { ...JEV_PREVIEW, id: "jev-paid", name: "JEV Paid" } as Model<Api>;
+		const settings = Settings.isolated({
+			modelRoles: { judge: "typesafe/jev-preview" },
+			"retry.fallbackChains": { judge: ["typesafe/jev-paid"] },
+		});
+		const registry = makeRegistry([JEV_PREVIEW, paid], { typesafe: "ts-key" });
+		// The first candidate is revoked, so the chain must fall through.
+		let calls = 0;
+		vi.spyOn(globalThis, "fetch").mockImplementation(
+			asGlobalFetch(async (_url, init) => {
+				calls++;
+				const body = JSON.parse(String(init?.body)) as { model: string };
+				if (body.model === JEV_PREVIEW.id) {
+					return Response.json({ error: { message: "revoked" } }, { status: 401 });
+				}
+				return Response.json({
+					model: body.model,
+					answers: {
+						level: { type: "choice", choice: "high", probabilities: { low: 0.1, high: 0.9 }, confidence: 0.8 },
+					},
+					usage: { input_tokens: 8, output_tokens: 2 },
+				});
+			}),
+		);
+		const judge = new ChainJudge({ settings, registry, purpose: "test" });
+
+		expect(judge.hasAnswered()).toBe(false);
+		expect(judge.primaryModel()?.id).toBe(JEV_PREVIEW.id);
+
+		await judge.judge({ state: "redesign the scheduler", questions: { level: TIER_QUESTION } });
+
+		expect(calls).toBe(2);
+		expect(judge.hasAnswered()).toBe(true);
+		expect(judge.primaryModel()?.id).toBe(paid.id);
 	});
 
 	it("resolves and forwards configured headers to native judgment models", async () => {

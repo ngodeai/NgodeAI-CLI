@@ -77,6 +77,15 @@ export interface SidebarModel {
 	readonly effort?: string;
 	/** `true` when the credential is a subscription rather than a metered key. */
 	readonly subscription?: boolean;
+	/**
+	 * Whether this row reports an observed fact rather than a plan.
+	 *
+	 * The decision model is chosen by a role chain, and its first candidate is
+	 * only the model a judgment *would* route to. Until one answers, the row can
+	 * only show that plan; afterwards it shows the model that actually ran.
+	 * `false`/absent renders the planned candidate without claiming it answered.
+	 */
+	readonly confirmed?: boolean;
 }
 
 /** One background agent, as the Agent Hub knows it. */
@@ -369,6 +378,11 @@ function modelRows(model: SidebarModel, width: number): string[] {
 	const meta: string[] = [];
 	if (model.effort) meta.push(theme.fg("dim", model.effort));
 	if (model.subscription) meta.push(theme.fg("success", "subscription"));
+	// A planned candidate that has not answered yet is labelled as such. Without
+	// this the pane showed the role chain's first entry as though it were the
+	// model in use, which is how `mercury-decide` kept appearing while every
+	// request was answered by `jev-1.14`.
+	if (model.confirmed === false) meta.push(theme.fg("dim", "pending"));
 	if (meta.length > 0) rows.push(truncateToWidth(meta.join(theme.fg("dim", " · ")), width));
 	if (model.displayName && model.displayName !== model.selector) {
 		rows.push(truncateToWidth(theme.fg("dim", model.selector), width));
@@ -622,6 +636,9 @@ export class StatusSidebar implements Component {
 		if (decisionModel) {
 			sections.push(text([span("DECISION MODEL", "dim strong")]));
 			sections.push(text([span(decisionModel.displayName ?? decisionModel.selector, "accent")], { wrap: "none" }));
+			if (decisionModel.confirmed === false) {
+				sections.push(text([span("pending", "dim")], { wrap: "none" }));
+			}
 		}
 
 		if (agents) {

@@ -372,6 +372,16 @@ export class ChainJudge implements Judge {
 	readonly #telemetry: AgentTelemetry | undefined;
 	/** Text-judgment candidates memoized per resolved chain; image candidates depend on each request's images. */
 	#candidates: { chain: RoleChainCandidate[]; list: RoleChainCandidate[] } | undefined;
+	/**
+	 * The candidate that last answered a judgment, i.e. what actually ran.
+	 *
+	 * {@link primaryModel} is a *plan*: candidate 0 of the role chain. It is the
+	 * model a judgment routes to only while that candidate is credentialed and
+	 * healthy, so a sidebar built on it keeps advertising a model that may have
+	 * been failing every request. This field is the observed fact, and the
+	 * sidebar prefers it.
+	 */
+	#lastAnswered: Model | undefined;
 
 	constructor(deps: JudgeDeps) {
 		this.#deps = deps;
@@ -451,12 +461,29 @@ export class ChainJudge implements Judge {
 	}
 
 	/**
-	 * Model of the first judge-role candidate, i.e. the one a judgment routes to
-	 * when it is credentialed and healthy. Used to price work before running it;
-	 * undefined when no candidate resolves.
+	 * The model this judge is actually running on.
+	 *
+	 * After at least one judgment, this is the candidate that answered it. Before
+	 * that it is candidate 0 — the model a judgment *would* route to while that
+	 * candidate is credentialed and healthy. Callers that label live state (the
+	 * sidebar, the status line) want the observed fact; callers that price work
+	 * before running it want the plan, which is what they get on a fresh judge.
+	 *
+	 * Reporting candidate 0 forever was the bug behind a sidebar that kept
+	 * advertising `mercury-decide` while every request was being answered — and
+	 * billed — by `jev-1.14` after the free tier started returning 401.
 	 */
 	primaryModel(): Model | undefined {
-		return this.#resolveCandidates()[0]?.model;
+		return this.#lastAnswered ?? this.#resolveCandidates()[0]?.model;
+	}
+
+	/**
+	 * Whether {@link primaryModel} reports an observed answer rather than the
+	 * planned first candidate. Lets a caller say which of the two it is showing
+	 * instead of passing a plan off as a fact.
+	 */
+	hasAnswered(): boolean {
+		return this.#lastAnswered !== undefined;
 	}
 
 	/**
@@ -545,7 +572,12 @@ export class ChainJudge implements Judge {
 					continue;
 				}
 				compatibleCandidate = true;
-				return await run(judge, kindOf(candidate), candidate.model);
+				const answered = await run(judge, kindOf(candidate), candidate.model);
+				// Recorded here, at the single point every path funnels through, so
+				// `primaryModel()` reports an observed answer for both `judge` and
+				// `withCandidate` callers.
+				this.#lastAnswered = candidate.model;
+				return answered;
 			} catch (error) {
 				if (signal?.aborted) {
 					throw signal.reason instanceof Error ? signal.reason : new AIError.AbortError("judgment aborted");
