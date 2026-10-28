@@ -161,6 +161,7 @@ function parseSidebar(value: unknown): SidebarState | undefined {
 					...(typeof value.model.displayName === "string" ? { displayName: value.model.displayName } : {}),
 					...(typeof value.model.effort === "string" ? { effort: value.model.effort } : {}),
 					...(typeof value.model.subscription === "boolean" ? { subscription: value.model.subscription } : {}),
+					...(typeof value.model.confirmed === "boolean" ? { confirmed: value.model.confirmed } : {}),
 				}
 			: undefined;
 	const decisionModel =
@@ -173,6 +174,12 @@ function parseSidebar(value: unknown): SidebarState | undefined {
 					...(typeof value.decisionModel.effort === "string" ? { effort: value.decisionModel.effort } : {}),
 					...(typeof value.decisionModel.subscription === "boolean"
 						? { subscription: value.decisionModel.subscription }
+						: {}),
+					// Without this the restored row lost `confirmed` and fell back to the
+					// "pending" label, so a session that had answered decisions showed a
+					// stale plan on the next launch.
+					...(typeof value.decisionModel.confirmed === "boolean"
+						? { confirmed: value.decisionModel.confirmed }
 						: {}),
 				}
 			: undefined;

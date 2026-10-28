@@ -11,6 +11,9 @@ All notable changes to NgodeAI CLI will be documented in this file.
 - One helper (`stripModelProviderPrefix`) replaces five separate `startsWith("ngodeai/")` / `slice(8)` copies, so no surface can drift from another.
 - `ngodeai` is discovery-only again: the committed snapshot no longer resurrects bare-and-prefixed duplicate rows, which let one selector match two rows with different `kind` values.
 - Removed the bundled `gemini-3.8-flash` / `mercury-decide` seed rows, which duplicated what discovery returns and made a failed fetch look like a working one.
+- The sidebar's startup snapshot no longer replays the previous session's MODEL row. It is written with the model the _next_ launch will start with — the same one the status line uses — so a fresh session can no longer open with an old model in the pane and a different one under the prompt.
+- A judge that resolves to an ordinary chat model (the `@default` tail of the role chain) is labelled `prompted · <api>` instead of `native System One`. `kindOf` decides, so a chat fallback is never presented as System One.
+- The composer startup cache now preserves `confirmed` on the decision-model row, so a session that had answered decisions no longer reopens as `pending`.
 
 ## [1.0.3] - 2026-10-27
 

@@ -147,6 +147,7 @@ import {
 	SHUTDOWN_CONSOLIDATE_BUDGET_MS,
 } from "../session/agent-session";
 import type { CompactMode } from "../session/compact-modes";
+import { kindOf } from "../judgment";
 import type { ForeignSessionSource } from "../session/foreign-session-store";
 import { HistoryStorage } from "../session/history-storage";
 import { syncTextPrediction, textPredictionBackend } from "../predict/client";
@@ -3965,7 +3966,24 @@ export class InteractiveMode implements InteractiveModeContext {
 		};
 		sharedComposerCache()?.writeStatus(this.sessionManager.getCwd(), {
 			...status,
-			sidebar: this.#lastSidebarHeader,
+			// The sidebar snapshot replays on the *next* launch, so its MODEL row
+			// must name the model that launch will start with — the same `model`
+			// the startup status line uses — not this session's current one.
+			// Persisting the live row is what made a fresh session open with the
+			// previous session's Claude Opus in the pane while the status line
+			// below the prompt correctly said DeepSeek.
+			sidebar: {
+				...this.#lastSidebarHeader,
+				...(model
+					? {
+							model: {
+								selector: `${model.provider}/${model.id}`,
+								displayName: model.name,
+								subscription: this.session.modelRegistry.isUsingOAuth(model),
+							},
+						}
+					: {}),
+			},
 		});
 	}
 
@@ -4570,11 +4588,22 @@ export class InteractiveMode implements InteractiveModeContext {
 					const selector = primary.id.startsWith(`${primary.provider}/`)
 						? primary.id
 						: `${primary.provider}/${primary.id}`;
+					// The judge role chain ends in `@default`, so an account with no
+					// decision model reachable falls back to an ordinary chat model.
+					// That is a prompted judge, not System One — saying so keeps the
+					// pane from presenting a chat row as a native decision model.
+					const backend = kindOf(primary);
+					const effort =
+						backend === "native"
+							? "native System One"
+							: backend === "local"
+								? "on-device keywords"
+								: `prompted · ${primary.api}`;
 					return {
 						decisionModel: {
 							selector,
 							displayName: primary.name ?? primary.id,
-							effort: primary.api === "typesafe" ? "native System One" : primary.api,
+							effort,
 							subscription: this.session.modelRegistry?.isUsingOAuth(primary) ?? false,
 							// `primaryModel()` reports the planned first candidate until a
 							// judgment answers, then the model that answered. Say which one

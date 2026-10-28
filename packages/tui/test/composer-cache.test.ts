@@ -196,4 +196,33 @@ describe("composer startup cache", () => {
 		expect(cache.read(project).status?.sidebar).toBeUndefined();
 		cache.close();
 	});
+
+	/**
+	 * `confirmed` distinguishes an observed answer from the role chain's planned
+	 * first candidate. Dropping it on read made a session that had already
+	 * answered decisions render as `pending` on the next launch.
+	 */
+	it("preserves the decision model's confirmed flag across a restart", () => {
+		const project = path.join(root, "project");
+		const cache = ComposerCache.open(dbPath);
+		cache.writeStatus(project, {
+			...statusFor(ThinkingLevel.Low),
+			sidebar: {
+				decisionModel: {
+					selector: "ngodeai/jev-1.14",
+					displayName: "jev-1.14",
+					effort: "native System One",
+					confirmed: true,
+				},
+			},
+		});
+
+		expect(cache.read(project).status?.sidebar?.decisionModel).toEqual({
+			selector: "ngodeai/jev-1.14",
+			displayName: "jev-1.14",
+			effort: "native System One",
+			confirmed: true,
+		});
+		cache.close();
+	});
 });
