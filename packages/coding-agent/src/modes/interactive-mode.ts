@@ -2632,6 +2632,8 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#eventBusUnsubscribers.push(
 			this.session.subscribe(event => {
 				if (event.type === "model_changed") {
+					this.#syncSidebar();
+					this.ui.requestRender();
 					this.#scheduleComposerStatusPersist();
 					this.session.prewarmModelConnection();
 				}
@@ -4539,11 +4541,17 @@ export class InteractiveMode implements InteractiveModeContext {
 	 * the same places those change rather than on a timer: the sidebar must never
 	 * show a plan the transcript has moved past.
 	 */
+	/** Refresh the sidebar from the live session state and request a render frame. */
+	syncSidebar(): void {
+		this.#syncSidebar();
+		this.ui.requestRender();
+	}
+
 	#syncSidebar(): void {
 		const phases = this.todoPhases.filter(phase => phase.tasks.length > 0);
 		const contextUsage = this.#getPlanApprovalContextUsage();
 		const branch = this.#currentBranch();
-		const model = this.session.model;
+		const model = this.session.state?.model ?? this.session.model;
 		const usage = this.session.sessionManager?.getUsageStatistics();
 		const subagents = this.statusLine.subagentCount;
 		const roster = this.#sidebarAgentRoster();
@@ -4591,35 +4599,37 @@ export class InteractiveMode implements InteractiveModeContext {
 				try {
 					const judge = this.session.decisionJudge?.("sidebar");
 					const primary = judge?.primaryModel();
-					if (!primary) return {};
-					const selector = primary.id.startsWith(`${primary.provider}/`)
-						? primary.id
-						: `${primary.provider}/${primary.id}`;
-					// The judge role chain ends in `@default`, so an account with no
-					// decision model reachable falls back to an ordinary chat model.
-					// That is a prompted judge, not System One — saying so keeps the
-					// pane from presenting a chat row as a native decision model.
-					const backend = kindOf(primary);
-					const native = backend === "native";
-					const effort =
-						backend === "native"
-							? "native System One"
-							: backend === "local"
-								? "on-device keywords"
-								: `prompted · ${primary.api}`;
-					return {
-						decisionModel: {
-							selector,
-							displayName: primary.name ?? primary.id,
-							effort,
-							native,
-							subscription: this.session.modelRegistry?.isUsingOAuth(primary) ?? false,
-							// `primaryModel()` reports the planned first candidate until a
-							// judgment answers, then the model that answered. Say which one
-							// this is, so a fresh session never presents a plan as a fact.
-							confirmed: judge?.hasAnswered?.() === true,
-						},
-					};
+					// A native System One decision model takes precedence when reachable:
+					if (primary && kindOf(primary) === "native") {
+						const selector = primary.id.startsWith(`${primary.provider}/`)
+							? primary.id
+							: `${primary.provider}/${primary.id}`;
+						return {
+							decisionModel: {
+								selector,
+								displayName: primary.name ?? primary.id,
+								effort: "native System One",
+								native: true,
+								subscription: this.session.modelRegistry?.isUsingOAuth(primary) ?? false,
+								confirmed: judge?.hasAnswered?.() === true,
+							},
+						};
+					}
+					// When no dedicated native decision judge is reachable, synchronize directly
+					// with the active model currently displayed under the input prompt:
+					if (model) {
+						return {
+							decisionModel: {
+								selector: `${model.provider}/${model.id}`,
+								displayName: model.name,
+								effort: "synchronized · active model",
+								native: false,
+								subscription: this.session.modelRegistry?.isUsingOAuth(model) ?? false,
+								confirmed: true,
+							},
+						};
+					}
+					return {};
 				} catch {
 					return {};
 				}

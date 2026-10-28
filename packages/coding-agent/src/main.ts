@@ -700,6 +700,7 @@ async function runInteractiveMode(
 
 		if (setupWizard && setupScenes.length > 0) {
 			await setupWizard.runSetupWizard(mode, setupScenes);
+			mode.syncSidebar();
 		}
 
 		// Consume failures immediately, but defer any banner until the transcript is stable.

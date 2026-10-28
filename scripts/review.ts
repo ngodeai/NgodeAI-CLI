@@ -16,7 +16,6 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { $ } from "bun";
 
 const repoRoot = path.join(import.meta.dir, "..");
 const sandbox = path.join(repoRoot, ".review-home");
@@ -94,6 +93,10 @@ const env = {
 	HOMEPATH: sandbox.slice(path.parse(sandbox).root.length - 1),
 	// Never let a real key from the parent shell satisfy the onboarding gate.
 	NGODEAI_API_KEY: "",
+	ANTHROPIC_API_KEY: "",
+	OPENAI_API_KEY: "",
+	GEMINI_API_KEY: "",
+	GOOGLE_API_KEY: "",
 	// Terminal capability probes are noisy in a review run.
 	NGODEAI_SKIP_SETUP: "",
 };
