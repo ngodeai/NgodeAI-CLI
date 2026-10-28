@@ -96,7 +96,8 @@ describe("StatusSidebar", () => {
 	/**
 	 * The judge role chain ends in `@default`, so an account with no reachable
 	 * decision model falls back to an ordinary chat model. The pane must say
-	 * that backend is prompted rather than presenting a chat row as System One.
+	 * that backend is prompted — and that no native judge resolved — rather than
+	 * presenting a chat row as System One.
 	 */
 	it("labels a prompted judge backend instead of claiming System One", () => {
 		const sidebar = new StatusSidebar();
@@ -107,11 +108,13 @@ describe("StatusSidebar", () => {
 				displayName: "Gemini 3.8 Flash",
 				effort: "prompted · google-vertex",
 				confirmed: true,
+				native: false,
 			},
 		});
-		const text = plain(sidebar.render(36)).join("\n");
+		const text = plain(sidebar.render(48)).join("\n");
 		expect(text).toContain("Gemini 3.8 Flash");
 		expect(text).toContain("prompted");
+		expect(text).toContain("no native judge");
 		expect(text).not.toContain("System One");
 	});
 

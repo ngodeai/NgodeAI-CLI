@@ -86,6 +86,16 @@ export interface SidebarModel {
 	 * `false`/absent renders the planned candidate without claiming it answered.
 	 */
 	readonly confirmed?: boolean;
+	/**
+	 * Whether this row is a native System One backend.
+	 *
+	 * `role-defaults "judge"` ends in `@default`, so an account with no reachable
+	 * decision model resolves the judge role to an ordinary chat model. That is a
+	 * prompted judge, not a decision model: it returns one-hot confidence rather
+	 * than a calibrated distribution. The pane says so instead of presenting a
+	 * chat row as System One.
+	 */
+	readonly native?: boolean;
 }
 
 /** One background agent, as the Agent Hub knows it. */
@@ -383,6 +393,10 @@ function modelRows(model: SidebarModel, width: number): string[] {
 	// model in use, which is how `mercury-decide` kept appearing while every
 	// request was answered by `jev-1.14`.
 	if (model.confirmed === false) meta.push(theme.fg("dim", "pending"));
+	// A judge that resolved to a chat model is not a decision model: it answers
+	// with one-hot confidence instead of a calibrated distribution. Say so rather
+	// than letting a chat row sit under a DECISION MODEL heading.
+	if (model.native === false) meta.push(theme.fg("warning", "no native judge"));
 	if (meta.length > 0) rows.push(truncateToWidth(meta.join(theme.fg("dim", " · ")), width));
 	if (model.displayName && model.displayName !== model.selector) {
 		rows.push(truncateToWidth(theme.fg("dim", model.selector), width));
@@ -636,8 +650,14 @@ export class StatusSidebar implements Component {
 		if (decisionModel) {
 			sections.push(text([span("DECISION MODEL", "dim strong")]));
 			sections.push(text([span(decisionModel.displayName ?? decisionModel.selector, "accent")], { wrap: "none" }));
+			if (decisionModel.effort) {
+				sections.push(text([span(decisionModel.effort, "dim")], { wrap: "none" }));
+			}
 			if (decisionModel.confirmed === false) {
 				sections.push(text([span("pending", "dim")], { wrap: "none" }));
+			}
+			if (decisionModel.native === false) {
+				sections.push(text([span("no native judge", "warning")], { wrap: "none" }));
 			}
 		}
 

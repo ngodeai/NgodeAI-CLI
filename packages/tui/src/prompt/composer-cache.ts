@@ -181,6 +181,7 @@ function parseSidebar(value: unknown): SidebarState | undefined {
 					...(typeof value.decisionModel.confirmed === "boolean"
 						? { confirmed: value.decisionModel.confirmed }
 						: {}),
+					...(typeof value.decisionModel.native === "boolean" ? { native: value.decisionModel.native } : {}),
 				}
 			: undefined;
 

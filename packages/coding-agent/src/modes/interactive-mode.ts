@@ -2755,6 +2755,13 @@ export class InteractiveMode implements InteractiveModeContext {
 		// `streamingBehavior: "steer"`, so whichever lands second queues into the
 		// other's turn instead of dying.
 		this.editor.disableSubmit = false;
+		// The sidebar replays the previous launch's snapshot until an event
+		// refreshes it. Nothing guarantees an event before the first frame, so a
+		// fresh session showed the old MODEL row (Claude Opus) while the status
+		// line below the prompt already read the resolved default (DeepSeek).
+		// Paint from live session state once the pipeline exists, before the
+		// composer is handed back to the user.
+		this.#syncSidebar();
 		// Publish native send readiness even when no user input triggers another frame.
 		this.ui.requestRender();
 	}
@@ -4593,6 +4600,7 @@ export class InteractiveMode implements InteractiveModeContext {
 					// That is a prompted judge, not System One — saying so keeps the
 					// pane from presenting a chat row as a native decision model.
 					const backend = kindOf(primary);
+					const native = backend === "native";
 					const effort =
 						backend === "native"
 							? "native System One"
@@ -4604,6 +4612,7 @@ export class InteractiveMode implements InteractiveModeContext {
 							selector,
 							displayName: primary.name ?? primary.id,
 							effort,
+							native,
 							subscription: this.session.modelRegistry?.isUsingOAuth(primary) ?? false,
 							// `primaryModel()` reports the planned first candidate until a
 							// judgment answers, then the model that answered. Say which one
