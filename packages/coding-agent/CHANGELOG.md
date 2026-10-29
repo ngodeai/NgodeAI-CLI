@@ -2,7 +2,7 @@
 
 All notable changes to NgodeAI CLI will be documented in this file.
 
-## [1.0.7] - 2026-10-28
+## [1.0.8] - 2026-10-28
 
 ### Changed
 
