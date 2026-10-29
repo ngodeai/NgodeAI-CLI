@@ -2,6 +2,13 @@
 
 All notable changes to NgodeAI CLI will be documented in this file.
 
+## [1.0.7] - 2026-10-28
+
+### Changed
+
+- **Compact 1-line Subagent HUD**: replaced the multi-line tree list of running subagents above the input prompt with a clean, single-line status indicator (`Sub Agents · <N> running [Alt+A to open]`) that dynamically reports active subagent count.
+- **Animated shimmer on Subagent HUD**: added a metallic glint/shimmer sweep animation across the HUD line while subagents are running.
+
 ## [1.0.6] - 2026-10-28
 
 ### Fixed

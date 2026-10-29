@@ -174,8 +174,6 @@ import { type DictationTarget, MicCursor, type SttCallbacks, STTController, type
 import type { SpaceHoldHandler } from "@ngodeai/tui/space-hold";
 import { resolveCliEntryCmd } from "../subprocess/worker-client";
 import { discoverTitleSystemPromptFile, resolvePromptInput } from "../system-prompt";
-import { labelEchoesHandle } from "../task/label";
-import { agentTypeBadge, formatTaskId } from "@ngodeai/tui/tools/task";
 import type { ConfiguredThinkingLevel } from "@ngodeai/tui/thinking";
 import { isMCPToolName } from "../tools/builtin-names";
 import type { LspStartupServerInfo } from "../tools";
@@ -185,14 +183,9 @@ import { StreamPublisher } from "../stream/publisher";
 import { newRecordingPath, SessionRecorder } from "../stream/recording";
 import { StreamRedactor } from "../stream/redactor";
 import {
-	FEED_MODEL_BADGE_WIDTH,
-	formatFeedModelBadge,
 	formatMoreItems,
-	isFeedModelBadgeEnabled,
-	previewLine,
 	replaceTabs,
 	shortenEmbeddedPaths,
-	shortenToolArgumentPaths,
 	shortenPath,
 	TRUNCATE_LENGTHS,
 	truncateToWidth,
@@ -323,10 +316,9 @@ import {
 	SessionObserverRegistry,
 } from "@ngodeai/tui/overlays/session-observer-registry";
 import { createSessionTeardown, type SessionTeardown } from "./session-teardown";
-import { sanitizeStatusText } from "@ngodeai/tui/chrome/shared";
 import { invokeSkillCommandFromText, isKnownSkillCommand } from "./skill-command";
 import { clearMermaidCache } from "@ngodeai/tui/theme/mermaid-cache";
-import { type ShimmerPalette, shimmerEnabled, shimmerText } from "@ngodeai/tui/theme/shimmer";
+import { describeShimmer, type ShimmerPalette, shimmerEnabled, shimmerText } from "@ngodeai/tui/theme/shimmer";
 import type { Theme } from "@ngodeai/tui/theme";
 import {
 	getEditorTheme,
@@ -965,6 +957,13 @@ function isHudSubagent(session: ObservableSession): boolean {
  * click after rendering at a new width or width configuration: continuation
  * rows belong to the agent (or toggle) whose logical row started them.
  */
+const SUBAGENT_HUD_SHIMMER_PALETTE: ShimmerPalette = {
+	low: "dim",
+	mid: "accent",
+	high: "text",
+	bold: true,
+};
+
 export class SubagentHudComponent implements Component {
 	readonly #text: Text;
 	#lines: readonly string[];
@@ -974,22 +973,67 @@ export class SubagentHudComponent implements Component {
 	#renderedWidth?: number;
 	#renderedRows = 0;
 	#renderedWidthConfigEpoch?: number;
+	#timer?: NodeJS.Timeout;
+	#ui?: { requestRender(): void };
+
 	constructor(lines: readonly string[], order: readonly string[], toggleRow?: number) {
-		this.#text = new Text(lines.join("\n"), 1, 0);
 		this.#lines = lines;
 		this.#order = order;
 		this.#toggleLine = toggleRow;
+		this.#text = new Text(this.#getFormattedText(), 1, 0);
+	}
+
+	setUi(ui?: { requestRender(): void }): void {
+		this.#ui = ui;
+		this.#ensureAnimation();
+	}
+
+	#ensureAnimation(): void {
+		if (this.#timer || !this.#ui || !shimmerEnabled() || this.#lines.length === 0) return;
+		if ("clock" in setTimeout) return;
+		this.#timer = setInterval(() => {
+			this.#ui?.requestRender();
+		}, 50);
+		this.#timer.unref?.();
+	}
+
+	stopAnimation(): void {
+		if (this.#timer) {
+			clearInterval(this.#timer);
+			this.#timer = undefined;
+		}
+	}
+
+	dispose(): void {
+		this.stopAnimation();
 	}
 
 	/** Repaint in place with a new view; the click map rebuilds lazily. */
 	update(lines: readonly string[], order: readonly string[], toggleRow: number | undefined): void {
 		this.#order = order;
 		this.#toggleLine = toggleRow;
-		this.#text.setText(lines.join("\n"));
 		this.#lines = lines;
+		this.#text.setText(this.#getFormattedText());
 		this.#physicalOwner = undefined;
+		if (this.#lines.length > 0) {
+			this.#ensureAnimation();
+		} else {
+			this.stopAnimation();
+		}
 	}
+
+	#getFormattedText(): string {
+		if (this.#lines.length === 0) return "";
+		if (shimmerEnabled()) {
+			return this.#lines
+				.map(line => (line.length > 0 ? shimmerText(line, theme, SUBAGENT_HUD_SHIMMER_PALETTE) : line))
+				.join("\n");
+		}
+		return this.#lines.join("\n");
+	}
+
 	render(width: number): readonly string[] {
+		this.#text.setText(this.#getFormattedText());
 		const rows = this.#text.render(width);
 		const widthConfigEpoch = getWidthConfigEpoch();
 		if (
@@ -1004,6 +1048,12 @@ export class SubagentHudComponent implements Component {
 		this.#renderedWidthConfigEpoch = widthConfigEpoch;
 		return rows;
 	}
+
+	describe(): NativeNode | null {
+		if (this.#lines.length === 0) return null;
+		return describeShimmer(this.#lines.map(text => ({ text, palette: SUBAGENT_HUD_SHIMMER_PALETTE })));
+	}
+
 	getClickAgentAtRow(row: number): string | undefined {
 		if (row < 0 || row >= this.#renderedRows || this.#renderedWidth === undefined) return undefined;
 		if (!this.#physicalOwner) {
@@ -1012,18 +1062,18 @@ export class SubagentHudComponent implements Component {
 		}
 		return this.#physicalOwner?.[row];
 	}
-	// Native wrap splits paragraphs independently, so per-line wrapped
-	// heights compose exactly to the rendered row count. A length mismatch
-	// means the wrap contract drifted: fall back to one row per line (the
-	// old mapping) rather than misrouting clicks.
+
 	#rebuildHitMap(width: number, renderedRows: number): void {
 		const contentWidth = Math.max(1, width - getPaddingX(1) * 2);
 		const owner: (string | undefined)[] = [];
 		for (let index = 0; index < this.#lines.length; index++) {
 			const height = wrapTextWithAnsi(replaceTabs(this.#lines[index]!), contentWidth).length;
 			let id: string | undefined;
-			if (this.#toggleLine !== undefined && index === this.#toggleLine) id = PINNED_HUD_TOGGLE_ID;
-			else {
+			if (this.#toggleLine !== undefined && index === this.#toggleLine) {
+				id = PINNED_HUD_TOGGLE_ID;
+			} else if (this.#lines.length === 1) {
+				id = this.#order[0];
+			} else {
 				const orderIndex = index - 2;
 				id = orderIndex >= 0 && orderIndex < this.#order.length ? this.#order[orderIndex] : undefined;
 			}
@@ -1032,6 +1082,7 @@ export class SubagentHudComponent implements Component {
 		if (owner.length !== renderedRows) {
 			this.#physicalOwner = this.#lines.map((_line, index) => {
 				if (this.#toggleLine !== undefined && index === this.#toggleLine) return PINNED_HUD_TOGGLE_ID;
+				if (this.#lines.length === 1) return this.#order[0];
 				const orderIndex = index - 2;
 				return orderIndex >= 0 && orderIndex < this.#order.length ? this.#order[orderIndex] : undefined;
 			});
@@ -1086,9 +1137,6 @@ export function layoutPinnedHud(runningTotal: number, expanded: boolean): Pinned
 /** A running tool call earns an elapsed marker in the live preview once it outlasts this. */
 const SUBAGENT_PREVIEW_ELAPSED_MIN_MS = 5000;
 
-/** Narrowest detail worth showing after the tool name in the live preview. */
-const SUBAGENT_PREVIEW_MIN_DETAIL_WIDTH = 8;
-
 /**
  * Delay until the live preview next needs a repaint with no progress event to
  * trigger it: when the first listed in-flight call crosses the elapsed-marker
@@ -1109,53 +1157,6 @@ export function nextSubagentPreviewTickMs(sessions: readonly ObservableSession[]
 }
 
 /**
- * Live-preview row for a running subagent: its current (or, between calls,
- * most recent) tool call with a one-line detail and, once the call has run a
- * while, an elapsed marker. The detail is that call's own intent, else its
- * args — never an earlier call's intent. Undefined when the agent has not
- * called a tool yet. The row never overflows `width`.
- */
-function renderSubagentToolPreview(session: ObservableSession, width: number): string | undefined {
-	const progress = session.progress;
-	if (progress?.status !== "running") return undefined;
-	const currentTool = progress.currentTool;
-	const recent = progress.recentTools[0];
-	const tool = currentTool ?? recent?.tool;
-	if (!tool) return undefined;
-	const intent = currentTool ? progress.currentToolIntent : recent?.intent;
-	const args = currentTool ? progress.currentToolArgs : recent?.args;
-	const argsKey = currentTool ? progress.currentToolArgsKey : recent?.argsKey;
-	// A model-written intent is prose, so home paths inside it are shortened as they stand. An argument is
-	// shortened by its key, so a literal search pattern that names a home path still shows what was searched.
-	const detail = intent
-		? shortenEmbeddedPaths(replaceTabs(intent))
-		: args
-			? shortenToolArgumentPaths(replaceTabs(args), argsKey)
-			: undefined;
-	const elapsed = currentTool && progress.currentToolStartMs ? Date.now() - progress.currentToolStartMs : 0;
-	const elapsedLabel =
-		elapsed > SUBAGENT_PREVIEW_ELAPSED_MIN_MS
-			? `${theme.sep.dot}${theme.fg("warning", formatDuration(elapsed))}`
-			: "";
-	const elapsedWidth = visibleWidth(elapsedLabel);
-	const hook = `${theme.fg("dim", theme.tree.hook)} `;
-	// Between calls the row keeps the last call, marked with how it ended.
-	const status =
-		!currentTool && recent
-			? `${theme.styledSymbol(recent.isError ? "status.error" : "status.success", recent.isError ? "error" : "success")} `
-			: "";
-	const prefixWidth = visibleWidth(hook) + visibleWidth(status);
-	// Reserve the elapsed marker first, then cap the tool name; the detail gets whatever is left.
-	const shortTool = truncateToWidth(replaceTabs(tool), Math.max(0, width - prefixWidth - elapsedWidth), "");
-	let line = `${hook}${status}${theme.fg(currentTool ? "muted" : "dim", shortTool)}`;
-	const detailBudget = width - prefixWidth - visibleWidth(shortTool) - elapsedWidth - visibleWidth(": ");
-	if (detail && detailBudget >= SUBAGENT_PREVIEW_MIN_DETAIL_WIDTH) {
-		line += `: ${theme.fg("dim", previewLine(detail, Math.min(TRUNCATE_LENGTHS.SHORT, detailBudget)))}`;
-	}
-	return truncateToWidth(`${line}${elapsedLabel}`, width, "");
-}
-
-/**
  * Build the anchored subagent HUD block: a bold accent "Subagents · N running"
  * header (with the agent-hub key right-aligned when `hubKey` is given) plus
  * a bounded set of running-agent rows in the same `Id ⟨role⟩: description`
@@ -1172,114 +1173,16 @@ function renderSubagentToolPreview(session: ObservableSession, width: number): s
 export function renderSubagentHudLines(
 	sessions: ObservableSession[],
 	columns: number,
-	expanded = false,
-	livePreview = false,
+	_expanded = false,
+	_livePreview = false,
 	hubKey?: string,
 ): string[] {
 	const running = sessions.filter(isHudSubagent);
 	if (running.length === 0) return [];
-	// `SubagentHudComponent` paints through `Text` with horizontal padding, so
-	// rows budgeted to the full terminal width would wrap.
 	const contentColumns = Math.max(0, columns - getPaddingX(1) * 2);
-	const layout = layoutPinnedHud(running.length, expanded);
-	const dot = theme.styledSymbol("status.done", "accent");
-	const items = running.slice(0, layout.itemRows);
-	const showModelBadge = isFeedModelBadgeEnabled();
-	const outerIndent = " ";
-	const itemLineCounts = new Map<ObservableSession, number>();
-	const rows = renderTreeList(
-		{
-			items,
-			expanded: true,
-			renderItem: (session, context) => {
-				const rowWidth = Math.max(0, contentColumns - visibleWidth(outerIndent) - (context.prefixWidth ?? 0));
-				const role = session.agent ?? session.progress?.agent;
-				const displayId = truncateToWidth(
-					formatTaskId(session.id),
-					Math.max(0, rowWidth - visibleWidth(`${dot} `)),
-				);
-				const badge = truncateToWidth(
-					agentTypeBadge(role, theme),
-					Math.max(0, rowWidth - visibleWidth(`${dot} ${displayId}`)),
-				);
-				const titleBudget = Math.max(0, rowWidth - visibleWidth(`${dot} ${displayId}${badge}`));
-				const modelBadge = showModelBadge
-					? formatFeedModelBadge(
-							session.progress?.resolvedModelIdentity ?? session.progress?.resolvedModel,
-							session.progress?.resolvedThinkingLevel,
-							session.progress?.advisor,
-							theme,
-							Math.min(FEED_MODEL_BADGE_WIDTH, Math.max(0, titleBudget - 1)),
-						)
-					: "";
-				const modelLead = modelBadge ? `${modelBadge} ` : "";
-				let line = `${dot} ${modelLead}${theme.fg("accent", theme.bold(displayId))}${badge}`;
-				const description = session.description?.trim() || session.progress?.description?.trim();
-				const distinctDescription =
-					description && !labelEchoesHandle(session.id, description) ? description : undefined;
-				if (distinctDescription) {
-					const budget = Math.max(0, rowWidth - visibleWidth(line) - visibleWidth(": "));
-					const formatted = replaceTabs(distinctDescription).replace(/\s*[\r\n]+\s*/g, " ↵ ");
-					if (budget > 0) {
-						line += `${theme.fg("accent", ":")} ${theme.fg("accent", truncateToWidth(formatted, budget))}`;
-					}
-				} else {
-					// No spawn description: fall back to a muted preview of the raw
-					// assignment — never the rendered prompt, whose fixed template
-					// preamble would fill the row instead of the work. Every spawn
-					// that renders the template (task tool, structured/eval spawns)
-					// also records `assignment`; `task` alone is a raw message
-					// (IRC-woken or direct sends), so it is safe to preview as is.
-					const preview = (session.progress?.assignment ?? session.progress?.task)?.trim();
-					if (preview && !labelEchoesHandle(session.id, preview)) {
-						const formatted = shortenEmbeddedPaths(replaceTabs(sanitizeText(preview))).replace(
-							/\s*[\r\n]+\s*/g,
-							" ↵ ",
-						);
-						const budget = Math.max(0, rowWidth - visibleWidth(line) - 1);
-						if (budget > 0) line += ` ${theme.fg("muted", truncateToWidth(formatted, budget))}`;
-					}
-				}
-				const head = truncateToWidth(line, rowWidth, "");
-				const preview = livePreview ? renderSubagentToolPreview(session, rowWidth) : undefined;
-				itemLineCounts.set(session, preview ? 2 : 1);
-				return preview ? [head, preview] : head;
-			},
-		},
-		theme,
-	);
-	const toggleRow =
-		layout.toggle === undefined
-			? []
-			: [
-					truncateToWidth(
-						`${outerIndent}${theme.fg(
-							"dim",
-							layout.toggle === "expand" ? `… ${running.length - layout.itemRows} more — expand` : "… show less",
-						)}`,
-						contentColumns,
-						"",
-					),
-				];
-	const itemLines: string[] = [];
-	let cursor = 0;
-	for (const session of items) {
-		const count = itemLineCounts.get(session) ?? 1;
-		itemLines.push(
-			rows
-				.slice(cursor, cursor + count)
-				.map(row => truncateToWidth(`${outerIndent}${row}`, contentColumns, ""))
-				.join("\n"),
-		);
-		cursor += count;
-	}
-	const title = theme.bold(theme.fg("accent", "Subagents"));
-	const runningLabel = theme.fg("dim", `${theme.sep.dot}${running.length} running`);
-	const titleText = truncateToWidth(`${title}${runningLabel}`, contentColumns);
-	const hint = hubKey ? theme.fg("dim", hubKey) : "";
-	const gap = contentColumns - visibleWidth(titleText) - visibleWidth(hint);
-	const header = hint && gap >= 2 ? `${titleText}${" ".repeat(gap)}${hint}` : titleText;
-	return ["", header, ...itemLines, ...toggleRow];
+	const openKey = hubKey || "Alt+A";
+	const raw = `Sub Agents${theme.sep.dot}${running.length} running [${openKey} to open]`;
+	return [truncateToWidth(raw, contentColumns, "")];
 }
 
 const CTRL_L_APPEARANCE_RESPONSE_DEADLINE_MS = 2000;
@@ -5023,12 +4926,18 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#cancelSubagentPreviewTick();
 		const view = this.#buildSubagentHudView();
 		if (!view) {
-			this.subagentContainer.clear();
+			this.subagentContainer.disposeChildren();
 			return;
 		}
 		const hud = this.subagentContainer.children[0];
-		if (hud instanceof SubagentHudComponent) hud.update(view.lines, view.order, view.toggleRow);
-		else this.subagentContainer.addChild(new SubagentHudComponent(view.lines, view.order, view.toggleRow));
+		if (hud instanceof SubagentHudComponent) {
+			hud.update(view.lines, view.order, view.toggleRow);
+		} else {
+			this.subagentContainer.disposeChildren();
+			const newHud = new SubagentHudComponent(view.lines, view.order, view.toggleRow);
+			newHud.setUi(this.ui);
+			this.subagentContainer.addChild(newHud);
+		}
 		this.#armSubagentPreviewTick(view.tickMs);
 	}
 
