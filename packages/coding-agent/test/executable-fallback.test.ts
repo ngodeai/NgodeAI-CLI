@@ -32,8 +32,8 @@ describe("executable fallback on unlinked binary", () => {
 		const whichSpy = vi.spyOn(utils, "$which");
 
 		expect(resolveCliEntryCmd()).toEqual([process.execPath]);
-		expect(resolveWorkerSpawnCmd("__omp_worker_test")).toEqual({
-			cmd: [process.execPath, "__omp_worker_test"],
+		expect(resolveWorkerSpawnCmd("__ngode_worker_test")).toEqual({
+			cmd: [process.execPath, "__ngode_worker_test"],
 		});
 		expect(whichSpy).not.toHaveBeenCalled();
 	});
@@ -45,22 +45,22 @@ describe("executable fallback on unlinked binary", () => {
 		const root = process.platform === "win32" ? "C:" : "";
 		const missingPath = `${root}/opt/homebrew/Cellar/ngodeai/18.1.8/bin/ngodeai`;
 		const originalLauncher = `${root}/opt/homebrew/bin/ngodeai`;
-		const otherOmpInPath = `${root}/usr/local/bin/ngodeai`;
+		const otherNgodeInPath = `${root}/usr/local/bin/ngodeai`;
 
 		setProcessProp("execPath", missingPath);
 		setProcessProp("argv0", originalLauncher);
 
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "ngodeai") return otherOmpInPath;
+			if (cmd === "ngodeai") return otherNgodeInPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
-			return p === originalLauncher || p === otherOmpInPath;
+			return p === originalLauncher || p === otherNgodeInPath;
 		});
 
 		expect(resolveCliEntryCmd()).toEqual([originalLauncher]);
-		expect(resolveWorkerSpawnCmd("__omp_worker_test")).toEqual({
-			cmd: [originalLauncher, "__omp_worker_test"],
+		expect(resolveWorkerSpawnCmd("__ngode_worker_test")).toEqual({
+			cmd: [originalLauncher, "__ngode_worker_test"],
 		});
 	});
 
@@ -68,23 +68,23 @@ describe("executable fallback on unlinked binary", () => {
 		vi.spyOn(utils, "isCompiledBinary").mockReturnValue(true);
 		const missingPath = "/opt/homebrew/Cellar/ngodeai/18.1.8/bin/ngodeai";
 		const originalLauncher = "/opt/homebrew/bin/ngodeai";
-		const otherOmpInPath = "/usr/local/bin/ngodeai";
+		const otherNgodeInPath = "/usr/local/bin/ngodeai";
 
 		setProcessProp("execPath", missingPath);
 		setProcessProp("argv0", originalLauncher);
 
 		vi.spyOn(utils, "$which").mockImplementation((cmd: string) => {
-			if (cmd === "ngodeai") return otherOmpInPath;
+			if (cmd === "ngodeai") return otherNgodeInPath;
 			return null;
 		});
 		vi.spyOn(utils, "isExecutable").mockImplementation((p: string) => {
 			// Launcher is not executable (e.g. root-owned, mode 0644, or directory)
-			return p === otherOmpInPath;
+			return p === otherNgodeInPath;
 		});
 
-		expect(resolveCliEntryCmd()).toEqual([otherOmpInPath]);
-		expect(resolveWorkerSpawnCmd("__omp_worker_test")).toEqual({
-			cmd: [otherOmpInPath, "__omp_worker_test"],
+		expect(resolveCliEntryCmd()).toEqual([otherNgodeInPath]);
+		expect(resolveWorkerSpawnCmd("__ngode_worker_test")).toEqual({
+			cmd: [otherNgodeInPath, "__ngode_worker_test"],
 		});
 	});
 
@@ -139,8 +139,8 @@ describe("executable fallback on unlinked binary", () => {
 		});
 
 		expect(resolveCliEntryCmd()).toEqual([mockUpgradedPath]);
-		expect(resolveWorkerSpawnCmd("__omp_worker_test")).toEqual({
-			cmd: [mockUpgradedPath, "__omp_worker_test"],
+		expect(resolveWorkerSpawnCmd("__ngode_worker_test")).toEqual({
+			cmd: [mockUpgradedPath, "__ngode_worker_test"],
 		});
 	});
 

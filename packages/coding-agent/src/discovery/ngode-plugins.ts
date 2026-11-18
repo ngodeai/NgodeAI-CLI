@@ -37,7 +37,7 @@ import {
 	parseRequestIdFormat,
 	scanSkillsFromDir,
 } from "./helpers";
-import { listOmpExtensionRoots, type NgodeExtensionRoot } from "./ngode-extension-roots";
+import { listNgodeExtensionRoots, type NgodeExtensionRoot } from "./ngode-extension-roots";
 import { resolvePluginStdioPaths } from "./substitute-plugin-root";
 
 const PROVIDER_ID = "ngodeai-plugins";
@@ -53,7 +53,7 @@ const PRIORITY = 90;
  * fatally invalid Agent Plugins packages are skipped entirely.
  */
 async function allowedRoots(ctx: LoadContext, surface: "skills" | "mcp" | "other"): Promise<NgodeExtensionRoot[]> {
-	const roots = await listOmpExtensionRoots(ctx);
+	const roots = await listNgodeExtensionRoots(ctx);
 	const flags = await Promise.all(roots.map(root => legacyProviderAllowed(root.path, surface)));
 	return roots.filter((_, i) => flags[i]);
 }

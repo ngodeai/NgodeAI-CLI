@@ -253,8 +253,8 @@ describe("resolveActiveProjectRegistryPath", () => {
 		await fs.promises.mkdir(cwd, { recursive: true });
 		try {
 			const result = await resolveActiveProjectRegistryPath(cwd);
-			const homeOmpPath = path.join(homeDir, ".ngodeai", "plugins", "installed_plugins.json");
-			expect(result).not.toBe(homeOmpPath);
+			const homeNgodePath = path.join(homeDir, ".ngodeai", "plugins", "installed_plugins.json");
+			expect(result).not.toBe(homeNgodePath);
 			expect(result).toBeNull();
 		} finally {
 			removeSyncWithRetries(homeDir);

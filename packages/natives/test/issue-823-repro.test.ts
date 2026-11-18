@@ -1,5 +1,5 @@
 /**
- * Regression for https://github.com/can1357/ngodeai/issues/823.
+ * Regression for https://github.com/ngodeai/NgodeAI-CLI/issues/823.
  *
  * On WSL (and any host where the user moves the standalone binary away from the
  * build-time native artifacts), the compiled `ngodeai` binary fails to load

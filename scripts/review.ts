@@ -2,7 +2,7 @@
 /**
  * Run the CLI against a throwaway HOME so first-run onboarding behaves exactly
  * as it does on a fresh machine — without touching your real `~/.ngodeai` or
- * the pre-rebrand `~/.omp`.
+ * the pre-rebrand config root.
  *
  * Usage:
  *   bun scripts/review.ts            # fresh HOME, onboarding runs

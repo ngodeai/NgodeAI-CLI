@@ -748,7 +748,7 @@ function buildGitLabDuoWorkflowActionToolCall(action: GitLabDuoWorkflowActionDes
 		action.args && typeof action.args === "object" && !Array.isArray(action.args)
 			? (action.args as Record<string, unknown>)
 			: {};
-	const mapped = mapGitLabDuoWorkflowActionToOmpTool(action.name, args);
+	const mapped = mapGitLabDuoWorkflowActionToNgodeTool(action.name, args);
 	return {
 		type: "toolCall",
 		id: action.requestID,
@@ -757,7 +757,7 @@ function buildGitLabDuoWorkflowActionToolCall(action: GitLabDuoWorkflowActionDes
 	};
 }
 
-function mapGitLabDuoWorkflowActionToOmpTool(
+function mapGitLabDuoWorkflowActionToNgodeTool(
 	actionName: string,
 	args: Record<string, unknown>,
 ): { name: string; arguments: Record<string, unknown> } {
@@ -770,12 +770,20 @@ function mapGitLabDuoWorkflowActionToOmpTool(
 	}
 }
 
+/**
+ * The GitLab Duo server prefixes tool calls with the MCP server name it
+ * registered (`mcp__<server>__<tool>`). Strip any such prefix so the call
+ * matches the bare tool name the agent registers, regardless of which server
+ * name the workflow chose.
+ */
+const MCP_TOOL_PREFIX_RE = /^mcp__[a-z0-9]+(?:_[a-z0-9]+)*__(.+)$/i;
+
 function mapGitLabDuoWorkflowMcpToolCall(args: Record<string, unknown>): {
 	name: string;
 	arguments: Record<string, unknown>;
 } {
 	const rawName = stringField(args, "toolName") ?? stringField(args, "tool_name") ?? stringField(args, "name") ?? "";
-	const toolName = rawName.startsWith("mcp__omp__") ? rawName.slice("mcp__omp__".length) : rawName;
+	const toolName = MCP_TOOL_PREFIX_RE.exec(rawName)?.[1] ?? rawName;
 	const parsedArgs = parseGitLabDuoWorkflowMcpArguments(args.args ?? args.arguments);
 	if (toolName === "edit" && typeof parsedArgs.input === "string") {
 		return { name: "edit", arguments: { input: parsedArgs.input } };
@@ -2214,12 +2222,14 @@ function gitLabToolResultToText(toolResult: ToolResultMessage): string {
 
 function buildGitLabMcpToolDefinition(tool: Tool): GitLabMcpToolDefinition {
 	const schema = toolWireSchema(tool);
-	// Register the tool under its BARE name (no `mcp__omp__` prefix). The server does
-	// not strip prefixes — it registers `_executable_tools` and binds the model schema
-	// under exactly the wire `name` (sanitize_llm_name only replaces illegal chars), so
-	// the name the model sees, the toolset key it is matched against, and NGODEAI's own
-	// tool docs must all be the same bare name. A prefixed wire name only forced the
-	// model to learn `mcp__omp__read` while NGODEAI docs say `read`, with no upside.
+	// Register the tool under its BARE name (no `mcp__<server>__` prefix). The server
+	// does not strip prefixes — it registers `_executable_tools` and binds the model
+	// schema under exactly the wire `name` (sanitize_llm_name only replaces illegal
+	// chars), so the name the model sees, the toolset key it is matched against, and
+	// NGODEAI's own tool docs must all be the same bare name. A prefixed wire name only
+	// forced the model to learn `mcp__ngodeai__read` while NGODEAI docs say `read`,
+	// with no upside. Inbound calls still carry whatever prefix the workflow chose;
+	// `mapGitLabDuoWorkflowMcpToolCall` strips it before dispatch.
 	// `originalToolName`/`serverName` stay as MCP metadata; they are not the match key.
 	return {
 		name: tool.name,

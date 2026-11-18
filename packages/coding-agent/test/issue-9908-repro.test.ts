@@ -1,7 +1,7 @@
 /**
- * Regression for https://github.com/can1357/ngodeai/issues/9908
+ * Regression for https://github.com/ngodeai/NgodeAI-CLI/issues/9908
  *
- * Every ngodeai process used to spawn its own `__omp_worker_mnemopi_embed` child
+ * Every ngodeai process used to spawn its own `__ngode_worker_mnemopi_embed` child
  * and keep the embedding model resident for the whole process lifetime
  * (0.8–1.6 GB per session). Embeddings now go through one machine-shared
  * server per (model, cache dir) that exits once idle. This test spawns the

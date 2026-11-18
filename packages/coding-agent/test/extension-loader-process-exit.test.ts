@@ -203,14 +203,14 @@ try {
 			// instead of looping on ExtensionExitError.
 			const preload = writeModule(
 				"guard-init-preload.ts",
-				"globalThis.__ompNativeReallyExit = process.reallyExit;\n" +
+				"globalThis.__ngodeNativeReallyExit = process.reallyExit;\n" +
 					'process.reallyExit = (() => { throw new Error("guarded during init"); });\n',
 			);
 			const { exitCode, stdout, stderr } = await runProbe(
 				`
 import { postmortem } from "@ngodeai/utils";
 postmortem.register("probe", reason => process.stdout.write(\`cleanup:\${reason}\\n\`));
-process.reallyExit = globalThis.__ompNativeReallyExit;
+process.reallyExit = globalThis.__ngodeNativeReallyExit;
 process.stdout.write("armed\\n");
 process.kill(process.pid, "SIGHUP");
 // Keep the real child event loop alive so the platform can deliver SIGHUP;

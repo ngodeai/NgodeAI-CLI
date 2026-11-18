@@ -127,12 +127,12 @@ and Key ID.
 ```sh
 scripts/ci-macos-upload-secrets.sh ~/ngode-signing --dry-run   # validate first
 scripts/ci-macos-upload-secrets.sh ~/ngode-signing             # upload all five
-gh secret list --repo can1357/ngodeai                       # confirm
+gh secret list --repo ngodeai/NgodeAI-CLI                       # confirm
 ```
 
 Re-run it whenever the certificate is renewed. `NGODEAI_SIGNING_DIR` changes the
 default input directory; `NGODEAI_REPO=owner/repo` changes the target repository
-(default `can1357/ngodeai`). The validation path requires macOS `security`;
+(default `ngodeai/NgodeAI-CLI`). The validation path requires macOS `security`;
 uploading also requires an authenticated `gh` CLI.
 
 ### Finding your signing identity / Team ID (sanity check)

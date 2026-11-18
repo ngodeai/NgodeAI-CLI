@@ -716,15 +716,57 @@ export function missingNativeExportMessage(symbolName, addon = loadedAddon) {
 }
 
 /**
+ * Resolve a bootstrap hook by suffix, so an addon built before a rename still
+ * wires up. Hook names are internal to the loader/addon pair; matching the
+ * suffix keeps the loader working across an addon rebuild that has not landed
+ * yet, without pinning the historical prefix in this file.
+ */
+function findAddonHook(bindings, suffix) {
+	if (typeof bindings[`__ngode${suffix}`] === "function") return bindings[`__ngode${suffix}`];
+	for (const key of Object.keys(bindings)) {
+		if (key.endsWith(suffix) && key.startsWith("__") && typeof bindings[key] === "function") return bindings[key];
+	}
+	return undefined;
+}
+
+/** Canonical bootstrap-hook exports, paired with the suffix that identifies them. */
+const ADDON_HOOKS = [
+	["__ngodeInstallTokioRuntime", "InstallTokioRuntime"],
+	["__ngodeSetGrammarDir", "SetGrammarDir"],
+];
+
+/**
+ * Publish each canonical hook name on the bindings object, resolving an
+ * addon built before the rename through {@link findAddonHook}. `index.js`
+ * re-exports these names, so without the alias a stale on-disk addon makes
+ * them throw on first use even though the hook itself is present.
+ */
+function aliasAddonHooks(bindings) {
+	let live = bindings;
+	for (const [canonical, suffix] of ADDON_HOOKS) {
+		if (typeof live[canonical] === "function") continue;
+		const legacy = findAddonHook(live, suffix);
+		if (typeof legacy !== "function") continue;
+		try {
+			live[canonical] = legacy;
+		} catch {
+			// Frozen napi namespace: alias on a shallow copy instead.
+			live = { ...live, [canonical]: legacy };
+		}
+	}
+	return live;
+}
+
+/**
  * Install the addon's bounded Tokio runtime now that `dlopen` has returned and
  * the dynamic-loader lock is released. The Rust `#[module_init]` deliberately
  * does NOT build the runtime — spawning worker threads under the loader lock
- * deadlocks on some hosts — so it exposes `__ompInstallTokioRuntime` for the
+ * deadlocks on some hosts — so it exposes `__ngodeInstallTokioRuntime` for the
  * loader to call once, before any async native runs. Best-effort: older addons
  * predating this export simply fall back to napi-rs's default runtime.
  */
 function installNativeTokioRuntime(bindings) {
-	const install = bindings.__ompInstallTokioRuntime;
+	const install = findAddonHook(bindings, "InstallTokioRuntime");
 	if (typeof install !== "function") return;
 	try {
 		install();
@@ -742,7 +784,7 @@ function installNativeTokioRuntime(bindings) {
  * predating the export link every grammar and need no directory.
  */
 function configureGrammarDir(bindings, nativesDir) {
-	const setGrammarDir = bindings.__ompSetGrammarDir;
+	const setGrammarDir = findAddonHook(bindings, "SetGrammarDir");
 	if (typeof setGrammarDir === "function") setGrammarDir(path.join(nativesDir, "grammars"));
 }
 
@@ -752,7 +794,7 @@ function buildHelpMessage(ctx) {
 		const expectedPaths = ctx.addonFilenames.map(filename => `  ${path.join(ctx.versionedDir, filename)}`).join("\n");
 		const downloadHints = ctx.addonFilenames
 			.map(filename => {
-				const downloadUrl = `https://github.com/can1357/ngodeai/releases/latest/download/${filename}`;
+				const downloadUrl = `https://github.com/ngodeai/NgodeAI-CLI/releases/latest/download/${filename}`;
 				const targetPath = path.join(ctx.versionedDir, filename);
 				return `  curl -fsSL "${downloadUrl}" -o "${targetPath}"`;
 			})
@@ -878,12 +920,13 @@ export function loadNative() {
 			startupMarker(`native:require:${path.basename(candidate)}`);
 			const bindings = require_(candidate);
 			validateLoadedBindings(ctx, bindings, candidate);
-			installNativeTokioRuntime(bindings);
-			configureGrammarDir(bindings, ctx.nativesDir);
-			loadedAddon = describeLoadedAddon(bindings, candidate, ctx);
+			const liveBindings = aliasAddonHooks(bindings);
+			installNativeTokioRuntime(liveBindings);
+			configureGrammarDir(liveBindings, ctx.nativesDir);
+			loadedAddon = describeLoadedAddon(liveBindings, candidate, ctx);
 	        cleanupStaleNativeVersions({ nativesDir: ctx.nativesDir, currentVersion: ctx.packageVersion });
 			startupMarker("native:loadNative:done");
-			return bindings;
+			return liveBindings;
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			errors.push(`${candidate}: ${message}`);

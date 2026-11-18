@@ -281,7 +281,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser interaction parity", () => {
 await tab.click("#link");
 await tab.evaluate(${JSON.stringify(`(function () {\n${TERN_KIT_SOURCE}\n})()`)});
 const ternHit = await tab.evaluate(async () => {
-	const target = await globalThis.__ompTernKit.target({ engine: "css", query: "#link" }, "click");
+	const target = await globalThis.__ngodeTernKit.target({ engine: "css", query: "#link" }, "click");
 	return target.ok ? document.elementFromPoint(target.x, target.y)?.id : target.reason;
 });
 return { fragments, clicked: await tab.evaluate(() => window.clicked), ternHit };`,

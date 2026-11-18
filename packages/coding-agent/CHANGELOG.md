@@ -2,6 +2,23 @@
 
 All notable changes to NgodeAI CLI will be documented in this file.
 
+## [1.0.9] - 2026-11-18
+
+### Added
+
+- **`/sidebar` command**: `/sidebar [on|off|toggle|status|width <cols>]` shows, hides, or resizes the right-hand status sidebar. Width is clamped to the pane's usable 24–48 column range, and the frame re-splits immediately.
+- `sidebar.enabled` and `sidebar.width` are live settings: changing them from the command, `/settings`, or the config file re-lays out the transcript at the new width instead of only repainting.
+
+### Fixed
+
+- **Sidebar context and spend lagged the status line.** The pane was rebuilt only on events (plan change, model switch, agent start/finish), so `CONTEXT` and `SESSION` stayed one event behind the meter under the prompt while tokens accrued mid-turn. Those two sections are now read at frame time from the same accessor the status line uses (`StatusLine.getContextMeter()`), so the token counts, percentage, spend, and elapsed time cannot disagree or drift. The plan, git branch, model, and agent roster stay event-driven — git's HEAD read is a blocking filesystem call and never runs on a render path.
+- **Upstream brand traces**: the dead upstream repository path in issue links, release-note URLs, the brew/mise/nix download URLs, and the native-addon download hint now point at `ngodeai/NgodeAI-CLI`; every theme's `$schema` points at the schema that exists (`packages/tui/src/theme/theme-schema.json`) instead of a 404; internal globals, worker argv selectors, napi exports, and type names are renamed to their NgodeAI equivalents. `bun run check:branding` now enforces this.
+
+### Changed
+
+- `scripts/check-branding.ts` (run by `bun run check:branding`, wired into `check` and `ci:check:full`) fails the build on any unreviewed upstream brand token, so an incremental upstream sync cannot reintroduce one. The exception table carries a reason per entry.
+- The native loader resolves `__ngodeInstallTokioRuntime` / `__ngodeSetGrammarDir` by suffix and aliases the canonical names onto the bindings, so an addon built before the rename still wires up instead of loading silently without its hooks.
+
 ## [1.0.8] - 2026-10-28
 
 ### Changed

@@ -50,9 +50,9 @@ const CASES: readonly AliasCase[] = [
 	},
 	// @ngodeai self-import — canonical scope must still flow through the shim
 	// so a duplicate copy is never dragged in from a plugin's own node_modules.
-	{ id: "ohmypi-utils", aliasSpecifier: "@ngodeai/utils", canonicalPath: canonicalUtils, symbol: "logger" },
+	{ id: "ngodeai-utils", aliasSpecifier: "@ngodeai/utils", canonicalPath: canonicalUtils, symbol: "logger" },
 	{
-		id: "ohmypi-coding-agent",
+		id: "ngodeai-coding-agent",
 		aliasSpecifier: "@ngodeai/coding-agent",
 		canonicalPath: canonicalCodingAgent,
 		symbol: "isToolCallEventType",

@@ -52,7 +52,7 @@ export const USER_AGENT = `ngodeai/${VERSION}`;
 export const MIN_BUN_VERSION: string = engines.bun.replace(/[^0-9.]/g, "");
 
 const PROFILE_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
-const PROFILE_ENV_KEYS = ["NGODEAI_PROFILE", "NGODEAI_PROFILE", "PI_PROFILE"] as const;
+const PROFILE_ENV_KEYS = ["NGODEAI_PROFILE", "PI_PROFILE"] as const;
 
 /**
  * Names Windows treats as reserved device aliases. Matches the basename

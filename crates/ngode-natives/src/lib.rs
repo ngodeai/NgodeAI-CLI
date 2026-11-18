@@ -355,7 +355,7 @@ static TOKIO_RUNTIME_INSTALLED: AtomicBool = AtomicBool::new(false);
 /// spawnable, patched Rayon callsites stay sequential rather than registering a
 /// current-thread-only global pool that cannot steal work from later native
 /// calls. Idempotent.
-#[napi(js_name = "__ompInstallTokioRuntime")]
+#[napi(js_name = "__ngodeInstallTokioRuntime")]
 #[allow(clippy::missing_const_for_fn, reason = "napi macro is incompatible with const fn")]
 pub fn ngode_install_tokio_runtime() {
 	#[cfg(target_os = "windows")]

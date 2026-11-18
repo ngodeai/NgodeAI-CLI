@@ -103,10 +103,10 @@ function isPlanningLeakObject(parsed: unknown, toolNames: Set<string>): boolean 
 	if (!parsed || typeof parsed !== "object") return false;
 	const record = parsed as Record<string, unknown>;
 	const hasThought = typeof record.thought === "string";
-	const isOmpTool = typeof record.call === "string" && toolNames.has(record.call);
+	const isNgodeTool = typeof record.call === "string" && toolNames.has(record.call);
 	const hasToolSignature =
 		"_i" in record || "paths" in record || "command" in record || ("path" in record && "content" in record);
-	return hasThought || isOmpTool || hasToolSignature;
+	return hasThought || isNgodeTool || hasToolSignature;
 }
 
 function splitLeadingJsonObject(text: string): { prefixLength: number; jsonText: string; rest: string } | undefined {

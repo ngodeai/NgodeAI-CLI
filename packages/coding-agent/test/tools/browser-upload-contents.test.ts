@@ -561,7 +561,7 @@ test("sweeps a staging folder a day after its last upload unless an open tab or 
 		recent: [`ngode-uploads-${process.pid}-sweep-recent`, new Date(now)],
 		closed: [`ngode-uploads-${process.pid}-sweep-closed`, dayAgo],
 		orphaned: [`ngode-uploads-99999999-sweep-orphaned`, dayAgo],
-		otherOmp: [`ngode-uploads-${process.ppid}-sweep-other`, dayAgo],
+		otherNgode: [`ngode-uploads-${process.ppid}-sweep-other`, dayAgo],
 	} as const;
 	for (const [name, modified] of Object.values(folders)) {
 		const folder = path.join(os.tmpdir(), name);

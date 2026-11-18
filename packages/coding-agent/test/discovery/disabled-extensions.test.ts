@@ -24,7 +24,7 @@ describe("disabledExtensions runtime filtering", () => {
 	let tempHomeDir = "";
 	let originalHome: string | undefined;
 	let originalAgentDirEnv: string | undefined;
-	let originalOmpProfileEnv: string | undefined;
+	let originalNgodeProfileEnv: string | undefined;
 	let originalPiProfileEnv: string | undefined;
 	let originalUserProfile: string | undefined;
 	let originalClaudeConfigDir: string | undefined;
@@ -35,7 +35,7 @@ describe("disabledExtensions runtime filtering", () => {
 		delete process.env.CLAUDE_CONFIG_DIR;
 		delete Bun.env.CLAUDE_CONFIG_DIR;
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
-		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
+		originalNgodeProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
 		originalHome = process.env.HOME;
 		originalUserProfile = process.env.USERPROFILE;
@@ -62,7 +62,7 @@ describe("disabledExtensions runtime filtering", () => {
 		resetSettingsForTest();
 		vi.restoreAllMocks();
 		restoreEnvValue("HOME", originalHome);
-		restoreEnvValue("NGODEAI_PROFILE", originalOmpProfileEnv);
+		restoreEnvValue("NGODEAI_PROFILE", originalNgodeProfileEnv);
 		restoreEnvValue("PI_PROFILE", originalPiProfileEnv);
 		restoreEnvValue("PI_CODING_AGENT_DIR", originalAgentDirEnv);
 		restoreEnvValue("USERPROFILE", originalUserProfile);

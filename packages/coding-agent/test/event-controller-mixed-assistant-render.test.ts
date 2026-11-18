@@ -241,7 +241,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 			type: "toolCall",
 			id: "toolu_prefixed_github",
 			name: "xd://github",
-			arguments: { op: "repo_view", repo: "can1357/ngodeai" },
+			arguments: { op: "repo_view", repo: "ngodeai/NgodeAI-CLI" },
 		};
 		const streaming = assistantMessage([toolCall]);
 
@@ -260,7 +260,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 				partial: streaming,
 			},
 		} as Extract<AgentSessionEvent, { type: "message_update" }>);
-		expect(Bun.stripANSI(live.chatContainer.render(120).join("\n"))).toContain("GitHub Repo can1357/ngodeai");
+		expect(Bun.stripANSI(live.chatContainer.render(120).join("\n"))).toContain("GitHub Repo ngodeai/NgodeAI-CLI");
 
 		const executionOnly = createFixture(false, toolByName);
 		await executionOnly.controller.handleEvent({
@@ -270,7 +270,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 			args: toolCall.arguments,
 		} as Extract<AgentSessionEvent, { type: "tool_execution_start" }>);
 		expect(Bun.stripANSI(executionOnly.chatContainer.render(120).join("\n"))).toContain(
-			"GitHub Repo can1357/ngodeai",
+			"GitHub Repo ngodeai/NgodeAI-CLI",
 		);
 
 		const rebuilt = createFixture(false, toolByName);
@@ -282,7 +282,7 @@ describe("EventController mixed assistant text/tool rendering", () => {
 			injectedTtsrRules: [],
 			mode: "none",
 		});
-		expect(Bun.stripANSI(rebuilt.chatContainer.render(120).join("\n"))).toContain("GitHub Repo can1357/ngodeai");
+		expect(Bun.stripANSI(rebuilt.chatContainer.render(120).join("\n"))).toContain("GitHub Repo ngodeai/NgodeAI-CLI");
 
 		// Canonicalization is presentation-only; provider replay keeps the wire spelling.
 		expect(toolCall.name).toBe("xd://github");

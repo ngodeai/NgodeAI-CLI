@@ -1,5 +1,5 @@
 /**
- * Regression for https://github.com/can1357/ngodeai/issues/12067
+ * Regression for https://github.com/ngodeai/NgodeAI-CLI/issues/12067
  *
  * Headless `ngodeai -p` could exit successfully with no output while first-turn
  * mnemopi recall awaited an embedding response. The embeddings subprocess was

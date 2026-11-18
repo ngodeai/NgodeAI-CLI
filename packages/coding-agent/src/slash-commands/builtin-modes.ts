@@ -2,6 +2,7 @@ import { clearSubmittedText, restoreDetachedDraft } from "./helpers/draft";
 import * as path from "node:path";
 import { AgentBusyError } from "@ngodeai/agent-core";
 import { formatKeyHint } from "@ngodeai/tui/app-keybindings";
+import { clampSidebarWidth, SIDEBAR_SPLIT_AT } from "@ngodeai/tui/components/sidebar/index";
 import { prompt } from "@ngodeai/utils";
 import {
 	formatModelString,
@@ -28,7 +29,7 @@ import ratchetKickoffPrompt from "../prompts/ratchet-kickoff.md" with { type: "t
 import type { AgentSession } from "../session/agent-session";
 import { CLI_THINKING_LEVELS, getConfiguredThinkingLevelMetadata } from "@ngodeai/tui/thinking";
 import { noThinkingMessage, resolveThinkingArgument } from "./helpers/effort";
-import { commandConsumed, errorMessage, usage } from "./helpers/parse";
+import { commandConsumed, errorMessage, parseSubcommand, usage } from "./helpers/parse";
 import { handleSecurityCommand } from "./helpers/security";
 import type { ParsedSlashCommand, SlashCommandSpec, TuiSlashCommandRuntime } from "./types";
 
@@ -45,7 +46,7 @@ import { formatSlowModeResetClock } from "../session/anthropic-slow-mode";
 import { cfgExtendedContext } from "../session/context-settings";
 import { cfgGoalEnabled } from "../goals/settings";
 import { cfgPlanEnabled } from "../plan-mode/settings";
-import { cfgTuiFullscreen } from "../modes/settings";
+import { cfgSidebarEnabled, cfgSidebarWidth, cfgTuiFullscreen } from "../modes/settings";
 
 export function refreshStatusLine(ctx: InteractiveModeContext): void {
 	ctx.statusLine.invalidate();
@@ -787,6 +788,82 @@ export const BUILTIN_MODE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 			}
 			runtime.ctx.showStatus("Usage: /fullscreen [on|off|status]");
 			clearSubmittedText(runtime);
+		},
+	},
+	{
+		name: "sidebar",
+		icon: "expand",
+		description: "Show, hide, or resize the right-hand status sidebar",
+		acpInputHint: "[on|off|toggle|status|width <cols>]",
+		subcommands: [
+			{ name: "on", description: "Show the status sidebar" },
+			{ name: "off", description: "Hide the status sidebar" },
+			{ name: "toggle", description: "Flip the current visibility" },
+			{ name: "status", description: "Show visibility and width" },
+			{ name: "width", description: "Set the pane width in columns", usage: "<cols>" },
+		],
+		allowArgs: true,
+		getTuiAutocompleteDescription: runtime => {
+			const settings = runtime.ctx.settings;
+			const state = cfgSidebarEnabled.get(settings) ? "shown" : "hidden";
+			return `Sidebar: ${state}, ${cfgSidebarWidth.get(settings)} cols`;
+		},
+		handle: async (command, runtime) => {
+			const { verb, rest } = parseSubcommand(command.args);
+			const settings = runtime.session.settings;
+			if (verb === "status") {
+				await runtime.output(
+					`Status sidebar: ${cfgSidebarEnabled.get(settings) ? "on" : "off"}, ${cfgSidebarWidth.get(settings)} columns (terminal width ≥ ${SIDEBAR_SPLIT_AT} required).`,
+				);
+				return commandConsumed();
+			}
+			if (verb === "width") {
+				const width = Number.parseInt(rest, 10);
+				if (!Number.isFinite(width)) return usage("Usage: /sidebar width <cols>", runtime);
+				const clamped = clampSidebarWidth(width);
+				cfgSidebarWidth.override(settings, clamped);
+				await runtime.output(`Status sidebar width: ${clamped} columns.`);
+				return commandConsumed();
+			}
+			if (verb && verb !== "toggle" && verb !== "on" && verb !== "off") {
+				return usage("Usage: /sidebar [on|off|toggle|status|width <cols>]", runtime);
+			}
+			const enable = verb === "off" ? false : verb === "on" ? true : !cfgSidebarEnabled.get(settings);
+			cfgSidebarEnabled.override(settings, enable);
+			await runtime.output(enable ? "Status sidebar on." : "Status sidebar hidden. /sidebar on brings it back.");
+			return commandConsumed();
+		},
+		handleTui: (command, runtime) => {
+			const { verb, rest } = parseSubcommand(command.args);
+			const settings = runtime.ctx.settings;
+			clearSubmittedText(runtime);
+			if (verb === "status") {
+				runtime.ctx.showStatus(
+					`Status sidebar: ${cfgSidebarEnabled.get(settings) ? "on" : "off"}, ${cfgSidebarWidth.get(settings)} columns (needs ≥ ${SIDEBAR_SPLIT_AT}).`,
+				);
+				return;
+			}
+			if (verb === "width") {
+				const width = Number.parseInt(rest, 10);
+				if (!Number.isFinite(width)) {
+					runtime.ctx.showError("Usage: /sidebar width <cols>");
+					return;
+				}
+				const clamped = clampSidebarWidth(width);
+				// The live-settings listener re-splits the frame and repaints.
+				cfgSidebarWidth.override(settings, clamped);
+				runtime.ctx.showStatus(`Status sidebar width: ${clamped} columns.`);
+				return;
+			}
+			if (verb && verb !== "toggle" && verb !== "on" && verb !== "off") {
+				runtime.ctx.showError("Usage: /sidebar [on|off|toggle|status|width <cols>]");
+				return;
+			}
+			const enable = verb === "off" ? false : verb === "on" ? true : !cfgSidebarEnabled.get(settings);
+			// The live-settings listener re-splits the frame, resets the display,
+			// and repaints — no manual UI plumbing here.
+			cfgSidebarEnabled.override(settings, enable);
+			runtime.ctx.showStatus(enable ? "Status sidebar on." : "Status sidebar hidden. /sidebar on brings it back.");
 		},
 	},
 	{

@@ -8,7 +8,7 @@ import { runSearchCommand } from "../../../src/cli/web-search-cli";
 import { cfgRetryFallbackChains } from "@ngodeai/coding-agent/session/settings";
 
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
-const originalOmpProfile = process.env.NGODEAI_PROFILE;
+const originalNgodeProfile = process.env.NGODEAI_PROFILE;
 const originalPiProfile = process.env.PI_PROFILE;
 
 let tempAgentDir: TempDir | undefined;
@@ -63,7 +63,7 @@ afterEach(async () => {
 	resetSettingsForTest();
 	process.exitCode = originalExitCode;
 	restoreEnv("PI_CODING_AGENT_DIR", originalAgentDir);
-	restoreEnv("NGODEAI_PROFILE", originalOmpProfile);
+	restoreEnv("NGODEAI_PROFILE", originalNgodeProfile);
 	restoreEnv("PI_PROFILE", originalPiProfile);
 	__resetDirsFromEnvForTests();
 	// runSearchCommand opens <agentDir>/models.db; Windows cannot delete an open database.

@@ -81,8 +81,8 @@ describe("browser prelude", () => {
 		const calls: unknown[] = [];
 		const displayed: unknown[] = [];
 		const context = createContext({
-			__omp_log__: (_level: string, value: unknown) => displayed.push(value),
-			__omp_prelude__: async (name: string, parameters: unknown) => {
+			__ngode_log__: (_level: string, value: unknown) => displayed.push(value),
+			__ngode_prelude__: async (name: string, parameters: unknown) => {
 				calls.push({ name, parameters });
 				if (parameters === null || typeof parameters !== "object") return { text: "", details: {} };
 				const action = Reflect.get(parameters, "action");

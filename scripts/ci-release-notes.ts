@@ -33,7 +33,7 @@ import { $, Glob } from "bun";
 import { compareVersions } from "../packages/utils/src/version";
 
 const changelogGlob = new Glob("packages/*/CHANGELOG.md");
-const REPO = process.env.NGODEAI_REPO ?? process.env.GITHUB_REPOSITORY ?? "can1357/ngodeai";
+const REPO = process.env.NGODEAI_REPO ?? process.env.GITHUB_REPOSITORY ?? "ngodeai/NgodeAI-CLI";
 
 // Canonical ordering used by `fix-changelogs`; unknown categories sort
 // alphabetically after these.

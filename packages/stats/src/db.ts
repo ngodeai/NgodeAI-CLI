@@ -132,7 +132,7 @@ export async function initDb(): Promise<Database> {
 
 	db = new Database(getStatsDbPath());
 	// Install the busy handler BEFORE any lock-taking statement. See
-	// https://github.com/can1357/ngodeai/issues/2421.
+	// https://github.com/ngodeai/NgodeAI-CLI/issues/2421.
 	db.run("PRAGMA busy_timeout = 5000");
 	db.run("PRAGMA journal_mode = WAL");
 

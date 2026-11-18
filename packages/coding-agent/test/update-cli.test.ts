@@ -551,13 +551,17 @@ describe("update-cli package manager commands", () => {
 	});
 
 	it("targets the mise GitHub backend and overrides release-age settings for attended updates", () => {
-		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:can1357/ngodeai", "--bump", "--before", "0s"]);
-		expect(buildMiseUpgradeArgs(false)).toEqual(["upgrade", "github:can1357/ngodeai", "--bump"]);
+		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:ngodeai/NgodeAI-CLI", "--bump", "--before", "0s"]);
+		expect(buildMiseUpgradeArgs(false)).toEqual(["upgrade", "github:ngodeai/NgodeAI-CLI", "--bump"]);
 		expect(buildMiseUpdateEnv({ PATH: "/bin", MISE_MINIMUM_RELEASE_AGE: "24h" })).toEqual({
 			PATH: "/bin",
 			MISE_MINIMUM_RELEASE_AGE: "0s",
 		});
-		expect(buildMiseForceInstallArgs("15.10.5")).toEqual(["install", "--force", "github:can1357/ngodeai@15.10.5"]);
+		expect(buildMiseForceInstallArgs("15.10.5")).toEqual([
+			"install",
+			"--force",
+			"github:ngodeai/NgodeAI-CLI@15.10.5",
+		]);
 	});
 
 	it.skipIf(!miseBinary)("overrides per-tool release age during actual mise upgrade resolution", async () => {
@@ -581,7 +585,7 @@ describe("update-cli package manager commands", () => {
 			await Bun.write(
 				path.join(root, "mise.toml"),
 				`[tools]
-"github:can1357/ngodeai" = { version = "1", minimum_release_age = "999y", api_url = "${server.url}" }
+"github:ngodeai/NgodeAI-CLI" = { version = "1", minimum_release_age = "999y", api_url = "${server.url}" }
 `,
 			);
 			const env = {
@@ -612,11 +616,11 @@ describe("update-cli package manager commands", () => {
 				return stdout + stderr;
 			};
 
-			const blocked = await run(["upgrade", "github:can1357/ngodeai", "--bump", "--dry-run"]);
-			expect(blocked).not.toContain("Would install github:can1357/ngodeai@2.0.0");
+			const blocked = await run(["upgrade", "github:ngodeai/NgodeAI-CLI", "--bump", "--dry-run"]);
+			expect(blocked).not.toContain("Would install github:ngodeai/NgodeAI-CLI@2.0.0");
 
 			const allowed = await run([...buildMiseUpgradeArgs(), "--dry-run"]);
-			expect(allowed).toContain("Would install github:can1357/ngodeai@2.0.0");
+			expect(allowed).toContain("Would install github:ngodeai/NgodeAI-CLI@2.0.0");
 		} finally {
 			server.stop(true);
 		}
@@ -902,7 +906,7 @@ describe("update-cli bun install command", () => {
 		//   - or bun's local manifest snapshot does the same when the user's bun
 		//     is already pointed at the official registry but its cache predates
 		//     the release.
-		// See https://github.com/can1357/ngodeai/issues/1686.
+		// See https://github.com/ngodeai/NgodeAI-CLI/issues/1686.
 		const args = buildBunInstallArgs("15.7.6", "linux-x64");
 		expect(args.slice(0, 6)).toEqual([
 			"install",
@@ -920,7 +924,7 @@ describe("update-cli bun install command", () => {
 		// at their previous version. The next launch then loaded a stale .node
 		// file and aborted at validateLoadedBindings with `The .node file on
 		// disk is from a different release than this loader`. See
-		// https://github.com/can1357/ngodeai/issues/1824.
+		// https://github.com/ngodeai/NgodeAI-CLI/issues/1824.
 		for (const tag of ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64", "win32-x64", "win32-arm64"]) {
 			const args = buildBunInstallArgs("15.9.0", tag);
 			expect(args).toContain("@ngodeai/natives@15.9.0");

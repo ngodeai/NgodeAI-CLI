@@ -149,7 +149,7 @@ describe.skipIf(!CHROMIUM_AVAILABLE)("browser semantic selectors and queries", (
 			// The Tern kit is plain page script embedding the same role/ handler, so it runs on this page too.
 			code: `await tab.evaluate(${JSON.stringify(`(function () {\n${TERN_KIT_SOURCE}\n})()`)});
 			return await tab.evaluate(() => {
-				const kit = globalThis.__ompTernKit;
+				const kit = globalThis.__ngodeTernKit;
 				return kit.observe({}).elements
 					.filter(entry => entry.name && ["button", "textbox", "treeitem"].includes(entry.role))
 					.map(entry => [entry.name, kit.count({ engine: "role", query: entry.role + '[name="' + entry.name + '" exact]' })]);

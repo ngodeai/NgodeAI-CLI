@@ -372,7 +372,7 @@ export async function fetchDevinModels(
  * image was attached, while SWE-1.7, SWE-1.7 Lightning, and every proxied
  * frontier model (Claude/Gemini/GPT/Kimi) read the same field correctly.
  * Declaring text-only lets clients use their image fallback path instead of
- * silently losing attachments ([#6072](https://github.com/can1357/ngodeai/issues/6072)).
+ * silently losing attachments ([#6072](https://github.com/ngodeai/NgodeAI-CLI/issues/6072)).
  * Remove entries if Devin ever wires SWE-1.6 vision up.
  */
 const DEVIN_IMAGE_BLIND_UIDS = new Set(["swe-1-6", "swe-1-6-fast"]);

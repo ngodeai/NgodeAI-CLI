@@ -1,5 +1,5 @@
 /**
- * Repro for https://github.com/can1357/ngodeai/issues/4812
+ * Repro for https://github.com/ngodeai/NgodeAI-CLI/issues/4812
  *
  * A long-lived ngodeai session that survives an in-place `bun install -g` upgrade
  * keeps the previous ngode-natives NAPI addon resident in the process. A tab

@@ -242,7 +242,7 @@ const EVENT_LOG_LIMIT = 4_000;
 const CONSOLE_LIMIT = 500;
 const NAVIGATION_IDLE_MS = 500;
 const KIT_CALL =
-	"async function (method, args) { const kit = globalThis.__ompTernKit; if (!kit) return { missing: true }; return { value: await kit[method](...args) }; }";
+	"async function (method, args) { const kit = globalThis.__ngodeTernKit; if (!kit) return { missing: true }; return { value: await kit[method](...args) }; }";
 const HANDLE_ATTRIBUTE = "data-ngode-tern-handle";
 
 /** The tab-helper name for errors: `tab.pdf()`. */

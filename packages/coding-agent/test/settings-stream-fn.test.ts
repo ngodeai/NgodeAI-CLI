@@ -5,7 +5,7 @@
  * `model.loopGuard.*`, `textVerbosity` for Responses-family requests)
  * options win — the same wiring the main agent and the advisor agent share so
  * OpenRouter sticky-routing / response caching behaves the same on advisor turns
- * (can1357/ngodeai#3639).
+ * (ngodeai/NgodeAI-CLI#3639).
  */
 import { describe, expect, it } from "bun:test";
 import type { StreamFn } from "@ngodeai/agent-core";

@@ -29,7 +29,7 @@ for arg in "$@"; do
 	esac
 done
 DIR="${DIR:-${NGODEAI_SIGNING_DIR:-$HOME/ngode-signing}}"
-REPO="${NGODEAI_REPO:-can1357/ngodeai}"
+REPO="${NGODEAI_REPO:-ngodeai/NgodeAI-CLI}"
 
 die() {
 	echo "ci-macos-upload-secrets: $1" >&2

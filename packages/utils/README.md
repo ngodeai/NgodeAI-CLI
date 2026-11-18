@@ -1,6 +1,6 @@
 # @ngodeai/utils
 
-Shared utilities for [ngodeai](https://github.com/can1357/ngodeai) packages. Zero ceremony, Bun-first.
+Shared utilities for [ngodeai](https://github.com/ngodeai/NgodeAI-CLI) packages. Zero ceremony, Bun-first.
 
 ## Notable modules
 
@@ -33,5 +33,5 @@ Ships TypeScript source directly (no build step); requires Bun ≥ 1.3.14.
 
 ## References
 
-- [Monorepo README](https://github.com/can1357/ngodeai#readme)
+- [Monorepo README](https://github.com/ngodeai/NgodeAI-CLI#readme)
 - [CHANGELOG](./CHANGELOG.md)

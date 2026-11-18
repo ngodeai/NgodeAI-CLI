@@ -2520,6 +2520,34 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		return { usedTokens, contextWindow };
 	}
 
+	/**
+	 * Live context meter: used tokens, window, and percent, exactly as the
+	 * footer renders them (collab guests read the host's frame instead of their
+	 * own accounting).
+	 *
+	 * Hosts that mirror the meter elsewhere — the right-hand sidebar — call this
+	 * rather than recomputing from `session.getContextUsage`, so the two surfaces
+	 * share one cache, one revision bump, and one rounding rule and can never
+	 * disagree or drift a turn apart.
+	 */
+	getContextMeter(fallbackWindow = 0): { usedTokens: number; contextWindow: number; percent: number | null } {
+		const breakdown = this.getCachedContextBreakdown();
+		const sessionWindow = this.session.state?.model?.contextWindow ?? this.session.model?.contextWindow ?? 0;
+		let contextWindow = breakdown.contextWindow || fallbackWindow || sessionWindow;
+		let usedTokens = breakdown.usedTokens;
+		// A known window with unknown usage (startup prepaint, or right after
+		// compaction before the next response) reports no percent at all.
+		let percent: number | null =
+			contextWindow > 0 && !this.#contextUsageCache?.percentUnknown ? (usedTokens / contextWindow) * 100 : null;
+		const collabUsage = this.#collabStatus?.stateOverride?.contextUsage;
+		if (collabUsage) {
+			contextWindow = collabUsage.contextWindow || contextWindow;
+			usedTokens = collabUsage.tokens ?? usedTokens;
+			percent = collabUsage.percent ?? percent;
+		}
+		return { usedTokens, contextWindow, percent };
+	}
+
 	#buildSegmentContext(
 		width: number,
 		segmentOptions: StatusLineSettings["segmentOptions"],
@@ -2552,22 +2580,10 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 			tokensPerSecond: this.#getTokensPerSecond(),
 		};
 
-		let contextWindow = state.model?.contextWindow ?? this.session.model?.contextWindow ?? 0;
-		const breakdown = this.getCachedContextBreakdown();
-		let contextTokens = breakdown.usedTokens;
-		contextWindow = breakdown.contextWindow || contextWindow;
-		let contextPercent: number | null =
-			contextWindow > 0 && !this.#contextUsageCache?.percentUnknown
-				? (breakdown.usedTokens / contextWindow) * 100
-				: null;
-		// Collab guest: context comes from the host's state frames — the local
-		// replica does no accounting of its own.
-		const collabState = this.#collabStatus?.stateOverride;
-		if (collabState?.contextUsage) {
-			contextWindow = collabState.contextUsage.contextWindow || contextWindow;
-			contextTokens = collabState.contextUsage.tokens ?? contextTokens;
-			contextPercent = collabState.contextUsage.percent ?? contextPercent;
-		}
+		const meter = this.getContextMeter(state.model?.contextWindow ?? 0);
+		const contextWindow = meter.contextWindow;
+		const contextTokens = meter.usedTokens;
+		const contextPercent = meter.percent;
 
 		const shouldResolveActiveRepo = this.#gitEnabled() && (includePath || includeGit || includePr);
 		const projectDir = getProjectDir();

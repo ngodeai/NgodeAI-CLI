@@ -151,7 +151,7 @@ export interface MCPSseServerConfig extends MCPServerConfigBase {
 export type MCPServerConfig = MCPStdioServerConfig | MCPHttpServerConfig | MCPSseServerConfig;
 
 export const MCP_CONFIG_SCHEMA_URL =
-	"https://raw.githubusercontent.com/can1357/ngodeai/main/packages/coding-agent/src/config/mcp-schema.json";
+	"https://raw.githubusercontent.com/ngodeai/NgodeAI-CLI/main/packages/coding-agent/src/config/mcp-schema.json";
 
 /** Root mcp.json/.mcp.json file structure */
 export interface MCPConfigFile {

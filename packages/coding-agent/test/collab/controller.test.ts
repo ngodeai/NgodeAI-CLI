@@ -58,7 +58,7 @@ import {
 
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 const originalPiProfile = process.env.PI_PROFILE;
-const originalOmpProfile = process.env.NGODEAI_PROFILE;
+const originalNgodeProfile = process.env.NGODEAI_PROFILE;
 
 function restoreEnv(key: string, value: string | undefined): void {
 	if (value === undefined) {
@@ -248,7 +248,7 @@ afterEach(async () => {
 	publishSpy?.mockRestore();
 	restoreEnv("PI_CODING_AGENT_DIR", originalAgentDir);
 	restoreEnv("PI_PROFILE", originalPiProfile);
-	restoreEnv("NGODEAI_PROFILE", originalOmpProfile);
+	restoreEnv("NGODEAI_PROFILE", originalNgodeProfile);
 	utils.__resetDirsFromEnvForTests();
 	// InteractiveMode and the CLI open process-wide agent.db, history.db (prompt history and
 	// session index), and models.db under tmp/agent; Windows cannot delete open files.

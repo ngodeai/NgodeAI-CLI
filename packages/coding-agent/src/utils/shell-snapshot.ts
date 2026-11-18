@@ -179,11 +179,11 @@ echo "unalias -a 2>/dev/null || true" >> "$SNAPSHOT_FILE"
 
 # Capture function definitions into a variable so we can both persist them
 # and scan their bodies for env-var references (issue #3470).
-__omp_funcs=$(
+__ngode_funcs=$(
 ${functionExtractor}
 )
 echo "# Functions" >> "$SNAPSHOT_FILE"
-printf '%s\\n' "$__omp_funcs" >> "$SNAPSHOT_FILE"
+printf '%s\\n' "$__ngode_funcs" >> "$SNAPSHOT_FILE"
 
 # Re-export uppercase identifiers referenced by snapshotted functions whose
 # value is set in the rc-sourced shell. Without this, activation idioms like
@@ -192,9 +192,9 @@ printf '%s\\n' "$__omp_funcs" >> "$SNAPSHOT_FILE"
 # block works for both bash and zsh.
 echo "# Captured function environment" >> "$SNAPSHOT_FILE"
 ${fnEnvHelper}
-printf '%s\\n' "$__omp_funcs" | __omp_emit_referenced_exports >> "$SNAPSHOT_FILE"
-unset -f __omp_sq_quote __omp_emit_export_for __omp_emit_referenced_exports 2>/dev/null
-unset __omp_funcs __omp_qbuf __omp_qout __omp_sq __omp_xv __omp_name 2>/dev/null
+printf '%s\\n' "$__ngode_funcs" | __ngode_emit_referenced_exports >> "$SNAPSHOT_FILE"
+unset -f __ngode_sq_quote __ngode_emit_export_for __ngode_emit_referenced_exports 2>/dev/null
+unset __ngode_funcs __ngode_qbuf __ngode_qout __ngode_sq __ngode_xv __ngode_name 2>/dev/null
 
 ${optionsScript}
 

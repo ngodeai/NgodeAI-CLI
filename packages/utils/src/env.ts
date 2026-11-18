@@ -134,7 +134,7 @@ function readLaunchEnv(): ReadonlyMap<string, string> | undefined {
 }
 
 const launchEnvValues = readLaunchEnv();
-const projectEnvNamesLoadedByOmp = new Set<string>();
+const projectEnvNamesLoadedByNgode = new Set<string>();
 
 function expandDotenvValues(values: Record<string, string>, env: Record<string, string>): Record<string, string> {
 	const expanded: Record<string, string> = {};
@@ -215,7 +215,7 @@ function filterChildShellEnvInternal(
 			}
 			continue;
 		}
-		if (runtimeLaunchEnvValues || projectEnvNamesLoadedByOmp.has(key)) {
+		if (runtimeLaunchEnvValues || projectEnvNamesLoadedByNgode.has(key)) {
 			// Strong provenance: the launch environment is known and this name is
 			// absent from it, or NGODEAI itself injected the value — either way it came
 			// from a project dotenv file, not the parent shell.
@@ -334,7 +334,7 @@ for (const file of [projectEnv, agentEnv, piEnv, homeEnv]) {
 	for (const key in file) {
 		if (!isMacosMallocStackLoggingEnvName(key) && !Bun.env[key]) {
 			Bun.env[key] = file[key];
-			if (file === projectEnv) projectEnvNamesLoadedByOmp.add(key);
+			if (file === projectEnv) projectEnvNamesLoadedByNgode.add(key);
 		}
 	}
 }

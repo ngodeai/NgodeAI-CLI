@@ -879,6 +879,10 @@ tui:
 | `tui.resizeScrollback`        | enum    | `rebuild`        | How a settled width resize refreshes transcript rows kept in terminal scrollback: `append` replays the transcript at the new width below retained history, `rebuild` erases pane scrollback then replays one current-width copy, `preserve` repaints only the viewport. |
 | `tui.completeScrollback`      | boolean | `false`          | Send transcript rows pushed off screen by a growing HUD or dialog straight to scrollback. When it shrinks, blank rows sit between the transcript and the input until new output fills them. |
 | `tui.fullscreen`              | boolean | `false`          | Draw the session on the alternate screen (the vim/less idiom): the transcript scrolls under a pinned input, status line, and sidebar, driven by PageUp/PageDown, Home/End, and the wheel. Terminal scrollback is not used, so nothing remains on the normal screen after quitting. Toggle with `/fullscreen`. |
+| `sidebar.enabled`             | boolean | `true`           | Show the right-hand status sidebar (plan, context, session spend, git branch, model, agents) when the terminal is at least 100 columns wide. Toggle with `/sidebar`. |
+| `sidebar.width`               | number  | `38`             | Sidebar pane width in columns, clamped to 24–48. Set with `/sidebar width <cols>`. |
+
+The sidebar's CONTEXT and SESSION sections are read at frame time from the same meter as the status line, so their token counts, percentage, spend, and elapsed time stay in step with the numbers under the prompt between events. The plan, git branch, model, and agent roster update on the events that change them.
 
 For a custom status line, set `statusLine.preset: custom` and configure `statusLine.leftSegments`, `statusLine.rightSegments`, and `statusLine.segmentOptions`. Include `status` in either segment list to render extension statuses registered through `ctx.ui.setStatus()`, ordered by key and joined inline. Set `statusLine.showHookStatus: false` to suppress the same statuses in the footer.
 

@@ -480,6 +480,8 @@ const cfgLiveUiSettings = combine({
 	"statusLine.compactThinkingLevel": cfgStatusLineCompactThinkingLevel,
 	"statusLine.contextLine": cfgStatusLineContextLine,
 	"git.enabled": cfgGitEnabled,
+	"sidebar.enabled": cfgSidebarEnabled,
+	"sidebar.width": cfgSidebarWidth,
 	"advisor.enabled": cfgAdvisorEnabled,
 	"advisor.maxNotesPerUpdate": cfgAdvisorMaxNotesPerUpdate,
 	"tier.advisor": cfgTierAdvisor,
@@ -3737,6 +3739,14 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.ui.invalidate();
 			this.ui.requestRender();
 		}
+		if (any("sidebar.enabled", "sidebar.width")) {
+			// The pane is part of the frame geometry: showing, hiding, or resizing
+			// it re-splits the transcript column, so every row painted at the old
+			// width has to be re-laid-out rather than diffed.
+			this.syncComposerShape();
+			this.ui.invalidate();
+			resetDisplay = true;
+		}
 		if (any("tui.titleState")) setTerminalTitleStateEnabled(cfgTuiTitleState.get(this.settings));
 		if (any("tui.titleSpinner")) setTerminalTitleSpinnerStyle(cfgTuiTitleSpinner.get(this.settings));
 		if (any("terminal.programStatus")) setProgramStatusEnabled(cfgTerminalProgramStatus.get(this.settings));
@@ -4450,12 +4460,50 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.ui.requestRender();
 	}
 
+	/**
+	 * Sections the pane re-reads on every frame instead of on events.
+	 *
+	 * Context occupancy and session spend change continuously — mid-turn, between
+	 * plan/model/agent events — so a pushed snapshot left them one event behind
+	 * while the meter under the prompt kept moving. They are cheap in-memory
+	 * reads, and the context numbers come from {@link StatusLine.getContextMeter}
+	 * so the pane and the meter are literally the same computation.
+	 *
+	 * Git stays event-driven: its HEAD read is a blocking filesystem call and
+	 * must never land on a render path.
+	 */
+	#liveSidebarSections(): Pick<SidebarState, "context" | "usage"> {
+		const meter = this.statusLine.getContextMeter();
+		const usage = this.session.sessionManager?.getUsageStatistics();
+		const cacheHitRate = usage ? this.#cacheHitRate(usage) : undefined;
+		return {
+			...(meter.contextWindow > 0
+				? {
+						context: {
+							usedTokens: meter.usedTokens,
+							maxTokens: meter.contextWindow,
+							...(meter.percent !== null ? { percent: meter.percent } : {}),
+						},
+					}
+				: {}),
+			...(usage
+				? {
+						usage: {
+							inputTokens: usage.input,
+							outputTokens: usage.output,
+							cost: usage.cost,
+							elapsedMs: this.statusLine.getActiveMs(),
+							...(cacheHitRate !== undefined ? { cacheHitRate } : {}),
+						},
+					}
+				: {}),
+		};
+	}
+
 	#syncSidebar(): void {
 		const phases = this.todoPhases.filter(phase => phase.tasks.length > 0);
-		const contextUsage = this.#getPlanApprovalContextUsage();
 		const branch = this.#currentBranch();
 		const model = this.session.state?.model ?? this.session.model;
-		const usage = this.session.sessionManager?.getUsageStatistics();
 		const subagents = this.statusLine.subagentCount;
 		const roster = this.#sidebarAgentRoster();
 
@@ -4468,26 +4516,6 @@ export class InteractiveMode implements InteractiveModeContext {
 					...(task.blocker ? { blocker: task.blocker } : {}),
 				})),
 			})),
-			...(contextUsage
-				? {
-						context: {
-							usedTokens: contextUsage.tokens,
-							maxTokens: contextUsage.contextWindow,
-							percent: contextUsage.percent,
-						},
-					}
-				: {}),
-			...(usage
-				? {
-						usage: {
-							inputTokens: usage.input,
-							outputTokens: usage.output,
-							cost: usage.cost,
-							elapsedMs: this.statusLine.getActiveMs(),
-							...(this.#cacheHitRate(usage) !== undefined ? { cacheHitRate: this.#cacheHitRate(usage) } : {}),
-						},
-					}
-				: {}),
 			...(branch ? { git: { branch } } : {}),
 			...(model
 				? {
@@ -4547,6 +4575,9 @@ export class InteractiveMode implements InteractiveModeContext {
 			...(sidebarState.model ? { model: sidebarState.model } : {}),
 			...(sidebarState.decisionModel ? { decisionModel: sidebarState.decisionModel } : {}),
 		};
+		// Register once: the pane re-reads the fast sections at frame time and
+		// keeps every other section from the snapshot pushed below.
+		this.composer.setSidebarSource(() => this.#liveSidebarSections());
 		this.composer.setSidebar(sidebarState);
 	}
 

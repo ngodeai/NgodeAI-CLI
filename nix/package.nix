@@ -330,7 +330,7 @@ stdenv.mkDerivation {
   meta = {
     description = "Terminal-based coding agent with multi-model support";
     homepage = "https://ngodeai.net";
-    changelog = "https://github.com/can1357/ngodeai/releases/tag/v${packageJson.version}";
+    changelog = "https://github.com/ngodeai/NgodeAI-CLI/releases/tag/v${packageJson.version}";
     license = lib.licenses.mit;
     mainProgram = "ngodeai";
     platforms = [

@@ -10,14 +10,14 @@ import * as path from "node:path";
 import { loadExtensions } from "@ngodeai/coding-agent/extensibility/extensions/loader";
 import { TempDir } from "@ngodeai/utils";
 
-const EVENTS_KEY = "__ompExtensionLoaderConcurrencyEvents";
-const RELEASE_KEY = "__ompExtensionLoaderConcurrencyRelease";
-const FAST_EVALUATED_KEY = "__ompExtensionLoaderConcurrencyFastEvaluated";
+const EVENTS_KEY = "__ngodeExtensionLoaderConcurrencyEvents";
+const RELEASE_KEY = "__ngodeExtensionLoaderConcurrencyRelease";
+const FAST_EVALUATED_KEY = "__ngodeExtensionLoaderConcurrencyFastEvaluated";
 
 interface EventsGlobal {
-	__ompExtensionLoaderConcurrencyEvents?: string[];
-	__ompExtensionLoaderConcurrencyRelease?: Promise<void>;
-	__ompExtensionLoaderConcurrencyFastEvaluated?: () => void;
+	__ngodeExtensionLoaderConcurrencyEvents?: string[];
+	__ngodeExtensionLoaderConcurrencyRelease?: Promise<void>;
+	__ngodeExtensionLoaderConcurrencyFastEvaluated?: () => void;
 }
 
 const eventsGlobal = globalThis as EventsGlobal;

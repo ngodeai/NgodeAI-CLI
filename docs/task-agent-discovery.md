@@ -151,7 +151,7 @@ Because bundled parsing uses `level: "fatal"`, unrecoverable YAML errors or inva
 
 1. Nearest project `.ngodeai/agents` dir from `findAllNearestProjectConfigDirs("agents", cwd)` (first `.ngodeai` hit only)
 2. User `.ngodeai/agents` dir from `getConfigDirs("agents", { project: false })` (first `.ngodeai` hit only)
-3. `<extension-root>/agents` for every enabled NgodeAI extension package returned by `listOmpExtensionRoots(...)`, in this order:
+3. `<extension-root>/agents` for every enabled NgodeAI extension package returned by `listNgodeExtensionRoots(...)`, in this order:
    - explicit CLI `--extension` / SDK `additionalExtensionPaths` directory roots
    - the session's effective `extensions:` array, in its configured order
    - installed npm/link plugins
@@ -159,7 +159,7 @@ Because bundled parsing uses `level: "fatal"`, unrecoverable YAML errors or inva
 4. Claude marketplace plugin roots (`listClaudePluginRoots(home, cwd)`) with `agents/` subdirs — only when `isProviderEnabled("claude-plugins")`; project-scope plugins sort before user-scope. User-scope roots additionally require the `claude-plugins` or `claude` user source to be enabled (`isUserSourceEnabled`: normally via `enabledProviders`, e.g. `["claude-plugins"]`; `claude` is also enabled implicitly when `CLAUDE_CONFIG_DIR` is set), except roots whose origin is not the foreign `~/.claude/plugins` tree (NgodeAI's own installs with `origin: "ngodeai"` and `--plugin-dir` roots) — mirroring the skills path's exemption.
 5. Bundled agents (`loadBundledAgents()`)
 
-The NgodeAI extension-package surface is disabled when the `ngode-plugins` capability provider is disabled. Marketplace roots are excluded from `listOmpExtensionRoots` and enter only through the separately gated Claude-plugin path.
+The NgodeAI extension-package surface is disabled when the `ngode-plugins` capability provider is disabled. Marketplace roots are excluded from `listNgodeExtensionRoots` and enter only through the separately gated Claude-plugin path.
 
 Claude-dialect plugin agents discard their frontmatter `model` so Claude aliases are not misread as NgodeAI selectors. This applies to foreign Claude roots and packages whose manifest declares the Claude format, including NgodeAI installs or `--plugin-dir` roots. NGODEAI-native and Agent-Plugins-standard packages retain their model selectors.
 

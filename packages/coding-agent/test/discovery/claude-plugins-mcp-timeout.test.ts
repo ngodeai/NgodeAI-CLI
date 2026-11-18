@@ -14,7 +14,7 @@ describe("Claude plugin MCP timeout compatibility", () => {
 	let testAgentDir: string;
 	let originalHome: string | undefined;
 	let originalAgentDirEnv: string | undefined;
-	let originalOmpProfileEnv: string | undefined;
+	let originalNgodeProfileEnv: string | undefined;
 	let originalPiProfileEnv: string | undefined;
 	let originalClaudeConfigDir: string | undefined;
 
@@ -23,7 +23,7 @@ describe("Claude plugin MCP timeout compatibility", () => {
 		clearFsCache();
 		originalHome = process.env.HOME;
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
-		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
+		originalNgodeProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
 		originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
 		delete process.env.CLAUDE_CONFIG_DIR;
@@ -45,8 +45,8 @@ describe("Claude plugin MCP timeout compatibility", () => {
 		// so restore every env var it can touch before rebuilding the resolver.
 		if (originalHome === undefined) delete process.env.HOME;
 		else process.env.HOME = originalHome;
-		if (originalOmpProfileEnv === undefined) delete process.env.NGODEAI_PROFILE;
-		else process.env.NGODEAI_PROFILE = originalOmpProfileEnv;
+		if (originalNgodeProfileEnv === undefined) delete process.env.NGODEAI_PROFILE;
+		else process.env.NGODEAI_PROFILE = originalNgodeProfileEnv;
 		if (originalPiProfileEnv === undefined) delete process.env.PI_PROFILE;
 		else process.env.PI_PROFILE = originalPiProfileEnv;
 		if (originalAgentDirEnv === undefined) delete process.env.PI_CODING_AGENT_DIR;

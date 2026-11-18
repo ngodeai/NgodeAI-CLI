@@ -42,7 +42,7 @@ describe("global --profile flag", () => {
 	let originalProfile: string | undefined;
 	let originalAgentDir = "";
 	let originalAgentDirEnv: string | undefined;
-	let originalOmpProfileEnv: string | undefined;
+	let originalNgodeProfileEnv: string | undefined;
 	let originalPiProfileEnv: string | undefined;
 	let originalConfigDir: string | undefined;
 
@@ -50,7 +50,7 @@ describe("global --profile flag", () => {
 		originalProfile = getActiveProfile();
 		originalAgentDir = getAgentDir();
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
-		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
+		originalNgodeProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
 		originalConfigDir = process.env.PI_CONFIG_DIR;
 		configDir = `.ngode-profile-cli-test-${Snowflake.next()}`;
@@ -73,10 +73,10 @@ describe("global --profile flag", () => {
 		} else {
 			setProfile(undefined);
 		}
-		if (originalOmpProfileEnv === undefined) {
+		if (originalNgodeProfileEnv === undefined) {
 			delete process.env.NGODEAI_PROFILE;
 		} else {
-			process.env.NGODEAI_PROFILE = originalOmpProfileEnv;
+			process.env.NGODEAI_PROFILE = originalNgodeProfileEnv;
 		}
 		if (originalPiProfileEnv === undefined) {
 			delete process.env.PI_PROFILE;

@@ -10,7 +10,7 @@ async function runPrelude(
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
 	const prelude = PYTHON_PRELUDE.replace(
 		"from __future__ import annotations",
-		"from __future__ import annotations\n__omp_emit_status = __omp_emit_image = lambda *args, **kwargs: None",
+		"from __future__ import annotations\n__ngode_emit_status = __ngode_emit_image = lambda *args, **kwargs: None",
 	);
 	const script = `${prelude}\n${code}`;
 	// The full prelude exceeds Windows' ~32k `python -c` command-line limit
@@ -45,11 +45,11 @@ describe("python prelude", () => {
 				"def word_count(text: Annotated[str, 'Text to split'], sep: Literal[' ', ','] = ' ', limit: Optional[int] = None) -> dict:",
 				'    """Count words in text."""',
 				"    return {'count': len(text.split(sep))}",
-				"first = __omp_tools__['word_count'].describe()",
+				"first = __ngode_tools__['word_count'].describe()",
 				"@tool(name='word_count', description='Replacement')",
 				"def replacement(text: str) -> dict:",
 				"    return {'count': 1}",
-				"print(json.dumps({'first': first, 'current': __omp_tools__['word_count'].describe(), 'defined': tool.defined()}, sort_keys=True))",
+				"print(json.dumps({'first': first, 'current': __ngode_tools__['word_count'].describe(), 'defined': tool.defined()}, sort_keys=True))",
 				"print(tool.undefine('word_count'), tool.defined())",
 			].join("\n"),
 			{},

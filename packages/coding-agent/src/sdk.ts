@@ -94,7 +94,7 @@ import "./discovery";
 import { LiveImageUrlService } from "./blob-broker/service";
 import { wrapStreamFnWithBlobUrlFallback } from "./blob-broker/stream-fallback";
 import { initializeWithSettings } from "./discovery";
-import { setInvocationConfiguredExtensions, withOmpExtensionRootScope } from "./discovery/ngode-extension-roots";
+import { setInvocationConfiguredExtensions, withNgodeExtensionRootScope } from "./discovery/ngode-extension-roots";
 import { disposeVmContextsByOwner } from "./eval/js/context-manager";
 import { getEnabledEvalPreludes, type EvalPreludeDefinition } from "./eval/preludes";
 import { disposeAllKernelSessions, disposeKernelSessionsByOwner } from "./eval/py/executor";
@@ -1400,7 +1400,7 @@ function isCustomTool(tool: CustomTool | ToolDefinition): tool is CustomTool {
 }
 
 function isLegacyBuiltinToolDefinition(tool: CustomTool | ToolDefinition): boolean {
-	return !isCustomTool(tool) && "__ompLegacyBuiltinTool" in tool && tool.__ompLegacyBuiltinTool === true;
+	return !isCustomTool(tool) && "__ngodeLegacyBuiltinTool" in tool && tool.__ngodeLegacyBuiltinTool === true;
 }
 
 const TOOL_DEFINITION_MARKER = Symbol("__isToolDefinition");
@@ -1761,7 +1761,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const extensionRoots = options.extensionRoots?.();
 	const explicit = extensionRoots?.explicit ?? options.additionalExtensionPaths ?? [];
 	const mode = extensionRoots?.mode ?? (options.disableExtensionDiscovery ? "explicit-only" : "merge");
-	return await withOmpExtensionRootScope(explicit, mode, () => createAgentSessionScoped(options));
+	return await withNgodeExtensionRootScope(explicit, mode, () => createAgentSessionScoped(options));
 }
 
 async function createAgentSessionScoped(options: CreateAgentSessionOptions): Promise<CreateAgentSessionResult> {

@@ -260,7 +260,7 @@ describe("fixChangelogContent", () => {
 });
 
 const ARCHIVE_LINK =
-	"Older entries are archived in [packages/foo/CHANGELOG.md@abc123def456](https://github.com/can1357/ngodeai/blob/abc123def456abc123def456abc123def456abc1/packages/foo/CHANGELOG.md).";
+	"Older entries are archived in [packages/foo/CHANGELOG.md@abc123def456](https://github.com/ngodeai/NgodeAI-CLI/blob/abc123def456abc123def456abc123def456abc1/packages/foo/CHANGELOG.md).";
 
 const FOUR_SECTIONS = [
 	"# Changelog",
@@ -439,7 +439,7 @@ describe("runChangelogFixer size limit", () => {
 			await git("commit", "-m", "release 1.2.0");
 			await git("tag", "v1.2.0");
 			const head = (await git("rev-parse", "HEAD")).text().trim();
-			const repo = process.env.NGODEAI_REPO ?? process.env.GITHUB_REPOSITORY ?? "can1357/ngodeai";
+			const repo = process.env.NGODEAI_REPO ?? process.env.GITHUB_REPOSITORY ?? "ngodeai/NgodeAI-CLI";
 			const expectedLink = `Older entries are archived in [packages/foo/CHANGELOG.md@${head.slice(0, 12)}](https://github.com/${repo}/blob/${head}/packages/foo/CHANGELOG.md).`;
 
 			// Budget only fits Unreleased + the two newest releases; 1.0.0 collapses.

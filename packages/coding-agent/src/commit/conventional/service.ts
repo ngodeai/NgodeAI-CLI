@@ -73,7 +73,7 @@ export async function generateGitCommit(options: GenerateGitCommitOptions): Prom
 	const numstat = renderNumstat(numstatEntries);
 	const context = await collectGenerationContext(options.cwd, options.signal);
 
-	const inference = new LazyCommitInference(() => createOmpInference(options, settings, config));
+	const inference = new LazyCommitInference(() => createNgodeInference(options, settings, config));
 	try {
 		const result = await generateConventionalCommit({ diff, stat, numstat, config, inference, context });
 		return { ...result, stagedAll };
@@ -82,7 +82,7 @@ export async function generateGitCommit(options: GenerateGitCommitOptions): Prom
 	}
 }
 
-async function createOmpInference(
+async function createNgodeInference(
 	options: GenerateGitCommitOptions,
 	settings: Settings,
 	config: ConventionalGenerationConfig,

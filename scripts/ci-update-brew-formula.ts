@@ -19,7 +19,7 @@ const SERVICE_URL = (process.env.BUILD_URL ?? "https://build.stencil.so").replac
 const HOMEPAGE = "https://ngodeai.net";
 const DESC = "Coding agent with the IDE wired in";
 /** GitHub release assets: the same bytes `release_github` publishes before the build service. */
-const RELEASE_DOWNLOAD_URL = "https://github.com/can1357/ngodeai/releases/download";
+const RELEASE_DOWNLOAD_URL = "https://github.com/ngodeai/NgodeAI-CLI/releases/download";
 
 /** Build-service target of each formula stanza. */
 const FORMULA_TARGETS = {

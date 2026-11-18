@@ -1,6 +1,6 @@
 # @ngodeai/catalog
 
-Model catalog for [ngodeai](https://github.com/can1357/ngodeai): bundled model database, provider discovery, model identity, classification, and equivalence.
+Model catalog for [ngodeai](https://github.com/ngodeai/NgodeAI-CLI): bundled model database, provider discovery, model identity, classification, and equivalence.
 
 ## What's inside
 
@@ -62,5 +62,5 @@ Schedules are materialized from the [`time-based-cost` KDL axis](src/compat/rule
 
 ## References
 
-- [Monorepo README](https://github.com/can1357/ngodeai#readme)
+- [Monorepo README](https://github.com/ngodeai/NgodeAI-CLI#readme)
 - [CHANGELOG](./CHANGELOG.md)

@@ -45,7 +45,7 @@ describe("native hook discovery", () => {
 	let sharedHooks: string;
 	let originalHome: string | undefined;
 	let originalAgentDirEnv: string | undefined;
-	let originalOmpProfileEnv: string | undefined;
+	let originalNgodeProfileEnv: string | undefined;
 	let originalPiProfileEnv: string | undefined;
 
 	beforeEach(async () => {
@@ -53,7 +53,7 @@ describe("native hook discovery", () => {
 		clearFsCache();
 		originalHome = process.env.HOME;
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
-		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
+		originalNgodeProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
 		root = await fs.mkdtemp(path.join(os.tmpdir(), "ngode-builtin-hooks-"));
 		const home = path.join(root, "home");
@@ -77,7 +77,7 @@ describe("native hook discovery", () => {
 		clearFsCache();
 		vi.restoreAllMocks();
 		restoreEnvValue("HOME", originalHome);
-		restoreEnvValue("NGODEAI_PROFILE", originalOmpProfileEnv);
+		restoreEnvValue("NGODEAI_PROFILE", originalNgodeProfileEnv);
 		restoreEnvValue("PI_PROFILE", originalPiProfileEnv);
 		restoreEnvValue("PI_CODING_AGENT_DIR", originalAgentDirEnv);
 		__resetDirsFromEnvForTests();

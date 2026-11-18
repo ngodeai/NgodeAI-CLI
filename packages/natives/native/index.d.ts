@@ -897,14 +897,14 @@ export declare class VcsRepo {
  * current-thread-only global pool that cannot steal work from later native
  * calls. Idempotent.
  */
-export declare function __ompInstallTokioRuntime(): void
+export declare function __ngodeInstallTokioRuntime(): void
 
 /**
  * Points the addon at the directory holding downloaded wasm grammars
  * (`<dir>/<file>`). The loader (`native/loader-state.js`) calls this once
  * with `<natives dir>/grammars`; grammars then load lazily from it.
  */
-export declare function __ompSetGrammarDir(dir: string): void
+export declare function __ngodeSetGrammarDir(dir: string): void
 
 /**
  * Release version stamped into this `.node` after linking.

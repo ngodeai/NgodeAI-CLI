@@ -50,12 +50,12 @@ When authorized to create or edit a contributor-submitted PR, follow the checkli
 - **Promises**: use `Promise.withResolvers()` instead of `new Promise((resolve, reject) => ...)`.
 - **Prompts**: never build prompts in code (no inline strings, template literals, or concatenation). Prompts live in static `.md` files; use Handlebars for dynamic content. Import them via `import content from "./prompt.md" with { type: "text" }` — not `readFile`.
 - **Judge questions**: one JSON file per feature (`src/prompts/judge/<feature>.json`) maps question ids to `{ instructions, criteria? }`. Load it with `judgeQuestions(file)` from `@ngodeai/ai`; fill Handlebars instructions with `renderQuestion(question, context)`. `criteria` sets the kind: a list of levels → score, omitted or `true`/`false` keys only → yes/no, any other labels → choice (`{}` when the caller supplies the labels). Choice labels and answer types come from the JSON keys.
-- **Worker scripts**: workers re-enter the CLI entrypoint; never spawn separate worker entry modules. `cli.ts` declares itself as the worker host at startup (`declareWorkerHostEntry()` from `@ngodeai/utils/env`) and dispatches hidden argv selectors (`__omp_worker_stats_sync`, `__omp_worker_tab`, `__omp_worker_js_eval`, `__omp_worker_tiny_inference`) before loading the command registry. Spawn sites use:
+- **Worker scripts**: workers re-enter the CLI entrypoint; never spawn separate worker entry modules. `cli.ts` declares itself as the worker host at startup (`declareWorkerHostEntry()` from `@ngodeai/utils/env`) and dispatches hidden argv selectors (`__ngode_worker_stats_sync`, `__ngode_worker_tab`, `__ngode_worker_js_eval`, `__ngode_worker_tiny_inference`) before loading the command registry. Spawn sites use:
   ```ts
   import { workerHostEntry } from "@ngodeai/utils";
   const hostEntry = workerHostEntry();
   const worker = hostEntry
-  	? new Worker(hostEntry, { type: "module", argv: ["__omp_worker_<name>"] })
+  	? new Worker(hostEntry, { type: "module", argv: ["__ngode_worker_<name>"] })
   	: new Worker(new URL("./<worker>.ts", import.meta.url).href, { type: "module" });
   ```
   When the process was started from the NgodeAI CLI — source `cli.ts`, npm-bundle `dist/cli.js`, or compiled binary — `workerHostEntry()` is `Bun.main` and the worker re-enters the single entry module, so no per-worker `--compile` entrypoints or bundle entries exist. Outside a CLI host (`bun test`, SDK embedding, standalone `ngodeai-stats`) it returns `null` and the direct-module fallback loads the worker source. New worker kinds MUST add their selector to the dispatch table in `cli.ts` and keep the fallback branch.
@@ -335,8 +335,8 @@ Location: `packages/*/CHANGELOG.md` (per package).
 
 **Attribution:**
 
-- Internal (from issues): `Fixed foo bar ([#123](https://github.com/can1357/ngodeai/issues/123))`.
-- External contributions: `Added feature X ([#456](https://github.com/can1357/ngodeai/pull/456) by [@username](https://github.com/username))`.
+- Internal (from issues): `Fixed foo bar ([#123](https://github.com/ngodeai/NgodeAI-CLI/issues/123))`.
+- External contributions: `Added feature X ([#456](https://github.com/ngodeai/NgodeAI-CLI/pull/456) by [@username](https://github.com/username))`.
 
 ## Releasing
 

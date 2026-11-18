@@ -488,12 +488,26 @@ function sidebarToChecklistStatus(status: SidebarTaskStatus): "pending" | "activ
  */
 export class StatusSidebar implements Component {
 	#state: SidebarState = {};
+	#source?: () => SidebarState | undefined;
 	#width = SIDEBAR_MIN_WIDTH;
 	#visible = true;
 
 	/** Replace the rendered state. An unchanged state keeps the cached rows. */
 	setState(state: SidebarState): void {
 		this.#state = state;
+	}
+
+	/**
+	 * Read state from a live source in addition to the pushed snapshot.
+	 *
+	 * Sections the source returns are re-read at frame time, so token counts,
+	 * spend and elapsed time track the meter under the prompt instead of waiting
+	 * for the next event that happens to call {@link setState}. Sections it omits
+	 * keep the snapshot value, and a source returning nothing leaves the snapshot
+	 * untouched.
+	 */
+	setSource(source: (() => SidebarState | undefined) | undefined): void {
+		this.#source = source;
 	}
 
 	/** Width the pane was last rendered at; the host uses it for split geometry. */
@@ -524,7 +538,7 @@ export class StatusSidebar implements Component {
 		const innerWidth = Math.max(1, this.#width - 2);
 		const contentWidth = Math.max(1, innerWidth - PAD_X * 2);
 		const rows: string[] = [];
-		const { tasks, context, usage, git, model, decisionModel, agents } = this.#state;
+		const { tasks, context, usage, git, model, decisionModel, agents } = { ...this.#state, ...this.#source?.() };
 		// The plan is unbounded — a five-phase run produces thirty rows — while
 		// everything below it is a fixed handful. Left alone, a long plan pushed
 		// CONTEXT/SESSION/GIT/MODEL/AGENTS off the bottom of the pane and the user
@@ -593,7 +607,7 @@ export class StatusSidebar implements Component {
 
 	/** Native mirror of {@link render}: the same sections as TSP nodes. */
 	describe(): NativeNode {
-		const { tasks, context, usage, git, model, decisionModel, agents } = this.#state;
+		const { tasks, context, usage, git, model, decisionModel, agents } = { ...this.#state, ...this.#source?.() };
 		const sections: NativeNode[] = [];
 
 		if (tasks && tasks.length > 0) {

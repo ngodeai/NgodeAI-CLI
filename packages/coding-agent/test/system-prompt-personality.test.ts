@@ -27,12 +27,12 @@ describe("PERSONALITY.md override", () => {
 	let tempDir = "";
 	let tempAgentDir = "";
 	let originalAgentDirEnv: string | undefined;
-	let originalOmpProfileEnv: string | undefined;
+	let originalNgodeProfileEnv: string | undefined;
 	let originalPiProfileEnv: string | undefined;
 
 	beforeEach(() => {
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
-		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
+		originalNgodeProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
 		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-personality-"));
 		tempAgentDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-personality-agent-"));
@@ -41,7 +41,7 @@ describe("PERSONALITY.md override", () => {
 
 	afterEach(() => {
 		restoreEnvValue("PI_CODING_AGENT_DIR", originalAgentDirEnv);
-		restoreEnvValue("NGODEAI_PROFILE", originalOmpProfileEnv);
+		restoreEnvValue("NGODEAI_PROFILE", originalNgodeProfileEnv);
 		restoreEnvValue("PI_PROFILE", originalPiProfileEnv);
 		__resetDirsFromEnvForTests();
 		removeSyncWithRetries(tempDir);

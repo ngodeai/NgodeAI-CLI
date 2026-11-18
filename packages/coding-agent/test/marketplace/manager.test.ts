@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { listOmpExtensionRoots } from "@ngodeai/coding-agent/discovery/ngode-extension-roots";
+import { listNgodeExtensionRoots } from "@ngodeai/coding-agent/discovery/ngode-extension-roots";
 import { getEnabledPlugins } from "@ngodeai/coding-agent/extensibility/plugins/loader";
 import { PluginManager } from "@ngodeai/coding-agent/extensibility/plugins/manager";
 import {
@@ -736,7 +736,7 @@ describe("MarketplaceManager", () => {
 			await manager.addMarketplace(FIXTURE_DIR);
 			await manager.installPlugin("hello-plugin", "test-marketplace");
 
-			const roots = await listOmpExtensionRoots({
+			const roots = await listNgodeExtensionRoots({
 				cwd: tmpHome,
 				home: tmpHome,
 				repoRoot: null,

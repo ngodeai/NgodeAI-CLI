@@ -130,4 +130,39 @@ describe("composer sidebar split", () => {
 		for (const row of plan.viewport) expect(visibleWidth(row)).toBe(140);
 		composer.stop();
 	});
+
+	/**
+	 * Context occupancy moves between events (mid-turn token growth, spend). The
+	 * pane must read it at frame time, so two frames painted from one snapshot
+	 * disagree only because the live source advanced — no setSidebar() between.
+	 */
+	it("repaints context and spend from the live source without a new snapshot", () => {
+		const columns = 140;
+		const { composer } = composerWith(24, columns);
+		let usedTokens = 2_000;
+		let cost = 0.01;
+		composer.setSidebarSource(() => ({
+			context: { usedTokens, maxTokens: 100_000, percent: (usedTokens / 100_000) * 100 },
+			usage: { inputTokens: usedTokens, outputTokens: 100, cost, elapsedMs: 1_000 },
+		}));
+		try {
+			const first = composer
+				.renderFrame({ columns, rows: 24 })
+				.viewport.map(row => Bun.stripANSI(row))
+				.join("\n");
+			expect(first).toContain("2%");
+
+			usedTokens = 61_000;
+			cost = 0.42;
+			const second = composer
+				.renderFrame({ columns, rows: 24 })
+				.viewport.map(row => Bun.stripANSI(row))
+				.join("\n");
+			expect(second).toContain("61%");
+			expect(second).toContain("$0.42");
+			expect(first).not.toContain("61%");
+		} finally {
+			composer.stop();
+		}
+	});
 });

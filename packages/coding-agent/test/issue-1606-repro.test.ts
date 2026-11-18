@@ -1,5 +1,5 @@
 /**
- * Regression for https://github.com/can1357/ngodeai/issues/1606
+ * Regression for https://github.com/ngodeai/NgodeAI-CLI/issues/1606
  *
  * On Windows, `onnxruntime-node`'s NAPI finalizer segfaults Bun during
  * shutdown after `@huggingface/transformers` has loaded a tiny model in a
@@ -8,7 +8,7 @@
  * in the parent's address space and crashed the CLI on exit.
  *
  * The fix relocates the worker to its own process: `title-client.ts` spawns
- * `process.execPath … __omp_worker_tiny_inference` (detached, owning a
+ * `process.execPath … __ngode_worker_tiny_inference` (detached, owning a
  * per-model IPC endpoint), `cli.ts` dispatches that flag into `runTinyWorker`,
  * and the ngodeai process only ever holds a connection to it — the native finalizer never
  * runs in an ngodeai address space. These tests pin that contract so a future

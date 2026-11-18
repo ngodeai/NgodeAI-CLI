@@ -9,7 +9,7 @@ declare module "puppeteer-core" {
 }
 
 /** Global property under which `installWebMcpPageHook` stores its page bridge. */
-export const WEBMCP_BRIDGE_KEY = "__ompWebMcpBridge_v1";
+export const WEBMCP_BRIDGE_KEY = "__ngodeWebMcpBridge_v1";
 const MAX_RESULT_BYTES = 64 * 1024;
 const MAX_SUMMARY_BYTES = 4 * 1024;
 const MAX_SUMMARY_DESCRIPTION_BYTES = 160;

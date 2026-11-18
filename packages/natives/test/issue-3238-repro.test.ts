@@ -1,5 +1,5 @@
 /**
- * Regression for https://github.com/can1357/ngodeai/issues/3238.
+ * Regression for https://github.com/ngodeai/NgodeAI-CLI/issues/3238.
  *
  * On macOS x64 (Intel), `ngodeai stats` builds only the `modern`
  * (`ngode_natives.darwin-x64-modern.node`) variant when the host has AVX2,

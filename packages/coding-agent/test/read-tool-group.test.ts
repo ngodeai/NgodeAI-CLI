@@ -435,7 +435,7 @@ describe("readArgsCollapseIntoGroup", () => {
 		["skill://my-skill/file.md"],
 		["ngodeai://docs/tools/read.md"],
 		["issue://123"],
-		["pr://can1357/ngodeai/456"],
+		["pr://ngodeai/NgodeAI-CLI/456"],
 		["agent://abc"],
 		["artifact://abc"],
 		["memory://root"],

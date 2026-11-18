@@ -7,7 +7,7 @@
  * sub-directories (`skills/`, `hooks/`, `tools/`, `commands/`, `rules/`,
  * `prompts/`, `.mcp.json`) are wired into discovery by `ngode-plugins.ts`.
  *
- * CLI-provided paths are injected via {@link injectOmpExtensionCliRoots}
+ * CLI-provided paths are injected via {@link injectNgodeExtensionCliRoots}
  * before discovery runs. Capability loads supply the effective `extensions`
  * setting; direct callers reconstruct its array-replacement precedence from
  * canonical YAML config and legacy `settings.json`.
@@ -67,7 +67,7 @@ const invocationRootScope = new AsyncLocalStorage<InvocationRootScope>();
 let injectedCliRoots: InjectedRoot[] = [];
 let injectedCliRootMode: NgodeExtensionRootMode = "merge";
 
-export interface InjectOmpExtensionCliRootOptions {
+export interface InjectNgodeExtensionCliRootOptions {
 	/**
 	 * `explicit-only` exposes only roots named by this CLI invocation. Use it
 	 * with `--no-extensions` so configured and installed packages cannot
@@ -82,9 +82,9 @@ export interface InjectOmpExtensionCliRootOptions {
  * Run one SDK invocation with its own extension-package roots. Async resources
  * started inside `callback` retain this scope, including discovery deliberately
  * deferred until the end of session startup. Raw relative paths are resolved by
- * {@link listOmpExtensionRoots} against that invocation's active cwd.
+ * {@link listNgodeExtensionRoots} against that invocation's active cwd.
  */
-export function withOmpExtensionRootScope<T>(
+export function withNgodeExtensionRootScope<T>(
 	paths: readonly string[],
 	mode: NgodeExtensionRootMode,
 	callback: () => T,
@@ -97,7 +97,7 @@ export function withOmpExtensionRootScope<T>(
  * `Settings`-resolved provenance) on the active invocation scope so
  * sub-discovery honors overlays/runtime overrides and foreign project
  * providers without reading the process-global settings singleton. No-op
- * outside a {@link withOmpExtensionRootScope} callback.
+ * outside a {@link withNgodeExtensionRootScope} callback.
  */
 export function setInvocationConfiguredExtensions(paths: readonly string[], level: "user" | "project" = "user"): void {
 	const scope = invocationRootScope.getStore();
@@ -114,13 +114,13 @@ export function setInvocationConfiguredExtensions(paths: readonly string[], leve
  * entrypoints have no package sub-tree to scan.
  *
  * Call once during startup before any capability load. Repeated calls extend
- * the registered set; {@link clearOmpExtensionCliRoots} resets for tests.
+ * the registered set; {@link clearNgodeExtensionCliRoots} resets for tests.
  */
-export function injectOmpExtensionCliRoots(
+export function injectNgodeExtensionCliRoots(
 	paths: readonly string[],
 	home: string,
 	cwd: string,
-	options: InjectOmpExtensionCliRootOptions = {},
+	options: InjectNgodeExtensionCliRootOptions = {},
 ): void {
 	if (options.mode) injectedCliRootMode = options.mode;
 	if (options.replace) injectedCliRoots = [];
@@ -142,13 +142,13 @@ export function injectOmpExtensionCliRoots(
 }
 
 /** Drop every CLI-injected root. Tests use this between cases. */
-export function clearOmpExtensionCliRoots(): void {
+export function clearNgodeExtensionCliRoots(): void {
 	injectedCliRoots = [];
 	injectedCliRootMode = "merge";
 }
 
 /** Inspect currently-injected CLI roots (read-only). Exposed for diagnostics + tests. */
-export function getInjectedOmpExtensionCliRoots(): readonly NgodeExtensionRoot[] {
+export function getInjectedNgodeExtensionCliRoots(): readonly NgodeExtensionRoot[] {
 	return injectedCliRoots.map(({ path: p, level }) => ({ path: p, level, name: path.basename(p) }));
 }
 
@@ -280,7 +280,7 @@ async function isDirectory(p: string): Promise<boolean> {
  * entrypoints contribute zero sub-discovery surface and are filtered out.
  * Installed-plugin enumeration failures degrade gracefully at `debug`.
  */
-export async function listOmpExtensionRoots(ctx: LoadContext): Promise<NgodeExtensionRoot[]> {
+export async function listNgodeExtensionRoots(ctx: LoadContext): Promise<NgodeExtensionRoot[]> {
 	const scopedRoots = invocationRootScope.getStore();
 	// Explicit lane, in precedence order: caller-provided reload value, then the
 	// construction-time invocation scope, then process-level CLI injection.

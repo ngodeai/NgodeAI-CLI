@@ -6,8 +6,8 @@ import { disableProvider, enableProvider } from "@ngodeai/coding-agent/capabilit
 import { clearCache as clearFsCache } from "@ngodeai/coding-agent/capability/fs";
 import { clearAgentPluginRootCache } from "@ngodeai/coding-agent/discovery/agent-plugin-format";
 import {
-	clearOmpExtensionCliRoots,
-	injectOmpExtensionCliRoots,
+	clearNgodeExtensionCliRoots,
+	injectNgodeExtensionCliRoots,
 } from "@ngodeai/coding-agent/discovery/ngode-extension-roots";
 import { clearClaudePluginRootsCache, injectPluginDirRoots } from "@ngodeai/coding-agent/discovery/helpers";
 import { discoverAgents } from "@ngodeai/coding-agent/task/discovery";
@@ -40,7 +40,7 @@ const CLAUDE_AGENT_MD = [
 	"You are a Claude Code custom subagent.",
 ].join("\n");
 
-async function writeOmpPluginAgent(home: string): Promise<void> {
+async function writeNgodePluginAgent(home: string): Promise<void> {
 	const userPluginsRoot = path.join(home, ".ngodeai", "plugins");
 	const pluginRoot = path.join(userPluginsRoot, "node_modules", "loom");
 	await fs.mkdir(path.join(pluginRoot, "agents"), { recursive: true });
@@ -69,7 +69,7 @@ function agentMd(name: string, model: string): string {
 // controls the declared plugin dialect: `.ngode-plugin/plugin.json` (NGODEAI-native),
 // `.claude-plugin/plugin.json` (Claude Code), `both` (NGODEAI wins by precedence),
 // or `none` (bare directory).
-async function writeOmpMarketplacePlugin(
+async function writeNgodeMarketplacePlugin(
 	home: string,
 	options: {
 		agentName: string;
@@ -84,9 +84,9 @@ async function writeOmpMarketplacePlugin(
 		agentMd(options.agentName, options.model),
 	);
 
-	const wantsOmp = options.manifest === "ngodeai" || options.manifest === "both";
+	const wantsNgode = options.manifest === "ngodeai" || options.manifest === "both";
 	const wantsClaude = options.manifest === "claude" || options.manifest === "both";
-	if (wantsOmp) {
+	if (wantsNgode) {
 		await fs.mkdir(path.join(pluginRoot, ".ngode-plugin"), { recursive: true });
 		await fs.writeFile(
 			path.join(pluginRoot, ".ngode-plugin", "plugin.json"),
@@ -128,7 +128,7 @@ describe("discoverAgents", () => {
 
 	afterEach(async () => {
 		enableProvider("ngode-plugins");
-		clearOmpExtensionCliRoots();
+		clearNgodeExtensionCliRoots();
 		await injectPluginDirRoots(tempHome, []);
 		clearClaudePluginRootsCache();
 		clearAgentPluginRootCache();
@@ -154,7 +154,7 @@ describe("discoverAgents", () => {
 	});
 
 	test("loads agents from NGODEAI npm plugins under <home>/.ngodeai/plugins/node_modules", async () => {
-		await writeOmpPluginAgent(tempHome);
+		await writeNgodePluginAgent(tempHome);
 
 		const { agents } = await discoverAgents(projectDir, tempHome);
 		const names = agents.map(agent => agent.name);
@@ -163,7 +163,7 @@ describe("discoverAgents", () => {
 	});
 
 	test("excludes NGODEAI npm plugin agents when ngode-plugins is disabled", async () => {
-		await writeOmpPluginAgent(tempHome);
+		await writeNgodePluginAgent(tempHome);
 		disableProvider("ngode-plugins");
 
 		const { agents } = await discoverAgents(projectDir, tempHome);
@@ -173,7 +173,7 @@ describe("discoverAgents", () => {
 	});
 
 	test("CLI extension agents win over project `extensions:` settings on dedup", async () => {
-		// listOmpExtensionRoots returns roots in source-precedence order
+		// listNgodeExtensionRoots returns roots in source-precedence order
 		// (CLI > project settings > user settings > installed plugins). Agents
 		// must honor that order so the `task` surface dedups identically to
 		// the skills/hooks/tools surface in discovery/ngode-plugins.ts.
@@ -195,7 +195,7 @@ describe("discoverAgents", () => {
 			path.join(projectDir, ".ngodeai", "settings.json"),
 			JSON.stringify({ extensions: [projectExt] }),
 		);
-		injectOmpExtensionCliRoots([cliExt], tempHome, projectDir);
+		injectNgodeExtensionCliRoots([cliExt], tempHome, projectDir);
 
 		const { agents } = await discoverAgents(projectDir, tempHome);
 		const collide = agents.find(agent => agent.name === "collide");
@@ -225,10 +225,10 @@ describe("discoverAgents", () => {
 			path.join(projectDir, ".ngodeai", "settings.json"),
 			JSON.stringify({ extensions: [settingsExt] }),
 		);
-		await writeOmpPluginAgent(tempHome);
+		await writeNgodePluginAgent(tempHome);
 
-		injectOmpExtensionCliRoots([staleExt], tempHome, projectDir);
-		injectOmpExtensionCliRoots([explicitExt], tempHome, projectDir, {
+		injectNgodeExtensionCliRoots([staleExt], tempHome, projectDir);
+		injectNgodeExtensionCliRoots([explicitExt], tempHome, projectDir, {
 			mode: "explicit-only",
 			replace: true,
 		});
@@ -265,7 +265,7 @@ describe("discoverAgents", () => {
 		// origin "ngodeai" roots. An NGODEAI-native package (no Claude manifest) uses NGODEAI
 		// model selectors, so `model:` must survive discovery.
 		enableProvider("claude-plugins");
-		await writeOmpMarketplacePlugin(tempHome, {
+		await writeNgodeMarketplacePlugin(tempHome, {
 			agentName: "ngode-probe",
 			model: '["@advisor", "@smol"]',
 			manifest: "none",
@@ -282,7 +282,7 @@ describe("discoverAgents", () => {
 		// origin "ngodeai" but a `.claude-plugin` package: its `model: sonnet` is a
 		// Claude alias, not an NGODEAI selector, so it must still be stripped.
 		enableProvider("claude-plugins");
-		await writeOmpMarketplacePlugin(tempHome, {
+		await writeNgodeMarketplacePlugin(tempHome, {
 			agentName: "claude-probe",
 			model: "sonnet",
 			manifest: "claude",
@@ -299,7 +299,7 @@ describe("discoverAgents", () => {
 		// `.ngode-plugin/plugin.json` wins over a sibling `.claude-plugin/plugin.json`,
 		// mirroring the MCP-config precedence, so NGODEAI selectors survive.
 		enableProvider("claude-plugins");
-		await writeOmpMarketplacePlugin(tempHome, {
+		await writeNgodeMarketplacePlugin(tempHome, {
 			agentName: "hybrid-probe",
 			model: '["@advisor", "@smol"]',
 			manifest: "both",

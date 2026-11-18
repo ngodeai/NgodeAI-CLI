@@ -43,7 +43,7 @@ describe("profile directories", () => {
 	let originalProfile: string | undefined;
 	let originalAgentDirEnv: string | undefined;
 	let originalNgodeaiAgentDirEnv: string | undefined;
-	let originalOmpProfileEnv: string | undefined;
+	let originalNgodeProfileEnv: string | undefined;
 	let originalPiProfileEnv: string | undefined;
 	let originalConfigDir: string | undefined;
 	let originalXdgDataHome: string | undefined;
@@ -55,7 +55,7 @@ describe("profile directories", () => {
 		originalProfile = getActiveProfile();
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
 		originalNgodeaiAgentDirEnv = process.env.NGODEAI_AGENT_DIR;
-		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
+		originalNgodeProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
 		originalConfigDir = process.env.PI_CONFIG_DIR;
 		originalXdgDataHome = process.env.XDG_DATA_HOME;
@@ -111,10 +111,10 @@ describe("profile directories", () => {
 		} else {
 			process.env.NGODEAI_AGENT_DIR = originalNgodeaiAgentDirEnv;
 		}
-		if (originalOmpProfileEnv === undefined) {
+		if (originalNgodeProfileEnv === undefined) {
 			delete process.env.NGODEAI_PROFILE;
 		} else {
-			process.env.NGODEAI_PROFILE = originalOmpProfileEnv;
+			process.env.NGODEAI_PROFILE = originalNgodeProfileEnv;
 		}
 		if (originalPiProfileEnv === undefined) {
 			delete process.env.PI_PROFILE;

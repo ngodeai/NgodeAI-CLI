@@ -5808,7 +5808,7 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "ngode-ast"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "anyhow",
  "ast-grep-core",
@@ -5843,7 +5843,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-builtins"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "ansi-width",
  "anyhow",
@@ -5931,11 +5931,11 @@ dependencies = [
 
 [[package]]
 name = "ngode-diff"
-version = "1.0.0"
+version = "1.0.9"
 
 [[package]]
 name = "ngode-edit"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "async-trait",
  "ngode-ast",
@@ -5955,7 +5955,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-iso"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "async-trait",
  "libc",
@@ -5967,7 +5967,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-natives"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "anyhow",
  "arboard",
@@ -6059,7 +6059,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-predict"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "anyhow",
  "candle-core",
@@ -6077,7 +6077,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-shell"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6108,7 +6108,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-vcs"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "futures",
  "gix",
@@ -6124,7 +6124,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-vfs"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "async-trait",
  "libc",
@@ -6137,7 +6137,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-voice"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "bytes",
  "flume",
@@ -6151,7 +6151,7 @@ dependencies = [
 
 [[package]]
 name = "ngode-walker"
-version = "1.0.0"
+version = "1.0.9"
 dependencies = [
  "globset",
  "ignore",

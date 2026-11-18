@@ -25,7 +25,7 @@ describe("renderFormula", () => {
 			const file = FILES[key as keyof typeof FILES];
 			const asset = file.url.slice(file.url.lastIndexOf("/") + 1);
 			expect(formula).toContain(
-				`url "${file.url}",\n          using: :nounzip\n      mirror "https://github.com/can1357/ngodeai/releases/download/v18.8.9/${asset}"\n      sha256 "${file.sha256}"`,
+				`url "${file.url}",\n          using: :nounzip\n      mirror "https://github.com/ngodeai/NgodeAI-CLI/releases/download/v18.8.9/${asset}"\n      sha256 "${file.sha256}"`,
 			);
 		}
 	});

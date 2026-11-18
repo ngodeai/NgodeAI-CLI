@@ -51,7 +51,7 @@ describe("listClaudePluginRoots", () => {
 	let testAgentDir: string;
 	let originalHome: string | undefined;
 	let originalAgentDirEnv: string | undefined;
-	let originalOmpProfileEnv: string | undefined;
+	let originalNgodeProfileEnv: string | undefined;
 	let originalPiProfileEnv: string | undefined;
 	let originalClaudeConfigDir: string | undefined;
 
@@ -60,7 +60,7 @@ describe("listClaudePluginRoots", () => {
 		clearFsCache();
 		originalHome = process.env.HOME;
 		originalAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
-		originalOmpProfileEnv = process.env.NGODEAI_PROFILE;
+		originalNgodeProfileEnv = process.env.NGODEAI_PROFILE;
 		originalPiProfileEnv = process.env.PI_PROFILE;
 		originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
 		delete process.env.CLAUDE_CONFIG_DIR;
@@ -83,7 +83,7 @@ describe("listClaudePluginRoots", () => {
 		// setAgentDir() clears the profile env vars and snapshots the agent dir,
 		// so restore every env var it can touch before rebuilding the resolver.
 		restoreEnvValue("HOME", originalHome);
-		restoreEnvValue("NGODEAI_PROFILE", originalOmpProfileEnv);
+		restoreEnvValue("NGODEAI_PROFILE", originalNgodeProfileEnv);
 		restoreEnvValue("PI_PROFILE", originalPiProfileEnv);
 		restoreEnvValue("PI_CODING_AGENT_DIR", originalAgentDirEnv);
 		restoreEnvValue("CLAUDE_CONFIG_DIR", originalClaudeConfigDir);

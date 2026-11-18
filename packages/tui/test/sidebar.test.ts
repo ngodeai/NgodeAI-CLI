@@ -356,4 +356,35 @@ describe("StatusSidebar", () => {
 		// A cutoff below the pane minimum would collapse the pane immediately.
 		expect(SIDEBAR_SPLIT_AT).toBeGreaterThan(SIDEBAR_MIN_WIDTH * 2);
 	});
+
+	it("renders the live source without a new snapshot", () => {
+		// The host pushes a snapshot on events; context and spend move between
+		// them, so the pane must re-read those at frame time.
+		const sidebar = new StatusSidebar();
+		let usedTokens = 10_000;
+		sidebar.setSource(() => ({ context: { usedTokens, maxTokens: 100_000 } }));
+		const first = plain(sidebar.render(32)).join("\n");
+		expect(first).toContain("10%");
+
+		usedTokens = 42_000;
+		const second = plain(sidebar.render(32)).join("\n");
+		expect(second).toContain("42%");
+	});
+
+	it("falls back to the pushed snapshot when the source yields nothing", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState(fullState);
+		sidebar.setSource(() => undefined);
+		expect(plain(sidebar.render(32)).join("\n")).toContain("main");
+	});
+
+	it("lets the live source override only the sections it returns", () => {
+		const sidebar = new StatusSidebar();
+		sidebar.setState(fullState);
+		sidebar.setSource(() => ({ context: { usedTokens: 150_000, maxTokens: 200_000 } }));
+		const text = plain(sidebar.render(32)).join("\n");
+		expect(text).toContain("75%");
+		// The snapshot's other sections survive the merge.
+		expect(text).toContain("main");
+	});
 });

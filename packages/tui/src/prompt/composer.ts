@@ -295,6 +295,7 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	 * composer that never opts in renders exactly as before.
 	 */
 	#sidebar: StatusSidebar | undefined;
+	#sidebarSource: (() => SidebarState | undefined) | undefined;
 	#sidebarWidth = 38;
 	#sidebarEnabled = true;
 	#sidebarVisible = false;
@@ -445,6 +446,19 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 		}
 		this.#sidebar ??= new StatusSidebar();
 		this.#sidebar.setState(state);
+		this.#sidebar.setSource(this.#sidebarSource);
+	}
+
+	/**
+	 * Install a live state reader for the sidebar.
+	 *
+	 * Sections that change between events (context tokens, spend, elapsed time)
+	 * are read at frame time, so the pane cannot lag the meter under the prompt
+	 * until the next plan/model/agent event pushes a fresh snapshot.
+	 */
+	setSidebarSource(source: (() => SidebarState | undefined) | undefined): void {
+		this.#sidebarSource = source;
+		this.#sidebar?.setSource(source);
 	}
 
 	/** Turn the sidebar off without discarding it, or back on. */

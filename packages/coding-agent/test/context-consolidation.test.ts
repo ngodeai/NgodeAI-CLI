@@ -349,6 +349,16 @@ describe("Context usage consolidation", () => {
 		const cu = session.getContextUsage();
 		expect(cu?.tokens).toBe(used!);
 
+		// The sidebar mirrors the meter under the prompt, so the host reads the
+		// same numbers through one accessor rather than recomputing them.
+		const meter = sl.getContextMeter();
+		expect(meter.usedTokens).toBe(used!);
+		// The mock model is created with a 100k window; the meter reports the
+		// session's own resolution of it, not the raw model field.
+		expect(meter.contextWindow).toBe(100_000);
+		expect(meter.percent).not.toBeNull();
+		expect(meter.percent!).toBeCloseTo((used! / mockModel.contextWindow) * 100, 6);
+
 		await tempDir.remove();
 	});
 
